@@ -7,14 +7,18 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+actix-http = "1"
 actix-web = "2.0"
 actix-rt = "1"
-
+actix-service = "1.0.0"
+futures = "0.3"
 r2d2 = "0.8"
 r2d2-diesel = "1.0.0"
-
+diesel = { version = "1.4.3", features = ["postgres", "r2d2"] }
+num-traits = "0.2"
+num-derive = "0.3"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
+failure = "0.1"
 
-diesel = { version = "1.4.3", features = ["postgres"] }

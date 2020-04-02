@@ -1,19 +1,10 @@
-
-use diesel::prelude::*;
-use diesel::pg::PgConnection;
-
 use super::schema;
 
-mod acl;
-mod antispam;
+// Anti-spam module.
+pub mod antispam;
+// Error flags and structures.
 pub mod error;
+// Structs reflect database table.
 pub mod models;
-pub mod manager;
-
-
-fn establish_connection() -> PgConnection
-{
-    let database_url = "postgresql://user:password@address:port/database";
-    PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
-}
+// Interfaces.
+pub mod actions;

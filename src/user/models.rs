@@ -3,17 +3,15 @@ use super::schema::oa_bindings;
 use super::schema::persons;
 
 
+pub const LOGIN_WECHAT: i32 = 0;
+pub const LOGIN_USERNAME: i32 = 1;
 
-const LOGIN_WECHAT: i32 = 0;
-const LOGIN_USERNAME: i32 = 1;
+pub const STATUS_NORMAL: i32 = 0;
+pub const STATUS_DISABLED: i32 = 1;
+pub const STATUS_NEW: i32 = 2;
 
-const STATUS_NORMAL: i32 = 0;
-const STATUS_DISABLED: i32 = 1;
-const STATUS_NEW: i32 = 2;
-
-const ROLE_NORMAL: i16 = 0;
-const ROLE_ADMINISTRATOR: i16 = 1;
-
+pub const ROLE_NORMAL: i16 = 0;
+pub const ROLE_ADMINISTRATOR: i16 = 1;
 
 
 #[derive(Debug, Queryable, Insertable)]
@@ -45,14 +43,12 @@ pub struct Person {
     pub role: i16,
 }
 
-
 #[derive(Insertable)]
 #[table_name="persons"]
 pub struct NewPerson {
     pub status: i32,
     pub role: i16,
 }
-
 
 #[derive(Queryable, Insertable)]
 #[table_name="oa_bindings"]
@@ -77,8 +73,6 @@ impl Verification {
         }
     }
 }
-
-
 
 impl NewPerson
 {

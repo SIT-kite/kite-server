@@ -1,71 +1,38 @@
-#![allow(non_snake_case)]
+//! The server module is which accepts and processes requests for client and
+//! then calls business logic functions. Server controls database as it do
+//! some permission check in acl_middleware
 
-use serde::{Serialize, Deserialize};
-use actix_web::{web, App, http, HttpRequest, HttpServer, Responder, HttpResponse};
+use actix_web::{App, HttpServer, web, HttpResponse};
+use diesel::r2d2::{self, ConnectionManager};
+use diesel::PgConnection;
 
-async fn greet(req: HttpRequest) -> impl Responder {
-    "Hello world!"
-}
+// Access control for requests.
+mod acl_middleware;
+// User related interfaces.
+mod user_service;
+// Error structures and handlers
+mod error;
 
-use super::user::models::*;
-use actix_web::cookie::Cookie;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct SessionStru {
-    loginType: i32,
-    wxCode: Option<String>,
-    account: Option<String>,
-    credential: Option<String>,
-}
-
-
-async fn login(form: web::Form<SessionStru>) -> HttpResponse {
-    let  mut v = Verification::new(form.loginType);
-
-    match form.loginType {
-        LOGIN_USERNAME => {
-            if None == form.account || None == form.credential {
-                return HttpResponse::BadRequest().body("");
-            }
-            v.account = form.account.as_ref().unwrap().parse().unwrap();
-            v.credential = form.credential.clone();
-        },
-        LOGIN_WECHAT => {
-            if None == form.wxCode {
-                return HttpResponse::BadRequest().body("");
-            }
-            v.account = form.wxCode.as_ref().unwrap().parse().unwrap();
-        },
-        _ => {
-            return HttpResponse::BadRequest().body("");
-        }
-    }
-    let uid = match v.login() {
-        Ok(u) => u,
-        Err(_) => { println!("error"); 0}
-    };
-    let cookie: Cookie = Cookie::build("token", format!("uid={}", uid)).finish();
-    HttpResponse::Ok().cookie(cookie).body("")
-}
-
-
+// TODO: Features
+// - HTTP/2 supported
+// - HTTPS
+// - log to file / database
+// The entrance of server is following.
 #[actix_rt::main]
 pub async fn server_main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    // TODO: Read configuration from file.
+    // Config database.
+    let database_url = "postgresql://user:password@address:port/database";
+    let db_conn = ConnectionManager::<PgConnection>::new(database_url);
+    let pool = r2d2::Pool::builder()
+        .build(db_conn)
+        .expect("Fail to create pool.");
+
+    HttpServer::new(move || {
         App::new()
-            .route("/", web::get().to(greet))
-            // .route("/{name}", web::get().to(greet))
-            .service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/session")
-                            .route("", web::post().to(login))
-                    )
-//                    .service(
-//                        web::scope("/user")
-//                            .route("/{id}", web::)
-//                    )
-            )
+            .data(pool.clone())
+            .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
+            .service(user_service::login)
     })
     .bind("127.0.0.1:8000")?
     .run()
