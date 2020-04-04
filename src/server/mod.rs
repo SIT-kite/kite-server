@@ -2,16 +2,18 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
-use actix_web::{App, HttpServer, web, HttpResponse};
-use diesel::r2d2::{self, ConnectionManager};
+use actix_web::{App, HttpResponse, HttpServer, web};
 use diesel::PgConnection;
+use diesel::r2d2::{self, ConnectionManager};
 
-// Access control for requests.
-mod acl_middleware;
+use crate::config::CONFIG;
+
+mod middlewares;
 // User related interfaces.
 mod user_service;
 // Error structures and handlers
 mod error;
+
 
 // TODO: Features
 // - HTTP/2 supported
@@ -22,7 +24,7 @@ mod error;
 pub async fn server_main() -> std::io::Result<()> {
     // TODO: Read configuration from file.
     // Config database.
-    let database_url = "postgresql://user:password@address:port/database";
+    let database_url = CONFIG.db_string.as_ref().unwrap().as_str();
     let db_conn = ConnectionManager::<PgConnection>::new(database_url);
     let pool = r2d2::Pool::builder()
         .build(db_conn)
@@ -31,10 +33,11 @@ pub async fn server_main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(pool.clone())
+            .wrap(middlewares::auth::Auth)
             .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
             .service(user_service::login)
     })
-    .bind("127.0.0.1:8000")?
+        .bind(&CONFIG.bind_addr.as_ref().unwrap_or(&"0.0.0.0:80".to_string()))?
     .run()
     .await
 }

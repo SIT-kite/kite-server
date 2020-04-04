@@ -1,10 +1,11 @@
-use serde::Deserialize;
-use actix_web::{web, HttpResponse, Error, post, ResponseError};
-use diesel::r2d2::{self, ConnectionManager};
+use actix_web::{Error, HttpResponse, post, ResponseError, web};
 use diesel::PgConnection;
-use crate::user::models::*;
-use crate::user;
+use diesel::r2d2::{self, ConnectionManager};
+use serde::Deserialize;
+
 use crate::server::error::ServerError;
+use crate::user;
+use crate::user::models::*;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -14,9 +15,11 @@ type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 struct SessionStru {
     // loginType. Defined in user/models.rs, value can be either LOGIN_WECHAT
     // or LOGIN_USERNAME
-    loginType: i32,
+    #[serde(rename = "loginType")]
+    login_type: i32,
     // The code that provided by wechat wx.login()
-    wxCode: Option<String>,
+    #[serde(rename = "wxCode")]
+    wechat_code: Option<String>,
     // Used in LOGIN_USERNAME, username
     account: Option<String>,
     // Used in LOGIN_USERNAME, password
@@ -31,15 +34,15 @@ pub async fn login(
 ) -> Result<HttpResponse, ServerError> {
 
     let conn = pool.get()?;
-    let mut auth: Verification = Verification::new(form.loginType);
+    let mut auth: Verification = Verification::new(form.login_type);
 
-    match form.loginType {
+    match form.login_type {
         LOGIN_USERNAME => {
             auth.account = form.account.clone().unwrap().clone();
             auth.credential = form.credential.clone();
         }
         LOGIN_WECHAT => {
-            auth.account = form.wxCode.clone().unwrap().clone();
+            auth.account = form.wechat_code.clone().unwrap().clone();
         }
         _ => {
             return Ok(HttpResponse::BadRequest().finish());

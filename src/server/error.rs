@@ -1,13 +1,14 @@
-
 use std::fmt;
+
+use actix_http::error::BlockingError;
+use actix_http::http::StatusCode;
 use actix_http::ResponseBuilder;
 use actix_web::{error::ResponseError, HttpResponse};
-use crate::user::error::*;
-use actix_http::http::StatusCode;
-use serde::export::Formatter;
-use num_traits::cast::ToPrimitive;
 use diesel::r2d2::PoolError;
-use actix_http::error::BlockingError;
+use num_traits::cast::ToPrimitive;
+use serde::export::Formatter;
+
+use crate::user::error::*;
 
 // Setting custom error
 // See: https://actix.rs/docs/errors/
@@ -20,7 +21,6 @@ pub enum ServerError{
     User(UserError),
     Pool(PoolError),
     Block,
-    // more
 }
 
 

@@ -1,15 +1,26 @@
 #[macro_use]
 extern crate diesel;
-
+#[macro_use]
+extern crate lazy_static;
 #[macro_use]
 extern crate num_derive;
+
+use futures::TryFutureExt;
+use jsonwebtoken as jwt;
+use serde::{Deserialize, Serialize};
+
+use crate::server::server_main;
 
 pub mod user;
 pub mod server;
 pub mod schema;
+pub mod config;
 
-use crate::server::server_main;
-use futures::TryFutureExt;
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    uid: i32,
+    role: String,
+}
 
 
 fn main()
