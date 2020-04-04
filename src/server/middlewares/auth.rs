@@ -8,6 +8,8 @@ use futures::future::{Either, ok, Ready};
 use jsonwebtoken as jwt;
 use serde::{Deserialize, Serialize};
 
+use crate::config::CONFIG;
+
 pub struct Auth;
 
 impl<S, B> Transform<S> for Auth
@@ -59,7 +61,8 @@ impl<S, B> Service for AuthMiddleware<S>
             if let Some((auth_type, auth_credential)) = result {
                 // TODO: 对异常情况应该记录，做到心里有数
                 if auth_type == "Bearer" {
-                    if validate_jwt(auth_credential, "key") {
+                    if validate_jwt(auth_credential,
+                                    &CONFIG.jwt_secret.as_ref().unwrap_or(&"DefaultSecret".to_string())) {
                         is_logged_in = true;
                     }
                 }
