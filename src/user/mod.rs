@@ -8,3 +8,5 @@ pub mod error;
 pub mod models;
 // Interfaces.
 pub mod actions;
+// Wechat ability
+pub mod wechat;

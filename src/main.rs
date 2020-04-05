@@ -6,8 +6,6 @@ extern crate lazy_static;
 extern crate num_derive;
 
 use futures::TryFutureExt;
-use jsonwebtoken as jwt;
-use serde::{Deserialize, Serialize};
 
 use crate::server::server_main;
 
@@ -16,11 +14,6 @@ pub mod server;
 pub mod schema;
 pub mod config;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    uid: i32,
-    role: String,
-}
 
 
 fn main()

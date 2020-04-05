@@ -46,13 +46,13 @@ impl ResponseError for ServerError {
                     StatusCode::from_u16(e.to_u16().unwrap()).unwrap()
                 },
                 UserError::DBError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                _ => {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
             },
-            ServerError::Pool(pool_error) => {
+            _ => {
                 StatusCode::INTERNAL_SERVER_ERROR
             },
-            ServerError::Block => {
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
         }
     }
     fn error_response(&self) -> HttpResponse {

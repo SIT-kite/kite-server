@@ -1,6 +1,6 @@
-
 use diesel::result::Error as DieselError;
 use failure::Fail;
+
 pub type Result<T> = std::result::Result<T, UserError>;
 
 #[derive(Fail, Debug, ToPrimitive)]
@@ -25,6 +25,9 @@ pub enum UserError {
     OpError(OperationError),
     // Database Error.
     DBError(DieselError),
+    // Parsing error.
+    ParsingError,
+    NetworkError,
 }
 
 impl From<OperationError> for UserError {

@@ -62,7 +62,7 @@ impl<S, B> Service for AuthMiddleware<S>
                 // TODO: 对异常情况应该记录，做到心里有数
                 if auth_type == "Bearer" {
                     if validate_jwt(auth_credential,
-                                    &CONFIG.jwt_secret.as_ref().unwrap_or(&"DefaultSecret".to_string())) {
+                                    &CONFIG.jwt_secret.as_ref()) {
                         is_logged_in = true;
                     }
                 }

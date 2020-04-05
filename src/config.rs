@@ -15,8 +15,10 @@ const DEFAULT_CONFIG_PATH: &str = "hotpot.toml";
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub bind_addr: Option<String>,
-    pub db_string: Option<String>,
-    pub jwt_secret: Option<String>,
+    pub db_string: String,
+    pub jwt_secret: String,
+    pub wechat_appid: String,
+    pub wechat_secret: String,
 }
 
 lazy_static! {
@@ -26,10 +28,11 @@ lazy_static! {
 pub fn load_config(config_path: &str) -> Config {
     let config_content = fs::read_to_string(config_path);
     if let Ok(content) = config_content {
-        if let Ok(config) = toml::from_str(content.as_str()) {
+        let toml_result = toml::from_str(content.as_str());
+        if let Ok(config) = toml_result {
             return config;
         }
-        panic!("Failed to parse config: {:#?}", content);
+        panic!("Failed to parse config, err = {:?}\nContent: {:#?}", toml_result, content);
     }
     panic!("Failed to open config: {:#?}", config_content);
 }

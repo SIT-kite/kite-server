@@ -24,7 +24,7 @@ mod error;
 pub async fn server_main() -> std::io::Result<()> {
     // TODO: Read configuration from file.
     // Config database.
-    let database_url = CONFIG.db_string.as_ref().unwrap().as_str();
+    let database_url = CONFIG.db_string.as_str();
     let db_conn = ConnectionManager::<PgConnection>::new(database_url);
     let pool = r2d2::Pool::builder()
         .build(db_conn)
