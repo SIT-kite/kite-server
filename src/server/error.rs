@@ -66,3 +66,6 @@ impl fmt::Display for ServerError {
         write!(f, "{:?}", self.status_code())
     }
 }
+
+// TODO: ServerError和connection error应该是全局的 error, 微信错误和用户错误放在 user 模块里面
+

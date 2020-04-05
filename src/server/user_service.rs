@@ -12,7 +12,7 @@ type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]
-struct SessionStru {
+pub struct SessionStru {
     // loginType. Defined in user/models.rs, value can be either LOGIN_WECHAT
     // or LOGIN_USERNAME
     #[serde(rename = "loginType")]
