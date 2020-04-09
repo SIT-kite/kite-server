@@ -1,5 +1,0 @@
-bind_addr = "0.0.0.0:80"
-db_string = "postgresql://user:password@address:port/database"
-jwt_secret = "secret"
-wechat_appid = "wxfbc5fc9c0a0be9f9"
-wechat_secret = "ab9016e08e8b9d7c36904ed99b12db2d"
