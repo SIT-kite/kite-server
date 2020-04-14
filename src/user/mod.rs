@@ -1,4 +1,3 @@
-use super::schema;
 
 // Anti-spam module.
 pub mod antispam;

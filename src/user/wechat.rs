@@ -9,7 +9,7 @@ use serde_json;
 
 use crate::config::CONFIG;
 use crate::user::error::UserError;
-use crate::user::error::WechatError;
+use crate::user::error::WechatErrorType;
 
 #[macro_export]
 macro_rules! make_parameter {

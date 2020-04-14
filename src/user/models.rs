@@ -1,7 +1,3 @@
-use super::schema::verifications;
-use super::schema::oa_bindings;
-use super::schema::persons;
-
 
 pub const LOGIN_WECHAT: i32 = 0;
 pub const LOGIN_USERNAME: i32 = 1;
@@ -14,8 +10,7 @@ pub const ROLE_NORMAL: i16 = 0;
 pub const ROLE_ADMINISTRATOR: i16 = 1;
 
 
-#[derive(Debug, Queryable, Insertable)]
-#[table_name="verifications"]
+#[derive(Debug)]
 pub struct Verification {
     pub id: i32,
     pub uid: i32,
@@ -25,8 +20,7 @@ pub struct Verification {
 }
 
 
-#[derive(Debug, Queryable, Insertable)]
-#[table_name="persons"]
+#[derive(Debug)]
 pub struct Person {
     pub id: i32,
     pub uid: i32,
@@ -43,15 +37,13 @@ pub struct Person {
     pub role: i16,
 }
 
-#[derive(Insertable)]
-#[table_name="persons"]
+#[derive(Debug)]
 pub struct NewPerson {
     pub status: i32,
     pub role: i16,
 }
 
-#[derive(Queryable, Insertable)]
-#[table_name="oa_bindings"]
+#[derive(Debug)]
 pub struct OABinding {
     pub id: i32,
     pub uid: i32,
