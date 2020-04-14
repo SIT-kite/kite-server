@@ -11,8 +11,6 @@ use crate::config::CONFIG;
 mod middlewares;
 // User related interfaces.
 mod user;
-// Error structures and handlers
-mod error;
 mod db;
 
 
@@ -25,7 +23,7 @@ mod db;
 #[actix_rt::main]
 pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
-    let mut cfg = db::load_pg_config();
+    let cfg = db::load_pg_config();
     let pool = cfg.create_pool(NoTls).expect("Failed to create pool.");
 
     // Run actix-web server.

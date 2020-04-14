@@ -1,10 +1,12 @@
 use actix_web::{Error, HttpResponse, post, ResponseError, web};
-use deadpool_postgres::Pool;
-use serde::Deserialize;
+use deadpool_postgres::{ClientWrapper, Pool};
+use serde::{Deserialize, Serialize};
 
-use crate::server::error::ServerError;
+use crate::error::ServerError;
+use crate::server::middlewares::auth::JwtClaims;
 use crate::user;
-use crate::user::models::*;
+use crate::user::NormalResponse;
+use crate::user::wechat::WxSession;
 
 #[derive(Debug, Deserialize)]
 pub struct SessionStru {
@@ -28,22 +30,43 @@ pub async fn login(
     form: web::Form<SessionStru>
 ) -> Result<HttpResponse, ServerError> {
     let conn = pool.get().await?;
-    let mut auth: Verification = Verification::new(form.login_type);
+    let parameters: SessionStru = form.into_inner();
+    let uid;
 
-    match form.login_type {
-        LOGIN_USERNAME => {
-            auth.account = form.account.clone().unwrap().clone();
-            auth.credential = form.credential.clone();
+    // 对应不同登录方式，验证登录凭据，获取用户ID（uid）
+    match parameters {
+        // 用户名密码方式登录
+        SessionStru {
+            login_type: LOGIN_USERNAME,
+            account: Some(username),
+            credential: Some(password),
+            ..
+        } => {
+            uid = user::actions::login(&conn, username, password).await?;
         }
-        LOGIN_WECHAT => {
-            auth.account = form.wechat_code.clone().unwrap().clone();
+        // 微信方式登录
+        SessionStru {
+            login_type: LOGIN_WECHAT,
+            wechat_code: Some(wechat_code),
+            ..
+        } => {
+            // 微信登录流程
+            // 用前端提供的临时动态字符串换取 session_key 和用户的 openid
+            // 然后在数据库查询
+            let wechat_token: WxSession = user::wechat::get_session_by_code(wechat_code.as_str()).await?;
+            uid = user::actions::wechat_login(&conn, wechat_token.openid).await?;
         }
         _ => {
             return Ok(HttpResponse::BadRequest().finish());
         }
     }
-
-
-    // Ok(HttpResponse::Ok().body(uid.to_string()))
-    Ok(HttpResponse::Ok().body(""))
+    // 生成 JWT 字符串并返回
+    let claim = JwtClaims { uid };
+    let claim_string = serde_json::to_string(&claim).unwrap_or(String::from(""));
+    #[derive(Serialize)]
+    struct LoginResponse {
+        token: String,
+    }
+    let resp = serde_json::to_string(&LoginResponse { token: claim_string }).unwrap();
+    Ok(HttpResponse::Ok().body(NormalResponse::new(resp).to_string()))
 }

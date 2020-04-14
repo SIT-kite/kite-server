@@ -6,13 +6,14 @@ use actix_http::http::StatusCode;
 use actix_http::ResponseBuilder;
 use actix_web::{error::ResponseError, HttpResponse};
 use deadpool_postgres::PoolError;
-use failure::_core::fmt::Error;
 use failure::Fail;
 use num_traits::cast::ToPrimitive;
 use serde::export::Formatter;
 use serde::Serialize;
+use tokio_postgres::Error as PgError;
 
-use crate::user::error::UserError;
+use crate::error::InnerError;
+use crate::error::UserError;
 
 // Setting custom error
 // See: https://actix.rs/docs/errors/
@@ -20,13 +21,15 @@ use crate::user::error::UserError;
 // See: https://doc.rust-lang.org/std/fmt/trait.Display.html
 
 
+// There are two types of Error can be converted to ServerError
+// T: std::error::Error and CustomError(like user error)
 #[derive(Debug, Serialize)]
 pub struct ServerError {
+    #[serde(rename(serialize = "code"))]
     inner_code: u16,
+    #[serde(rename(serialize = "msg"), skip_serializing_if = "String::is_empty")]
     error_msg: String,
 }
-
-// macro_rules
 
 macro_rules! convert_custom_error {
     ($sub_error_type: ident) => {
@@ -34,13 +37,12 @@ macro_rules! convert_custom_error {
         fn from(sub_error: $sub_error_type) -> Self
         {
             Self {
-                inner_code: sub_error.code(),
+                inner_code: sub_error.to_u16().unwrap_or(1),
                 error_msg: sub_error.to_string(),
             }
         }
     }}
 }
-
 
 macro_rules! convert_standard_error {
     ($sub_error_type: ident) => {
@@ -55,8 +57,10 @@ macro_rules! convert_standard_error {
     }}
 }
 
-convert_custom_error!(UserError);
+convert_standard_error!(PgError);
 convert_standard_error!(PoolError);
+convert_standard_error!(InnerError);
+
 
 
 impl fmt::Display for ServerError {
@@ -64,13 +68,14 @@ impl fmt::Display for ServerError {
         write!(f, "ServerError {{code: {}, msg: {}}} ", self.inner_code, self.error_msg)
     }
 }
+
 impl ResponseError for ServerError {
     // Always return 200 ok and prompt real code at json body.
     fn status_code(&self) -> StatusCode { StatusCode::OK }
     // Make json response body for error.
     fn error_response(&self) -> HttpResponse {
         ResponseBuilder::new(self.status_code())
-            .body(serde_json::to_string(&self).unwrap())
+            .body(serde_json::to_string(&self).unwrap_or(r"{code: 1}".to_string()))
     }
 }
 

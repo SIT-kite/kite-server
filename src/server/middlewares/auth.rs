@@ -104,18 +104,18 @@ fn parse_auth_line(auth_string: &HeaderValue) -> Option<(&str, &str)> {
 
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct Claims {
-    uid: i32,
+pub struct JwtClaims {
+    pub uid: i32,
 }
 
 
-fn decode_jwt(token: &str, key: &str) -> Option<Claims> {
+fn decode_jwt(token: &str, key: &str) -> Option<JwtClaims> {
     let decoding_key = jwt::DecodingKey::from_secret(key.as_ref());
     let option = jwt::Validation {
         validate_exp: false,
         ..jwt::Validation::default()
     };
-    let t = jwt::decode::<Claims>(&token, &decoding_key, &option);
+    let t = jwt::decode::<JwtClaims>(&token, &decoding_key, &option);
 
     if let Ok(token_data) = t {
         Some(token_data.claims)
@@ -163,7 +163,7 @@ mod tests {
         let key = "secret";
         let jwt_string = r"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOjEwfQ.jNHERe-nmbsUSi4mn3z9IsLTuN5dQGdHHlgFRh5mNUA";
         let claims = decode_jwt(jwt_string, key).unwrap();
-        assert_eq!(claims, Claims {
+        assert_eq!(claims, JwtClaims {
             uid: 10
         });
     }
