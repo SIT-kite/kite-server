@@ -11,13 +11,15 @@ pub mod wechat;
 
 
 #[derive(Debug, Serialize)]
-pub struct NormalResponse {
+pub struct NormalResponse<T>
+{
     code: u16,
-    pub data: String,
+    pub data: T,
 }
 
-impl NormalResponse {
-    pub fn new(data: String) -> NormalResponse {
+impl<T> NormalResponse<T>
+{
+    pub fn new(data: T) -> NormalResponse<T> {
         NormalResponse {
             code: 0,
             data,
@@ -25,7 +27,9 @@ impl NormalResponse {
     }
 }
 
-impl ToString for NormalResponse {
+impl<T> ToString for NormalResponse<T>
+    where T: Serialize
+{
     fn to_string(&self) -> String {
         if let Ok(body_json) = serde_json::to_string(&self) {
             return body_json;

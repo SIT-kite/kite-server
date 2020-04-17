@@ -14,7 +14,7 @@ pub async fn login(client: &Client, username: String, password: String) -> Resul
     if !rows.is_empty() {
         return Ok(rows[0].try_get(0)?);
     }
-    Err(UserError::LoginFailed)
+    Err(ServerError::from(UserError::LoginFailed))
 }
 
 
@@ -22,6 +22,10 @@ pub async fn wechat_login(client: &Client, open_id: String) -> Result<i32> {
     let statment = client.prepare(
         "SELECT uid FROM authentication WHERE login_type = 0 AND account = $1").await?;
     let rows = client.query(&statment, &[&open_id]).await?;
-    Ok(rows[0].try_get(0)?)
+
+    if !rows.is_empty() {
+        return Ok(rows[0].try_get(0)?);
+    }
+    Err(ServerError::from(UserError::LoginFailed))
 }
 

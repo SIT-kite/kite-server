@@ -9,6 +9,7 @@ use jsonwebtoken as jwt;
 use serde::{Deserialize, Serialize};
 
 use crate::config::CONFIG;
+use crate::jwt::*;
 
 pub struct Auth;
 
@@ -61,8 +62,7 @@ impl<S, B> Service for AuthMiddleware<S>
             if let Some((auth_type, auth_credential)) = result {
                 // TODO: 对异常情况应该记录，做到心里有数
                 if auth_type == "Bearer" {
-                    if validate_jwt(auth_credential,
-                                    &CONFIG.jwt_secret.as_ref()) {
+                    if validate_jwt(auth_credential) {
                         is_logged_in = true;
                     }
                 }
@@ -102,69 +102,3 @@ fn parse_auth_line(auth_string: &HeaderValue) -> Option<(&str, &str)> {
     None
 }
 
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct JwtClaims {
-    pub uid: i32,
-}
-
-
-fn decode_jwt(token: &str, key: &str) -> Option<JwtClaims> {
-    let decoding_key = jwt::DecodingKey::from_secret(key.as_ref());
-    let option = jwt::Validation {
-        validate_exp: false,
-        ..jwt::Validation::default()
-    };
-    let t = jwt::decode::<JwtClaims>(&token, &decoding_key, &option);
-
-    if let Ok(token_data) = t {
-        Some(token_data.claims)
-    } else {
-        None
-    }
-}
-
-fn validate_jwt(token: &str, key: &str) -> bool {
-    decode_jwt(token, key) != None
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_normal_parse_auth_line() {
-        let line = HeaderValue::from_static("Basic YWxhZGRpbjpvcGVuc2VzYW1l");
-        let (auth_type, auth_credential) = parse_auth_line(&line)
-            .expect("Failed to parse: \"Basic YWxhZGRpbjpvcGVuc2VzYW1l\"");
-
-        assert_eq!(auth_type, "Basic");
-        assert_eq!(auth_credential, "YWxhZGRpbjpvcGVuc2VzYW1l");
-    }
-
-    #[test]
-    fn test_bad_parse_auth_line() {
-        let line = HeaderValue::from_static("Basic");
-        let result = parse_auth_line(&line);
-        assert_eq!(result, None);
-
-        let line = HeaderValue::from_static("");
-        let result = parse_auth_line(&line);
-        assert_eq!(result, None);
-
-        let line = HeaderValue::from_static("Basic p1 p2");
-        let result = parse_auth_line(&line);
-        assert_eq!(result, None);
-    }
-
-    #[test]
-    fn test_normal_jwt_decode() {
-        let key = "secret";
-        let jwt_string = r"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOjEwfQ.jNHERe-nmbsUSi4mn3z9IsLTuN5dQGdHHlgFRh5mNUA";
-        let claims = decode_jwt(jwt_string, key).unwrap();
-        assert_eq!(claims, JwtClaims {
-            uid: 10
-        });
-    }
-}

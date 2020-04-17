@@ -2,8 +2,9 @@ use actix_web::{Error, HttpResponse, post, ResponseError, web};
 use deadpool_postgres::{ClientWrapper, Pool};
 use serde::{Deserialize, Serialize};
 
+use crate::error::Result;
 use crate::error::ServerError;
-use crate::server::middlewares::auth::JwtClaims;
+use crate::jwt::{encode_jwt, JwtClaims};
 use crate::user;
 use crate::user::NormalResponse;
 use crate::user::wechat::WxSession;
@@ -27,9 +28,13 @@ pub struct SessionStru {
 #[post("/session")]
 pub async fn login(
     pool: web::Data<Pool>,
-    form: web::Form<SessionStru>
-) -> Result<HttpResponse, ServerError> {
-    let conn = pool.get().await?;
+    form: web::Form<SessionStru>,
+) -> Result<HttpResponse> {
+    let conn = pool.get().await;
+    if let Err(e) = conn {
+        return Err(ServerError::from(String::from("连接池异常")));
+    }
+    let conn = conn.unwrap();
     let parameters: SessionStru = form.into_inner();
     let uid;
 
@@ -61,12 +66,11 @@ pub async fn login(
         }
     }
     // 生成 JWT 字符串并返回
-    let claim = JwtClaims { uid };
-    let claim_string = serde_json::to_string(&claim).unwrap_or(String::from(""));
     #[derive(Serialize)]
     struct LoginResponse {
         token: String,
     }
-    let resp = serde_json::to_string(&LoginResponse { token: claim_string }).unwrap();
+
+    let resp = LoginResponse { token: encode_jwt(&JwtClaims { uid })? };
     Ok(HttpResponse::Ok().body(NormalResponse::new(resp).to_string()))
 }

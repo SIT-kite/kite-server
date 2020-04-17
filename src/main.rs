@@ -15,7 +15,7 @@ pub mod user;
 pub mod server;
 pub mod config;
 pub mod error;
-
+pub mod jwt;
 
 fn main()
 {
