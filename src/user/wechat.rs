@@ -33,22 +33,20 @@ macro_rules! wx_function {
             // create actix-web client for request.
             let mut client = Client::default();
             let url = format!("{}?{}", $addr, param);
+            // return Err(ServerError::from(url));
             let response = client.get(url).send().await;
 
             match response {
                 // Note: Sending successfully, not receiving.
                 Ok(mut r) => {
                     // Wechat server always return HTTP 200, with errcode field when parameter error.
-                    if r.status().is_success() {
-                        // Resolve json string or give an empty json.
-                        let body_string = r.body().await?;
-                        let body_json: $structure = serde_json::from_slice(body_string.as_ref())?;
-                        return Ok(body_json);
-                    }
-                    Err(ServerError::from(format!("Wechat interface returned:{}", r.status())))
+                    // Decode json string or give an empty json.
+                    let body_string = r.body().await?;
+                    let body_json: $structure = serde_json::from_slice(body_string.as_ref())?;
+                    return Ok(body_json);
                 }
-                Err(_) => {
-                    Err(ServerError::from(String::from("Failed to connect wechat interface.")))
+                Err(e) => {
+                    Err(ServerError::from(format!("While connecting to wechat server: {}", e)))
                 }
             }
         } // End of function.
@@ -76,7 +74,6 @@ struct AccessTokenResponse {
     errcode: Option<u16>,
     errmsg: Option<String>,
 }
-
 
 wx_function!(_get_session_key, SessionResponse, "https://api.weixin.qq.com/sns/jscode2session");
 wx_function!(_get_access_token, AccessTokenResponse, "https://api.weixin.qq.com/cgi-bin/token");

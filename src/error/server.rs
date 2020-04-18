@@ -73,9 +73,12 @@ macro_rules! convert_inner_errors {
     }}
 }
 
+
 convert_inner_errors!(String);
 convert_inner_errors!(PayloadError);
 convert_inner_errors!(WxErr);
 convert_inner_errors!(JsonError);
 convert_inner_errors!(PgError);
 convert_inner_errors!(JwtError);
+convert_inner_errors!(PoolError);
+

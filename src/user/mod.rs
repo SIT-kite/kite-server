@@ -17,6 +17,10 @@ pub struct NormalResponse<T>
     pub data: T,
 }
 
+#[derive(Serialize)]
+struct EmptyReponse;
+
+
 impl<T> NormalResponse<T>
 {
     pub fn new(data: T) -> NormalResponse<T> {

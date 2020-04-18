@@ -12,7 +12,7 @@ mod middlewares;
 // User related interfaces.
 mod user;
 mod db;
-
+mod acl;
 
 
 // TODO: Features
@@ -33,6 +33,8 @@ pub async fn server_main() -> std::io::Result<()> {
             .wrap(middlewares::auth::Auth)
             .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
             .service(user::login)
+            .service(user::create_user)
+            .service(user::bind_authentication)
     })
         .bind(&CONFIG.bind_addr.as_str())?
         .run()

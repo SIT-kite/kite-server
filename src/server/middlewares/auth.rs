@@ -1,6 +1,6 @@
 use std::task::{Context, Poll};
 
-use actix_http::http::HeaderValue;
+use actix_http::http::{HeaderValue, Method};
 use actix_service::{Service, Transform};
 use actix_web::{Error, http, HttpResponse};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
@@ -50,8 +50,9 @@ impl<S, B> Service for AuthMiddleware<S>
     }
 
     fn call(&mut self, req: ServiceRequest) -> Self::Future {
-        // Check path() whether in whitelist (some pages can be accessed anonymous) and pass.
-        if check_anonymous_list(req.path()) {
+        // 检查请求的 path 和请求方法
+        // 对可匿名访问的页面予以放行
+        if check_anonymous_list(req.method(), req.path()) {
             return Either::Left(self.service.call(req));
         }
         let mut is_logged_in = false;
@@ -81,10 +82,17 @@ impl<S, B> Service for AuthMiddleware<S>
     }
 }
 
-fn check_anonymous_list(path: &str) -> bool {
+fn check_anonymous_list(method: &Method, path: &str) -> bool {
     match path {
         "/session" => true,
-        _ => false,
+        "/user" => method == Method::POST,
+        _ => {
+            if path.ends_with("/authentication") && path.starts_with("/user/") {
+                true
+            } else {
+                false
+            }
+        },
     }
 }
 
