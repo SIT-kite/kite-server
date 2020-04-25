@@ -4,9 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::{Result, ServerError, UserError};
 use crate::user::models::{LOGIN_USERNAME, LOGIN_WECHAT, Person, Verification};
 
-// Require to verify the credential and login.
-// The function will return an error::Result. When the process success, an i32 value as uid
-// will be returned. Otherwise, a UserError enum, provides the reason.
+// 使用用户名密码登录，登录成功返回用户的 uid
 pub async fn login(client: &Client, username: String, password: String) -> Result<i32> {
     let statement = client.prepare(
         "SELECT uid FROM authentication WHERE login_type = 1 AND account = $1 AND credential = $2 LIMIT 1").await?;

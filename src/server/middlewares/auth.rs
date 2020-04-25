@@ -87,6 +87,7 @@ fn check_anonymous_list(method: &Method, path: &str) -> bool {
         "/session" => true,
         "/user" => method == Method::POST,
         _ => {
+            // TODO
             if path.ends_with("/authentication") && path.starts_with("/user/") {
                 true
             } else {
