@@ -1,97 +1,83 @@
 use chrono::NaiveDateTime;
-use serde_json;
-use tokio_postgres::Client;
+use diesel::prelude::*;
 
-use crate::error::{Result, ServerError};
+use crate::error::{EventError, Result, ServerError};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Event {
-    publisher: i32,
-    title: String,
-    description: String,
-    #[serde(rename = "startTime")]
-    start_time: NaiveDateTime,
-    #[serde(rename = "endTime")]
-    end_time: NaiveDateTime,
-    tag: String,
-    #[serde(rename = "maxPeople")]
-    max_people: i16,
-    place: String,
-    image: String,
-    attachments: Vec<String>,
-}
+use super::*;
 
-#[derive(Fail, Debug, ToPrimitive)]
-pub enum EventError {
-    #[fail(display = "重复创建活动")]
-    DuplicatedEvent = 8,
-    #[fail(display = "找不到这个活动")]
-    NoSuchEvent = 9,
+pub fn create(client: &PgConnection, new_event: &Event) -> Result<i32> {
+    use self::schema::events::dsl::*;
+
+    let new_event_id = diesel::insert_into(events)
+        .values(new_event)
+        .returning(event_id)
+        .get_result::<i32>(client)?;
+    Ok(new_event_id)
 }
 
 
-pub async fn create_event(client: &Client, event: &Event) -> Result<i32> {
-    let statement = client.prepare(
-        "INSERT INTO events (publisher_uid, title, description, start_time, end_time, tag, place, image, attachment)\
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING (event_id)").await?;
-    let row = client.query_one(&statement, &[&event.publisher, &event.title, &event.description,
-        &event.start_time, &event.end_time, &event.tag, &event.place, &event.image, &event.attachments]).await?;
+pub fn list_events(client: &PgConnection, page_index: u32, page_size: u32) -> Result<Vec<EventSummary>> {
+    use self::schema::events::dsl::*;
 
-    Ok(rows[0].try_get(0)?)
+    let event_records: Vec<Event> = events.order(id.desc())
+        .offset(((page_index - 1) * page_size) as i64)
+        .limit(page_size as i64)
+        .get_results::<Event>(client)?;
+    // TODO: Add publish time for events.
+    Ok(event_records.into_iter().map(|event| event.summarize()).rev().collect())
 }
 
-#[derive(Debug, Serialize)]
-pub struct EventBase {
-    event_id: i32,
-    publisher: String,
-    title: String,
-    tag: String,
-    place: String,
-    #[serde(rename = "startTime")]
-    start_time: NaiveDateTime,
-    #[serde(rename = "endTime")]
-    end_time: NaiveDateTime,
-    image: String,
-    attachments: Vec<String>,
-}
+pub fn list_all_events(client: &PgConnection, page_index: u32, page_size: u32) -> Result<Vec<EventSummary>> {
+    use self::schema::events::dsl::*;
 
-pub async fn list_events(client: &Client, page_index: u32, page_size: u32) -> Result<Vec<EventBase>> {
-    let statement = client.prepare(
-        "SELECT e.event_id, p.nick_name as publisher, e.title, e.tag, e.place, e.start_time, e.end_time, e.image  \
-         FROM events as e, persons as p \
-         WHERE e.deleted is not true \
-         OFFSET $1 LIMIT $2").await?;
-    let rows = client.query(&statement, &[&((page_index - 1) * page_size), &page_size]).await?;
-    let results = rows.iter().map(|row| {
-        EventBase {
-            event_id: row.get(0),
-            publisher: row.get(1),
-            title: row.get(2),
-            tag: row.get(3),
-            place: row.get(4),
-            start_time: row.get(5),
-            end_time: row.get(6),
-            image: row.get(7),
-            attachments: Vec::new(),
-        }
-    }).collect();
-
-    Ok(results)
+    let event_records: Vec<Event> = events.order(id.desc())
+        .filter(deleted.eq(false))
+        .offset(((page_index - 1) * page_size) as i64)
+        .limit(page_size as i64)
+        .get_results::<Event>(client)?;
+    // TODO: Add publish time for events.
+    Ok(event_records.into_iter().map(|event| event.summarize()).rev().collect())
 }
 
 
-pub async fn delete_event(client: &Client) -> Result<()> {
-    let statement = client.prepare("UPDATE events SET deleted = 1 WHERE event_id = $1").await?;
-    // result is equal to the count of affected rows
-    // TODO: check result to confirm the event is actually deleted.
-    let result = client.execute(&statement, &[]).await?;
+pub fn delete_event(client: &PgConnection, event_to_delete: i32) -> Result<()> {
+    use self::schema::events::dsl::*;
 
+    diesel::update(events.filter(event_id.eq(event_to_delete)))
+        .set(deleted.eq(true))  // Soft delete.
+        .execute(client)?;
     Ok(())
 }
 
-pub async fn get_event(client: &Client, event_id: i32) -> Result<Event> {}
-// event::delete
-// event::get
+
+pub fn get_event(client: &PgConnection, event_to_get: i32) -> Result<Event> {
+    use self::schema::events::dsl::*;
+
+    let event: Option<Event> = events.filter(event_id.eq(event_to_get))
+        .first::<Event>(client)
+        .optional()?;
+    match event {
+        Some(e) => Ok(e),
+        None => Err(ServerError::from(EventError::NoSuchEvent))
+    }
+}
+
+
+pub struct Applicants {
+    /// User id.
+    pub uid: i32,
+    /// Nickname.
+    pub nick_name: String,
+    /// Avatar.
+    pub avatar: String,
+
+    // TODO: implement real name field.
+    // ..
+}
+
+// pub fn get_applicants(client: &PgConnection, event_to_query: i32) -> Result<Vec<Applicants>> {
+//     // 返回所有 applicants. 后期 join 查询 OA Bindings
+// }
 // event::get_applicant
 // event::pariticipate
 // user::get_events

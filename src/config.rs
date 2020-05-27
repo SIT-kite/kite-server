@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fs;
 
 use serde::Deserialize;
@@ -19,16 +18,8 @@ pub struct Config {
     pub wechat_appid: String,
     // Secret for wechat interface.
     pub wechat_secret: String,
-    // User for postgresql.
-    pub db_user: String,
-    // Password.
-    pub db_passwd: String,
-    // Postgres host.
-    pub db_host: String,
-    // Postgresql database port at host.
-    pub db_port: u16,
-    // database name.
-    pub db_name: String,
+    // Database for postgresql.
+    pub db_string: String,
 }
 
 lazy_static! {

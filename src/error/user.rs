@@ -1,7 +1,5 @@
 use failure::Fail;
-use num_traits::{FromPrimitive, ToPrimitive};
 
-use crate::error::ServerError;
 
 #[derive(Fail, Debug, ToPrimitive)]
 pub enum UserError {

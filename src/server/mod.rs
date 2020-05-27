@@ -3,15 +3,14 @@
 //! some permission check in acl_middleware
 
 use actix_web::{App, HttpResponse, HttpServer, web};
-use deadpool_postgres::{Config as DeadpoolConfig, Manager as PoolManager, Pool};
-use tokio_postgres::NoTls;
+use diesel::PgConnection;
+use diesel::r2d2::{self, ConnectionManager};
 
 use crate::config::CONFIG;
 
 mod middlewares;
 // User related interfaces.
 mod user;
-mod db;
 mod acl;
 
 
@@ -23,8 +22,9 @@ mod acl;
 #[actix_rt::main]
 pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
-    let cfg = db::load_pg_config();
-    let pool = cfg.create_pool(NoTls).expect("Failed to create pool.");
+    let manager = ConnectionManager::<PgConnection>::new(&CONFIG.db_string);
+    let pool = r2d2::Pool::new(manager)
+        .expect("Could not create database pool");
 
     // Run actix-web server.
     HttpServer::new(move || {
@@ -33,8 +33,6 @@ pub async fn server_main() -> std::io::Result<()> {
             .wrap(middlewares::auth::Auth)
             .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
             .service(user::login)
-            .service(user::create_user)
-            .service(user::bind_authentication)
     })
         .bind(&CONFIG.bind_addr.as_str())?
         .run()

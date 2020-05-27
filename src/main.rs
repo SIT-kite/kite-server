@@ -1,13 +1,14 @@
 extern crate chrono;
 #[macro_use]
+extern crate diesel;
+#[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate num_derive;
 
-use futures::TryFutureExt;
-
+// Import main function.
 use crate::server::server_main;
 
 pub mod user;
@@ -17,6 +18,10 @@ pub mod server;
 pub mod config;
 pub mod error;
 pub mod jwt;
+
+// Imporrt library.
+// #[warn(unused_imports)]
+// use futures::TryFutureExt;
 
 
 fn main()

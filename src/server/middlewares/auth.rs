@@ -1,14 +1,10 @@
 use std::task::{Context, Poll};
-
 use actix_http::http::{HeaderValue, Method};
 use actix_service::{Service, Transform};
-use actix_web::{Error, http, HttpResponse};
+use actix_web::{Error, HttpResponse};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use futures::future::{Either, ok, Ready};
-use jsonwebtoken as jwt;
-use serde::{Deserialize, Serialize};
 
-use crate::config::CONFIG;
 use crate::jwt::*;
 
 pub struct Auth;
@@ -84,6 +80,7 @@ impl<S, B> Service for AuthMiddleware<S>
 
 fn check_anonymous_list(method: &Method, path: &str) -> bool {
     match path {
+        "/" => true,
         "/session" => true,
         "/user" => method == Method::POST,
         _ => {

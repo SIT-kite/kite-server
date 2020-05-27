@@ -1,9 +1,6 @@
-use std::collections::HashMap;
-use std::sync::Arc;
 
-use actix_http::HttpMessage;
-use actix_web::client::{Client, Connector};
-use actix_web::web::Bytes;
+use actix_web::client::Client;
+// use actix_web::web::Bytes;
 use failure::Fail;
 use serde::Deserialize;
 use serde_json;
@@ -31,7 +28,7 @@ macro_rules! wx_function {
     ($fn_name: ident, $structure: ident, $addr: expr) => {
         async fn $fn_name(param: &str) -> Result<$structure, ServerError> {
             // create actix-web client for request.
-            let mut client = Client::default();
+            let client = Client::default();
             let url = format!("{}?{}", $addr, param);
             // return Err(ServerError::from(url));
             let response = client.get(url).send().await;
