@@ -13,9 +13,12 @@ pub fn encode_jwt(claims: &JwtClaims) -> Result<String> {
     let key = &CONFIG.jwt_secret.as_ref();
     let encoding_key = jsonwebtoken::EncodingKey::from_secret(key);
 
-    Ok(jsonwebtoken::encode(&jsonwebtoken::Header::default(), &claims, &encoding_key)?)
+    Ok(jsonwebtoken::encode(
+        &jsonwebtoken::Header::default(),
+        &claims,
+        &encoding_key,
+    )?)
 }
-
 
 pub fn decode_jwt(token: &str) -> Option<JwtClaims> {
     let key = &CONFIG.jwt_secret.as_ref();

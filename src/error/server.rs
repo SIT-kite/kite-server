@@ -1,9 +1,9 @@
 use std::fmt;
 
-use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_http::error::PayloadError;
+use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_web::{error::ResponseError, HttpResponse};
-use diesel::r2d2::PoolError as PoolError;
+use diesel::r2d2::PoolError;
 use diesel::result::Error as DbError;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
@@ -20,7 +20,6 @@ use crate::user::wechat::WxErr;
 // fmt::Display
 // See: https://doc.rust-lang.org/std/fmt/trait.Display.html
 
-
 // 对外部接口来说，逻辑错误返回相应的错误码，由各模块提供的错误类型提供错误码和提示信息
 // 内部模块（如数据库、网络）错误返回错误类型 1（内部错误），并返回相应的错误信息提示
 #[derive(Debug, Serialize)]
@@ -33,13 +32,19 @@ pub struct ServerError {
 
 impl fmt::Display for ServerError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "ServerError {{code: {}, msg: {}}} ", self.inner_code, self.error_msg)
+        write!(
+            f,
+            "ServerError {{code: {}, msg: {}}} ",
+            self.inner_code, self.error_msg
+        )
     }
 }
 
 impl ResponseError for ServerError {
     // Always return 200 ok and prompt real code at json body.
-    fn status_code(&self) -> StatusCode { StatusCode::OK }
+    fn status_code(&self) -> StatusCode {
+        StatusCode::OK
+    }
     // Make json response body for error.
     fn error_response(&self) -> HttpResponse {
         ResponseBuilder::new(self.status_code())
@@ -67,14 +72,15 @@ impl From<EventError> for ServerError {
 
 macro_rules! convert_inner_errors {
     ($src_err_type: ident) => {
-    impl From<$src_err_type> for ServerError {
-        fn from(sub_err: $src_err_type) -> Self {
-            Self {
-                inner_code: 1,
-                error_msg: sub_err.to_string(),
+        impl From<$src_err_type> for ServerError {
+            fn from(sub_err: $src_err_type) -> Self {
+                Self {
+                    inner_code: 1,
+                    error_msg: sub_err.to_string(),
+                }
             }
         }
-    }}
+    };
 }
 
 convert_inner_errors!(String);
@@ -84,4 +90,3 @@ convert_inner_errors!(JsonError);
 convert_inner_errors!(DbError);
 convert_inner_errors!(JwtError);
 convert_inner_errors!(PoolError);
-

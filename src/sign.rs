@@ -7,7 +7,6 @@ use schema::events;
 pub mod event;
 mod schema;
 
-
 /* Models */
 
 /// A event which corresponds to one activity.
@@ -45,7 +44,6 @@ pub struct Event {
     pub attachments: Option<Vec<i32>>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EventSummary {
     pub event_id: i32,
@@ -68,7 +66,6 @@ pub struct EventSummary {
     /// Preview thumbnail in the event list.
     pub image: String,
 }
-
 
 impl Event {
     pub fn default() -> Event {

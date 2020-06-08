@@ -1,16 +1,15 @@
-use actix_web::{HttpResponse, post, web};
-use diesel::PgConnection;
+use actix_web::{post, web, HttpResponse};
 use diesel::r2d2::ConnectionManager;
+use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, ServerError, UserError};
 use crate::jwt::{encode_jwt, JwtClaims};
 use crate::user;
-use crate::user::{NormalResponse, wechat::WxSession};
+use crate::user::{wechat::WxSession, NormalResponse};
 
 pub type Pool<T> = diesel::r2d2::Pool<ConnectionManager<T>>;
 pub type PostgresPool = Pool<PgConnection>;
-
 
 #[derive(Debug, Deserialize)]
 pub struct AuthParameters {
@@ -26,13 +25,11 @@ pub struct AuthParameters {
     credential: Option<String>,
 }
 
-
 #[post("/session")]
 pub async fn login(
     pool: web::Data<PostgresPool>,
-    form: web::Form<AuthParameters>
+    form: web::Form<AuthParameters>,
 ) -> Result<HttpResponse> {
-
     let conn = pool.get()?;
     let parameters: AuthParameters = form.into_inner();
     let uid;
@@ -48,7 +45,9 @@ pub async fn login(
         } => {
             uid = web::block(move || {
                 user::password_login(&conn, username.as_ref(), password.as_ref())
-            }).await.map_err(|e| ServerError::from(e.to_string()))?;
+            })
+            .await
+            .map_err(|e| ServerError::from(e.to_string()))?;
         }
         // 微信方式登录
         AuthParameters {
@@ -59,10 +58,11 @@ pub async fn login(
             // 微信登录流程
             // 用前端提供的临时动态字符串换取 session_key 和用户的 openid
             // 然后在数据库查询
-            let wechat_token: WxSession = user::wechat::get_session_by_code(wechat_code.as_str()).await?;
-            uid = web::block(move || {
-                user::wechat_login(&conn, wechat_token.openid.as_ref())
-            }).await.map_err(|e| ServerError::from(e.to_string()))?;
+            let wechat_token: WxSession =
+                user::wechat::get_session_by_code(wechat_code.as_str()).await?;
+            uid = web::block(move || user::wechat_login(&conn, wechat_token.openid.as_ref()))
+                .await
+                .map_err(|e| ServerError::from(e.to_string()))?;
         }
         _ => {
             return Err(ServerError::from(UserError::BadParameter));
@@ -74,7 +74,9 @@ pub async fn login(
         token: String,
     }
 
-    let resp = LoginResponse { token: encode_jwt(&JwtClaims { uid })? };
+    let resp = LoginResponse {
+        token: encode_jwt(&JwtClaims { uid })?,
+    };
     // Ok(HttpResponse::Ok().body(NormalResponse::new(resp).to_string()))
     Ok(HttpResponse::Ok().json(&NormalResponse::new(resp)))
 }

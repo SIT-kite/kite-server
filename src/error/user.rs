@@ -1,6 +1,5 @@
 use failure::Fail;
 
-
 #[derive(Fail, Debug, ToPrimitive)]
 pub enum UserError {
     #[fail(display = "参数错误")]
@@ -16,6 +15,3 @@ pub enum UserError {
     #[fail(display = "找不到用户")]
     NoSuchUser = 16,
 }
-
-
-

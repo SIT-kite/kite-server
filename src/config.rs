@@ -6,7 +6,6 @@ use toml;
 // Look and rename hotpot.toml.example
 const DEFAULT_CONFIG_PATH: &str = "hotpot.toml";
 
-
 #[derive(Debug, Deserialize)]
 pub struct Config {
     // Bind address with type "x.x.x.x:port"
@@ -23,9 +22,8 @@ pub struct Config {
 }
 
 lazy_static! {
-   pub  static ref CONFIG: Config = load_config(DEFAULT_CONFIG_PATH);
+    pub static ref CONFIG: Config = load_config(DEFAULT_CONFIG_PATH);
 }
-
 
 // Load global configuration from DEFAULT_CONFIG_PATH at startup.
 fn load_config(config_path: &str) -> Config {

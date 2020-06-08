@@ -1,6 +1,5 @@
 use diesel::{Insertable, Queryable};
 ///! This module provides the ability to create, update and delete users including authentication tokens.
-
 use serde::Serialize;
 
 // Reuse interfaces in actions mod.
@@ -9,17 +8,16 @@ use schema::{authentication, persons};
 
 /// Interfaces.
 mod actions;
-/// Wechat ability
-pub(crate) mod wechat;
 /// Database schema.
 mod schema;
+/// Wechat ability
+pub(crate) mod wechat;
 
 /* Constants at the edge between self and database. */
 
 /// Login Type.
 const _LOGIN_BY_WECHAT: i32 = 0;
 const _LOGIN_BY_PASSWORD: i32 = 1;
-
 
 /* Models */
 
@@ -40,7 +38,6 @@ pub struct Authentication {
     pub credential: Option<String>,
 }
 
-
 /// Base information of each account.
 #[derive(Default, Debug, Insertable, Queryable)]
 #[table_name = "persons"]
@@ -59,10 +56,8 @@ pub struct Person {
     pub extra: Option<serde_json::Value>,
 }
 
-
 #[derive(Debug, Serialize)]
-pub struct NormalResponse<T>
-{
+pub struct NormalResponse<T> {
     code: u16,
     pub data: T,
 }
@@ -70,19 +65,15 @@ pub struct NormalResponse<T>
 #[derive(Serialize)]
 struct EmptyReponse;
 
-
-impl<T> NormalResponse<T>
-{
+impl<T> NormalResponse<T> {
     pub fn new(data: T) -> NormalResponse<T> {
-        NormalResponse {
-            code: 0,
-            data,
-        }
+        NormalResponse { code: 0, data }
     }
 }
 
 impl<T> ToString for NormalResponse<T>
-    where T: Serialize
+where
+    T: Serialize,
 {
     fn to_string(&self) -> String {
         if let Ok(body_json) = serde_json::to_string(&self) {

@@ -1,4 +1,3 @@
-
 use actix_web::client::Client;
 // use actix_web::web::Bytes;
 use failure::Fail;
@@ -24,7 +23,6 @@ macro_rules! make_parameter {
 
 #[macro_export]
 macro_rules! wx_function {
-
     ($fn_name: ident, $structure: ident, $addr: expr) => {
         async fn $fn_name(param: &str) -> Result<$structure, ServerError> {
             // create actix-web client for request.
@@ -42,14 +40,14 @@ macro_rules! wx_function {
                     let body_json: $structure = serde_json::from_slice(body_string.as_ref())?;
                     return Ok(body_json);
                 }
-                Err(e) => {
-                    Err(ServerError::from(format!("While connecting to wechat server: {}", e)))
-                }
+                Err(e) => Err(ServerError::from(format!(
+                    "While connecting to wechat server: {}",
+                    e
+                ))),
             }
         } // End of function.
     }; // End of pattern.
 } // End of macro_rules.
-
 
 #[derive(Debug, Deserialize)]
 struct SessionResponse {
@@ -63,7 +61,6 @@ struct SessionResponse {
     // unionid: Option<String>,
 }
 
-
 #[derive(Debug, Deserialize)]
 struct AccessTokenResponse {
     access_token: Option<String>,
@@ -72,9 +69,16 @@ struct AccessTokenResponse {
     errmsg: Option<String>,
 }
 
-wx_function!(_get_session_key, SessionResponse, "https://api.weixin.qq.com/sns/jscode2session");
-wx_function!(_get_access_token, AccessTokenResponse, "https://api.weixin.qq.com/cgi-bin/token");
-
+wx_function!(
+    _get_session_key,
+    SessionResponse,
+    "https://api.weixin.qq.com/sns/jscode2session"
+);
+wx_function!(
+    _get_access_token,
+    AccessTokenResponse,
+    "https://api.weixin.qq.com/cgi-bin/token"
+);
 
 #[derive(Debug, Fail)]
 #[fail(display = "Wechat interface error {}: {}.", errcode, errmsg)]
@@ -88,14 +92,17 @@ pub struct WxSession {
     pub openid: String,
 }
 
-
 pub async fn get_session_by_code(wechat_code: &str) -> Result<WxSession, ServerError> {
-    let resp: SessionResponse = _get_session_key(make_parameter!(
-        "appid" => &CONFIG.wechat_appid,
-        "secret" => &CONFIG.wechat_secret,
-        "js_code" => wechat_code,
-        "grant_type" => "authorization_code"
-    ).as_str()).await?;
+    let resp: SessionResponse = _get_session_key(
+        make_parameter!(
+            "appid" => &CONFIG.wechat_appid,
+            "secret" => &CONFIG.wechat_secret,
+            "js_code" => wechat_code,
+            "grant_type" => "authorization_code"
+        )
+        .as_str(),
+    )
+    .await?;
 
     // TODO:
     // 每个函数中的这段 match 代码可以放到 wx_function 宏里面去提前处理错误
@@ -105,41 +112,59 @@ pub async fn get_session_by_code(wechat_code: &str) -> Result<WxSession, ServerE
             session_key: Some(session_key),
             openid: Some(openid),
             ..
-        } => return Ok(WxSession { session_key, openid }),
+        } => {
+            return Ok(WxSession {
+                session_key,
+                openid,
+            })
+        }
         SessionResponse {
             errcode: Some(errcode),
             errmsg: Some(errmsg),
             ..
         } => return Err(ServerError::from(WxErr { errcode, errmsg })),
-        _ => return Err(ServerError::from(WxErr { errcode: 0, errmsg: String::from("Unknown.") })),
+        _ => {
+            return Err(ServerError::from(WxErr {
+                errcode: 0,
+                errmsg: String::from("Unknown."),
+            }))
+        }
     };
 }
-
 
 pub struct WxAccessToken {
     pub access_token: String,
     pub expires_in: i32,
 }
 
-
 pub async fn get_access_token() -> Result<WxAccessToken, ServerError> {
-    let resp: AccessTokenResponse = _get_access_token(make_parameter!(
-        "appid" => &CONFIG.wechat_appid,
-        "secret" => &CONFIG.wechat_secret,
-        "grant_type" => "client_credential"
-    ).as_str()).await?;
+    let resp: AccessTokenResponse = _get_access_token(
+        make_parameter!(
+            "appid" => &CONFIG.wechat_appid,
+            "secret" => &CONFIG.wechat_secret,
+            "grant_type" => "client_credential"
+        )
+        .as_str(),
+    )
+    .await?;
 
     match resp {
         AccessTokenResponse {
             access_token: Some(access_token),
             expires_in: Some(expires_in),
             ..
-        } => Ok(WxAccessToken { access_token, expires_in }),
+        } => Ok(WxAccessToken {
+            access_token,
+            expires_in,
+        }),
         AccessTokenResponse {
             errcode: Some(errcode),
             errmsg: Some(errmsg),
             ..
         } => Err(ServerError::from(WxErr { errcode, errmsg })),
-        _ => Err(ServerError::from(WxErr { errcode: 0, errmsg: String::from("Unknown.") })),
+        _ => Err(ServerError::from(WxErr {
+            errcode: 0,
+            errmsg: String::from("Unknown."),
+        })),
     }
 }

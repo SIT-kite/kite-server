@@ -33,9 +33,4 @@ table! {
     }
 }
 
-
-allow_tables_to_appear_in_same_query!(
-    event_applicants,
-    events,
-);
-
+allow_tables_to_appear_in_same_query!(event_applicants, events,);

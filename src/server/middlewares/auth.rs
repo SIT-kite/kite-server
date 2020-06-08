@@ -1,18 +1,18 @@
-use std::task::{Context, Poll};
 use actix_http::http::{HeaderValue, Method};
 use actix_service::{Service, Transform};
-use actix_web::{Error, HttpResponse};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
-use futures::future::{Either, ok, Ready};
+use actix_web::{Error, HttpResponse};
+use futures::future::{ok, Either, Ready};
+use std::task::{Context, Poll};
 
 use crate::jwt::*;
 
 pub struct Auth;
 
 impl<S, B> Transform<S> for Auth
-    where
-        S: Service<Request=ServiceRequest, Response=ServiceResponse<B>, Error=Error>,
-        S::Future: 'static,
+where
+    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
 {
     type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
@@ -26,15 +26,14 @@ impl<S, B> Transform<S> for Auth
     }
 }
 
-
 pub struct AuthMiddleware<S> {
     service: S,
 }
 
 impl<S, B> Service for AuthMiddleware<S>
-    where
-        S: Service<Request=ServiceRequest, Response=ServiceResponse<B>, Error=Error>,
-        S::Future: 'static,
+where
+    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
 {
     type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
@@ -72,7 +71,7 @@ impl<S, B> Service for AuthMiddleware<S>
             Either::Right(ok(req.into_response(
                 HttpResponse::Forbidden()
                     .body(r#"{"code": 503, "msg": "Login needed.", "data": {}}"#)
-                    .into_body()
+                    .into_body(),
             )))
         }
     }
@@ -90,10 +89,9 @@ fn check_anonymous_list(method: &Method, path: &str) -> bool {
             } else {
                 false
             }
-        },
+        }
     }
 }
-
 
 fn parse_auth_line(auth_string: &HeaderValue) -> Option<(&str, &str)> {
     // https://docs.rs/actix-web/2.0.0/actix_web/http/header/struct.HeaderValue.html#method.to_str
@@ -107,4 +105,3 @@ fn parse_auth_line(auth_string: &HeaderValue) -> Option<(&str, &str)> {
     }
     None
 }
-

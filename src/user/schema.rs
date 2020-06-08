@@ -1,5 +1,3 @@
-
-
 table! {
     authentication (id) {
         id -> Int4,
@@ -21,11 +19,4 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(
-    authentication,
-    persons,
-);
-
-
-
-
+allow_tables_to_appear_in_same_query!(authentication, persons,);
