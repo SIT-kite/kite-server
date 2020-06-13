@@ -2,10 +2,11 @@
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use schema::event_applicants;
 use schema::events;
 
 pub mod event;
-mod schema;
+pub(crate) mod schema;
 
 /* Models */
 
@@ -44,7 +45,7 @@ pub struct Event {
     pub attachments: Option<Vec<i32>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Queryable)]
 pub struct EventSummary {
     pub event_id: i32,
     /// uid of event publisher.

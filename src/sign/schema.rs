@@ -11,6 +11,7 @@ table! {
         apply_time -> Timestamp,
         sign_time -> Nullable<Timestamp>,
         sign_type -> Nullable<Int4>,
+        finished -> Bool,
     }
 }
 
@@ -32,5 +33,3 @@ table! {
         attachments -> Nullable<Array<Int4>>,
     }
 }
-
-allow_tables_to_appear_in_same_query!(event_applicants, events,);

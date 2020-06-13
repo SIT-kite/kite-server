@@ -9,10 +9,10 @@ table! {
 }
 
 table! {
-    persons (id) {
-        id -> Int4,
+    persons (uid) {
         uid -> Int4,
         nick_name -> Varchar,
+        avatar -> Varchar,
         is_disabled -> Bool,
         is_admin -> Bool,
         extra -> Nullable<Jsonb>,
