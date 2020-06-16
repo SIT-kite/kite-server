@@ -3,8 +3,8 @@ use std::fs;
 use serde::Deserialize;
 use toml;
 
-// Look and rename hotpot.toml.example
-const DEFAULT_CONFIG_PATH: &str = "hotpot.toml";
+// Look and rename kite.toml.example
+const DEFAULT_CONFIG_PATH: &str = "kite.toml";
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
