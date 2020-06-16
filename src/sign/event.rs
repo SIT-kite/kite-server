@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use diesel::pg::expression::array_comparison::any;
 use diesel::prelude::*;
 use futures::TryFutureExt;
 
@@ -20,35 +21,25 @@ pub fn list_events(
     client: &PgConnection,
     page_index: u32,
     page_size: u32,
+    filter: Option<String>,
+    all: bool,
 ) -> Result<Vec<EventSummary>> {
     use self::schema::events::dsl::*;
 
-    let event_records: Vec<Event> = events
-        .order(id.desc())
-        .offset(((page_index - 1) * page_size) as i64)
-        .limit(page_size as i64)
-        .get_results::<Event>(client)?;
-    // TODO: Add publish time for events.
-    Ok(event_records
-        .into_iter()
-        .map(|event| event.summarize())
-        .rev()
-        .collect())
-}
+    let mut event_query = events.order(event_id.desc()).into_boxed();
+    if page_index != 0 || page_size != 20 {
+        event_query = event_query
+            .offset(((page_index - 1) * page_size) as i64)
+            .limit(page_size as i64);
+    }
+    if let Some(filter_string) = filter {
+        event_query = event_query.filter(title.like(filter_string.clone()));
+    }
+    if all {
+        event_query = event_query.filter(deleted.eq(true));
+    }
 
-pub fn list_all_events(
-    client: &PgConnection,
-    page_index: u32,
-    page_size: u32,
-) -> Result<Vec<EventSummary>> {
-    use self::schema::events::dsl::*;
-
-    let event_records: Vec<Event> = events
-        .order(id.desc())
-        .filter(deleted.eq(false))
-        .offset(((page_index - 1) * page_size) as i64)
-        .limit(page_size as i64)
-        .get_results::<Event>(client)?;
+    let event_records: Vec<Event> = event_query.get_results::<Event>(client)?;
     // TODO: Add publish time for events.
     Ok(event_records
         .into_iter()
@@ -79,7 +70,7 @@ pub fn get_event(client: &PgConnection, event_to_get: i32) -> Result<Event> {
     }
 }
 
-#[derive(Queryable)]
+#[derive(Serialize, Queryable)]
 pub struct ApplicantResult {
     /// User id.
     pub uid: i32,
@@ -216,4 +207,3 @@ pub fn participate(client: &PgConnection, event_id: i32, uid: i32, sign_type: i3
         .execute(client)?;
     Ok(())
 }
-// user::get_events

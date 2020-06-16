@@ -1,12 +1,13 @@
-use actix_web::{post, web, HttpResponse};
-use diesel::r2d2::ConnectionManager;
+use actix_web::{HttpResponse, post, web};
 use diesel::PgConnection;
+use diesel::r2d2::ConnectionManager;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, ServerError, UserError};
 use crate::jwt::{encode_jwt, JwtClaims};
-use crate::user;
-use crate::user::{wechat::WxSession, NormalResponse};
+use crate::user::{self, wechat::WxSession};
+
+use super::NormalResponse;
 
 pub type Pool<T> = diesel::r2d2::Pool<ConnectionManager<T>>;
 pub type PostgresPool = Pool<PgConnection>;

@@ -16,8 +16,7 @@ table! {
 }
 
 table! {
-    sign.events (id) {
-        id -> Int4,
+    sign.events (event_id) {
         event_id -> Int4,
         publisher_uid -> Int4,
         title -> Varchar,

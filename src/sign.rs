@@ -2,10 +2,11 @@
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+pub use event::*;
 use schema::event_applicants;
 use schema::events;
 
-pub mod event;
+mod event;
 pub(crate) mod schema;
 
 /* Models */
@@ -13,8 +14,6 @@ pub(crate) mod schema;
 /// A event which corresponds to one activity.
 #[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
 pub struct Event {
-    /// ID in inner database.
-    id: i32,
     /// Event id.
     pub event_id: i32,
     /// uid of event publisher.
@@ -71,7 +70,6 @@ pub struct EventSummary {
 impl Event {
     pub fn default() -> Event {
         Event {
-            id: 0,
             event_id: 0,
             publisher_uid: 0,
             title: "".to_string(),

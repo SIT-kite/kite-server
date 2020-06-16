@@ -58,30 +58,3 @@ pub struct Person {
     pub extra: Option<serde_json::Value>,
     // TODO: create_time
 }
-
-#[derive(Debug, Serialize)]
-pub struct NormalResponse<T> {
-    code: u16,
-    pub data: T,
-}
-
-#[derive(Serialize)]
-struct EmptyReponse;
-
-impl<T> NormalResponse<T> {
-    pub fn new(data: T) -> NormalResponse<T> {
-        NormalResponse { code: 0, data }
-    }
-}
-
-impl<T> ToString for NormalResponse<T>
-where
-    T: Serialize,
-{
-    fn to_string(&self) -> String {
-        if let Ok(body_json) = serde_json::to_string(&self) {
-            return body_json;
-        }
-        r"{code: 1}".to_string()
-    }
-}

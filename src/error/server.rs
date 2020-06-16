@@ -1,7 +1,7 @@
 use std::fmt;
 
-use actix_http::error::PayloadError;
 use actix_http::{http::StatusCode, ResponseBuilder};
+use actix_http::error::PayloadError;
 use actix_web::{error::ResponseError, HttpResponse};
 use diesel::r2d2::PoolError;
 use diesel::result::Error as DbError;
@@ -14,6 +14,8 @@ use serde_json::Error as JsonError;
 use crate::error::EventError;
 use crate::error::UserError;
 use crate::user::wechat::WxErr;
+
+// use actix_web::error::BlockingError;
 
 // 自定义错误
 // See: https://actix.rs/docs/errors/

@@ -11,6 +11,7 @@ actix-http = "1"
 actix-web = { version = "2.0", features = ["rustls"] }
 actix-rt = "1"
 actix-service = "1.0.0"
+actix-multipart = "0.2.0"
 futures = "0.3"
 num-traits = "0.2"
 num-derive = "0.3"
@@ -24,3 +25,4 @@ jsonwebtoken = "7"
 lazy_static = "1"
 diesel = { version = "1.0.0", features = ["postgres", "r2d2", "serde_json", "chrono", "uuid"] }
 uuid = { version = "0.8", features = ["serde", "v4"] }
+sanitize-filename = "0.2"
