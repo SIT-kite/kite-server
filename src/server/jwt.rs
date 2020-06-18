@@ -1,15 +1,11 @@
 use jsonwebtoken;
 use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 
 use crate::config::CONFIG;
 use crate::error::Result;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct JwtClaims {
-    pub uid: i32,
-}
-
-pub fn encode_jwt(claims: &JwtClaims) -> Result<String> {
+pub fn encode_jwt<T: Serialize>(claims: &T) -> Result<String> {
     let key = &CONFIG.jwt_secret.as_ref();
     let encoding_key = jsonwebtoken::EncodingKey::from_secret(key);
 
@@ -20,14 +16,14 @@ pub fn encode_jwt(claims: &JwtClaims) -> Result<String> {
     )?)
 }
 
-pub fn decode_jwt(token: &str) -> Option<JwtClaims> {
+pub fn decode_jwt<'a, T: DeserializeOwned>(token: &str) -> Option<T> {
     let key = &CONFIG.jwt_secret.as_ref();
     let decoding_key = jsonwebtoken::DecodingKey::from_secret(key);
     let option = jsonwebtoken::Validation {
         validate_exp: false,
         ..jsonwebtoken::Validation::default()
     };
-    let t = jsonwebtoken::decode::<JwtClaims>(&token, &decoding_key, &option);
+    let t = jsonwebtoken::decode::<T>(&token, &decoding_key, &option);
 
     if let Ok(token_data) = t {
         Some(token_data.claims)
@@ -36,8 +32,8 @@ pub fn decode_jwt(token: &str) -> Option<JwtClaims> {
     }
 }
 
-pub fn validate_jwt(token: &str) -> bool {
-    decode_jwt(token) != None
+pub fn validate_jwt<T: DeserializeOwned>(token: &str) -> bool {
+    decode_jwt::<T>(token).is_some()
 }
 
 // #[cfg(test)]

@@ -13,7 +13,6 @@ use crate::server::server_main;
 
 pub mod config;
 pub mod error;
-pub mod jwt;
 pub mod sale;
 pub mod schema;
 pub mod server;

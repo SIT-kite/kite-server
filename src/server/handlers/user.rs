@@ -4,9 +4,10 @@ use diesel::r2d2::ConnectionManager;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, ServerError, UserError};
-use crate::jwt::{encode_jwt, JwtClaims};
+use crate::server::JwtToken;
 use crate::user::{self, wechat::WxSession};
 
+use super::jwt::encode_jwt;
 use super::NormalResponse;
 
 pub type Pool<T> = diesel::r2d2::Pool<ConnectionManager<T>>;
@@ -76,7 +77,10 @@ pub async fn login(
     }
 
     let resp = LoginResponse {
-        token: encode_jwt(&JwtClaims { uid })?,
+        token: encode_jwt(&JwtToken {
+            uid,
+            is_admin: false,
+        })?,
     };
     // Ok(HttpResponse::Ok().body(NormalResponse::new(resp).to_string()))
     Ok(HttpResponse::Ok().json(&NormalResponse::new(resp)))

@@ -6,12 +6,10 @@ use diesel::r2d2::ConnectionManager;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, ServerError, UserError};
-use crate::jwt::{encode_jwt, JwtClaims};
-use crate::server::get_uid_by_req;
-use crate::sign;
-use crate::sign::{ApplicantResult, Event, EventSummary};
+use crate::server::JwtTokenBox;
+use crate::sign::{self, ApplicantResult, Event, EventSummary};
 
-use super::NormalResponse;
+use super::super::NormalResponse;
 
 /*
     Interfaces in this module:
@@ -154,15 +152,13 @@ pub async fn get_participants(
 pub async fn participate(
     pool: web::Data<PostgresPool>,
     event_id: web::Path<i32>,
-    req: HttpRequest,
+    token: JwtTokenBox,
 ) -> Result<HttpResponse> {
     let conn = pool.get()?;
-    let uid = get_uid_by_req(&req);
     let event: Vec<ApplicantResult>;
 
-    // TODO: 精简代码
-    if let Some(uid) = uid {
-        sign::register(&conn, event_id.into_inner(), uid)?;
+    if let Some(token) = token.value {
+        sign::register(&conn, event_id.into_inner(), token.uid)?;
         return Ok(HttpResponse::Ok().json(&NormalResponse::new("添加成功".to_string())));
     }
     Err(ServerError::from(UserError::Forbidden))

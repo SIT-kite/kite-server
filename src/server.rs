@@ -3,21 +3,21 @@
 //! some permission check in acl_middleware
 
 use actix_http::http::HeaderValue;
-use actix_web::{App, HttpRequest, HttpResponse, HttpServer, web};
+use actix_web::{App, HttpResponse, HttpServer, web};
 use diesel::PgConnection;
 use diesel::r2d2::{self, ConnectionManager};
 use serde::{Deserialize, Serialize};
 
+use handlers::{attachment, sign, user};
+
 use crate::config::CONFIG;
 use crate::error::Result;
-use crate::jwt::*;
 
+mod handlers;
 mod middlewares;
 // User related interfaces.
-mod acl;
-mod attachment;
-mod sign;
-mod user;
+mod auth;
+mod jwt;
 
 // TODO: Features
 // - HTTP/2 supported
@@ -34,7 +34,7 @@ pub async fn server_main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(pool.clone())
-            .wrap(middlewares::auth::Auth)
+            .wrap(middlewares::acl::Auth)
             .route(
                 "/",
                 web::get().to(|| HttpResponse::Ok().body("Hello world")),
@@ -73,29 +73,26 @@ impl<T> ToString for NormalResponse<T>
     }
 }
 
-fn parse_auth_line(auth_string: &HeaderValue) -> Option<(&str, &str)> {
+/// User Jwt token carried in each request.
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct JwtToken {
+    /// UID of current user.
+    pub uid: i32,
+    /// current user role.
+    pub is_admin: bool,
+}
+
+pub struct JwtTokenBox {
+    value: Option<JwtToken>,
+}
+
+fn get_auth_bearer_value(auth_string: &HeaderValue) -> Option<&str> {
     // https://docs.rs/actix-web/2.0.0/actix_web/http/header/struct.HeaderValue.html#method.to_str
     // Note: to_str().unwrap() will panic when value string contains non-visible chars.
     if let Ok(auth_string) = auth_string.to_str() {
         // Authorization: <Type> <Credentials>
-        let auth_array: Vec<&str> = auth_string.split(" ").collect();
-        if auth_array.len() == 2 {
-            return Some((auth_array[0].clone(), auth_array[1].clone()));
-        }
-    }
-    None
-}
-
-pub fn get_uid_by_req(req: &HttpRequest) -> Option<i32> {
-    if let Some(auth_string) = req.headers().get("Authorization") {
-        let result = parse_auth_line(auth_string);
-        if let Some((auth_type, auth_credential)) = result {
-            // TODO: 对异常情况应该记录，做到心里有数
-            if auth_type == "Bearer" {
-                if let Some(claim_struct) = decode_jwt(auth_credential) {
-                    return Some(claim_struct.uid);
-                }
-            }
+        if auth_string.starts_with("Bearer ") {
+            return Some(auth_string[7..].as_ref());
         }
     }
     None
