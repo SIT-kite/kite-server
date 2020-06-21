@@ -14,9 +14,9 @@ use super::jwt::*;
 pub struct Auth;
 
 impl<S, B> Transform<S> for Auth
-    where
-        S: Service<Request=ServiceRequest, Response=ServiceResponse<B>, Error=Error>,
-        S::Future: 'static,
+where
+    S: Service<Request=ServiceRequest, Response=ServiceResponse<B>, Error=Error>,
+    S::Future: 'static,
 {
     type Request = ServiceRequest;
     type Response = ServiceResponse<B>;

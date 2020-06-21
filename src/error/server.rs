@@ -5,6 +5,7 @@ use actix_http::error::PayloadError;
 use actix_web::{error::ResponseError, HttpResponse};
 use diesel::r2d2::PoolError;
 use diesel::result::Error as DbError;
+use failure::Fail;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
 use serde::export::Formatter;
@@ -24,7 +25,7 @@ use crate::user::wechat::WxErr;
 
 // 对外部接口来说，逻辑错误返回相应的错误码，由各模块提供的错误类型提供错误码和提示信息
 // 内部模块（如数据库、网络）错误返回错误类型 1（内部错误），并返回相应的错误信息提示
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq)]
 pub struct ServerError {
     #[serde(rename(serialize = "code"))]
     inner_code: u16,
@@ -68,6 +69,24 @@ impl From<EventError> for ServerError {
         Self {
             inner_code: sub_error.to_u16().unwrap(),
             error_msg: sub_error.to_string(),
+        }
+    }
+}
+
+// impl From<T: ToPrimitive + Fail> for ServerError {
+//     fn from<T>(sub_error: T) -> Self {
+//         Self {
+//             inner_code: sub_error.to_u16().unwrap(),
+//             error_msg: sub_error.to_string(),
+//         }
+//     }
+// }
+
+impl ServerError {
+    pub fn new<T: ToPrimitive + Fail>(sub_err: T) -> Self {
+        Self {
+            inner_code: sub_err.to_u16().unwrap(),
+            error_msg: sub_err.to_string(),
         }
     }
 }
