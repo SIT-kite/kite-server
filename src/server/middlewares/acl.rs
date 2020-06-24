@@ -2,9 +2,9 @@ use std::task::{Context, Poll};
 
 use actix_http::http::{HeaderValue, Method};
 use actix_service::{Service, Transform};
-use actix_web::{Error, error::ResponseError, HttpResponse};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
-use futures::future::{Either, ok, Ready};
+use actix_web::{error::ResponseError, Error, HttpResponse};
+use futures::future::{ok, Either, Ready};
 
 use crate::error::{ServerError, UserError};
 use crate::server::{get_auth_bearer_value, JwtToken};
@@ -15,7 +15,7 @@ pub struct Auth;
 
 impl<S, B> Transform<S> for Auth
 where
-    S: Service<Request=ServiceRequest, Response=ServiceResponse<B>, Error=Error>,
+    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
 {
     type Request = ServiceRequest;

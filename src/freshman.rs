@@ -139,7 +139,12 @@ pub fn get_stduent_id_by_account(
 }
 
 /// returning student id
-pub fn bind_account(client: &PgConnection, _uid: i32, account: &String, passwd: &String) -> Result<String> {
+pub fn bind_account(
+    client: &PgConnection,
+    _uid: i32,
+    account: &String,
+    passwd: &String,
+) -> Result<String> {
     use freshman_schema::students::dsl::*;
 
     if let Ok(current_uid) = get_stduent_id_by_account(client, &account, &passwd) {
@@ -148,18 +153,20 @@ pub fn bind_account(client: &PgConnection, _uid: i32, account: &String, passwd: 
 
     let student_id_result: String = diesel::update(students)
         .filter(
-            secret.eq(&passwd).and(
-                student_id
-                    .eq(&account)
-                    .or(name.eq(&account).or(ticket.eq(&account))),
-            ).and(uid.is_not_null())
+            secret
+                .eq(&passwd)
+                .and(
+                    student_id
+                        .eq(&account)
+                        .or(name.eq(&account).or(ticket.eq(&account))),
+                )
+                .and(uid.is_not_null()),
         )
         .set(uid.eq(_uid))
         .returning(student_id)
         .get_result::<String>(client)?;
     Ok(student_id_result)
 }
-
 
 pub fn get_env_by_uid(client: &PgConnection, _uid: i32) -> Result<FreshmanEnv> {
     use freshman_schema::students::dsl::*;
@@ -187,7 +194,6 @@ pub fn get_env_by_uid(client: &PgConnection, _uid: i32) -> Result<FreshmanEnv> {
         None => Err(ServerError::new(FreshmanError::NoSuchAccount)),
     }
 }
-
 
 pub fn get_env_firstly(
     client: &PgConnection,
@@ -272,7 +278,11 @@ pub fn set_private(
     Ok(())
 }
 
-pub fn get_classmates(client: &PgConnection, _uid: i32, _student_id: &String) -> Result<Vec<NewMate>> {
+pub fn get_classmates(
+    client: &PgConnection,
+    _uid: i32,
+    _student_id: &String,
+) -> Result<Vec<NewMate>> {
     use freshman_schema::students::dsl::*;
 
     // SELECT * FROM students WHERE class = (SELECT class FROM students WHERE student_id = $1)"
@@ -293,7 +303,11 @@ pub fn get_classmates(client: &PgConnection, _uid: i32, _student_id: &String) ->
     Ok(classmates)
 }
 
-pub fn get_roommates(client: &PgConnection, _uid: i32, _student_id: &String) -> Result<Vec<NewMate>> {
+pub fn get_roommates(
+    client: &PgConnection,
+    _uid: i32,
+    _student_id: &String,
+) -> Result<Vec<NewMate>> {
     use freshman_schema::students::dsl::*;
 
     let self_env: Option<FreshmanEnv> = students

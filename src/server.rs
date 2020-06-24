@@ -3,9 +3,9 @@
 //! some permission check in acl_middleware
 
 use actix_http::http::HeaderValue;
-use actix_web::{App, HttpResponse, HttpServer, web};
-use diesel::PgConnection;
+use actix_web::{web, App, HttpResponse, HttpServer};
 use diesel::r2d2::{self, ConnectionManager};
+use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
 
 use handlers::{attachment, sign, user};
@@ -41,9 +41,9 @@ pub async fn server_main() -> std::io::Result<()> {
             )
             .service(user::login)
     })
-        .bind(&CONFIG.bind_addr.as_str())?
-        .run()
-        .await
+    .bind(&CONFIG.bind_addr.as_str())?
+    .run()
+    .await
 }
 
 #[derive(Debug, Serialize)]
@@ -62,8 +62,8 @@ impl<T> NormalResponse<T> {
 }
 
 impl<T> ToString for NormalResponse<T>
-    where
-        T: Serialize,
+where
+    T: Serialize,
 {
     fn to_string(&self) -> String {
         if let Ok(body_json) = serde_json::to_string(&self) {

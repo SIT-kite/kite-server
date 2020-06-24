@@ -1,9 +1,9 @@
 //! This module includes interfaces about freshman queries.
-use actix_web::{get, HttpRequest, HttpResponse, post, web};
 use actix_web::error::BlockingError;
+use actix_web::{get, post, web, HttpRequest, HttpResponse};
 use chrono::{NaiveDateTime, Utc};
-use diesel::PgConnection;
 use diesel::r2d2::ConnectionManager;
+use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, ServerError};
@@ -35,9 +35,9 @@ pub async fn get_environment(
     match environment {
         Ok(env) =>
         // If current has logon before.
-            {
-                return Ok(HttpResponse::Ok().json(&NormalResponse::new(env)))
-            }
+        {
+            return Ok(HttpResponse::Ok().json(&NormalResponse::new(env)))
+        }
         Err(e) => {
             // When error occurred while get_env_by_uid()
             if let BlockingError::Error(srv_err) = e {

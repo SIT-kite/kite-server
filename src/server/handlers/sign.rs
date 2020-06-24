@@ -1,8 +1,8 @@
 //! This module includes interfaces about the event and sign.
-use actix_web::{get, HttpRequest, HttpResponse, post, web};
+use actix_web::{get, post, web, HttpRequest, HttpResponse};
 use chrono::{NaiveDateTime, Utc};
-use diesel::PgConnection;
 use diesel::r2d2::ConnectionManager;
+use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, ServerError, UserError};

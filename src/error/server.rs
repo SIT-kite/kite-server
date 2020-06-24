@@ -1,7 +1,7 @@
 use std::fmt;
 
-use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_http::error::PayloadError;
+use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_web::{error::ResponseError, HttpResponse};
 use diesel::r2d2::PoolError;
 use diesel::result::Error as DbError;
@@ -11,6 +11,7 @@ use num_traits::ToPrimitive;
 use serde::export::Formatter;
 use serde::Serialize;
 use serde_json::Error as JsonError;
+use tokio_diesel::AsyncError;
 
 use crate::error::EventError;
 use crate::error::UserError;
@@ -111,3 +112,4 @@ convert_inner_errors!(JsonError);
 convert_inner_errors!(DbError);
 convert_inner_errors!(JwtError);
 convert_inner_errors!(PoolError);
+convert_inner_errors!(AsyncError);

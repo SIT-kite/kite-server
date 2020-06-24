@@ -1,6 +1,6 @@
 use jsonwebtoken;
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 use crate::config::CONFIG;
 use crate::error::Result;

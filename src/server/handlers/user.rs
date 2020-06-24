@@ -1,6 +1,6 @@
-use actix_web::{HttpResponse, post, web};
-use diesel::PgConnection;
+use actix_web::{post, web, HttpResponse};
 use diesel::r2d2::ConnectionManager;
+use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, ServerError, UserError};
