@@ -67,7 +67,7 @@ pub struct NewMate {
     #[serde(rename(serialize = "lastSeen"))]
     pub last_seen: Option<NaiveDateTime>,
     /// Avatar of the user
-    // TODO: pub avatar: Option<String>,
+    pub avatar: Option<String>,
     /// Contact detail like wechat, qq, telephone...
     pub contact: Option<String>,
 }
@@ -81,6 +81,9 @@ pub struct PeopleFamiliar {
     pub college: String,
     /// City where the people in
     pub city: Option<String>,
+    /// last time the user access freshman system.
+    #[serde(rename(serialize = "lastSeen"))]
+    pub last_seen: Option<NaiveDateTime>,
     /// Avatar
     pub avatar: Option<String>,
     /// Contact details.
@@ -112,7 +115,7 @@ pub async fn update_last_seen(client: &PgPool, uid: i32) -> Result<()> {
 
 pub async fn is_account_bound(client: &PgPool, account: &String, secret: &String) -> Result<bool> {
     let row: Option<(i32,)> = sqlx::query_as(
-        "SELECT 1 FROM freshman.students \
+        "SELECT 1 FROM freshman.students
         WHERE (name = $1 or student_id = $1 or ticket = $1) and secret = $2 and uid is not null",
     )
     .bind(account)
@@ -124,7 +127,7 @@ pub async fn is_account_bound(client: &PgPool, account: &String, secret: &String
 
 pub async fn is_uid_bound_with(client: &PgPool, uid: i32, account: &String) -> Result<bool> {
     let row: Option<(i32,)> = sqlx::query_as(
-        "SELECT 1 FROM freshman.students \
+        "SELECT 1 FROM freshman.students
         WHERE uid = $1 AND (name = $2 or student_id = $2 or ticket = $2)",
     )
     .bind(uid)
@@ -170,9 +173,9 @@ pub async fn get_basic_info_by_account(
     secret: &String,
 ) -> Result<FreshmanBasic> {
     let student_basic: Option<FreshmanBasic> = sqlx::query_as::<_, FreshmanBasic>(
-        "SELECT \
-            uid, student_id, college, major, campus, building, room, bed,
-            counselor_name, counselor_tel, visible
+        "SELECT
+                uid, student_id, college, major, campus, building, room, bed,
+                counselor_name, counselor_tel, visible
             FROM freshman.students
             WHERE (name = $1 or student_id = $1 or ticket = $1) and secret = $2",
     )
@@ -255,7 +258,7 @@ pub async fn get_roommates_by_uid(client: &PgPool, uid: i32) -> Result<Vec<NewMa
 
 pub async fn get_people_familiar_by_uid(client: &PgPool, uid: i32) -> Result<Vec<PeopleFamiliar>> {
     let people_familiar: Vec<PeopleFamiliar> = sqlx::query_as(
-        "SELECT DISTINCT name, college, stu.city, avatar, contact
+        "SELECT DISTINCT name, college, stu.city, last_seen, avatar, contact
             FROM freshman.students AS stu
             LEFT JOIN public.person AS person
             ON stu.uid = person.uid
