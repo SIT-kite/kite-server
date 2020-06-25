@@ -3,12 +3,13 @@ use actix_web::{FromRequest, HttpRequest};
 use futures::future::{err, ok, Ready};
 use serde::Deserialize;
 
-use crate::server::{JwtToken, JwtTokenBox};
+use crate::server::JwtToken;
 
 use super::get_auth_bearer_value;
 use super::jwt::{decode_jwt, validate_jwt};
+use actix_web::error::ErrorUnauthorized;
 
-impl FromRequest for JwtTokenBox {
+impl FromRequest for JwtToken {
     type Error = Error;
     type Future = Ready<Result<Self, Self::Error>>;
     type Config = ();
@@ -20,10 +21,10 @@ impl FromRequest for JwtTokenBox {
             if let Some(jwt_string) = get_auth_bearer_value(auth_string) {
                 // Unpack JWT to verify credential
                 if let Some(token) = decode_jwt::<JwtToken>(jwt_string) {
-                    return ok(JwtTokenBox { value: Some(token) });
+                    return ok(token);
                 }
             }
         }
-        ok(JwtTokenBox { value: None })
+        err(ErrorUnauthorized("Unauthorized"))
     }
 }

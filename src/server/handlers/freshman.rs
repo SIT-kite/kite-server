@@ -8,7 +8,7 @@ use sqlx::postgres::PgPool;
 use super::super::{EmptyReponse, NormalResponse};
 use crate::error::{Result, ServerError};
 use crate::freshman::{self, FreshmanBasic, FreshmanError, NewMate, PeopleFamiliar};
-use crate::server::JwtTokenBox;
+use crate::server::JwtToken;
 
 #[derive(Debug, Deserialize)]
 pub struct FreshmanEnvReq {
@@ -18,35 +18,35 @@ pub struct FreshmanEnvReq {
 #[get("/freshman/{account}")]
 pub async fn get_basic_info(
     pool: web::Data<PgPool>,
-    token: JwtTokenBox,
+    token: Option<JwtToken>,
     path: web::Path<String>,
     form: web::Form<FreshmanEnvReq>,
 ) -> Result<HttpResponse> {
     /* Auth middleware may be sure that all of users are authenticated. */
     // If someone didn't login before.
-    if None == token.value {
+    if None == token {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
-    let token = token.value.unwrap();
+    let token = token.unwrap();
+    let parameters: FreshmanEnvReq = form.into_inner();
+
     let uid = token.uid;
     let account = &path.into_inner();
-
-    // If the uid is bound to one student, return result immediately.
-    if token.is_admin || freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        if let student = freshman::get_basic_info(&pool, uid).await? {
-            return Ok(HttpResponse::Ok().json(student));
-        }
-    }
-
-    /* When uid is not bound, bind uid to student. */
-    let parameters: FreshmanEnvReq = form.into_inner();
     let secret = parameters.secret;
+
     match secret {
         Some(secret) => {
+            // If the uid is bound to one student, return result immediately.
+            if token.is_admin || freshman::is_uid_bound_with(&pool, uid, &account).await? {
+                if let student = freshman::get_basic_info_by_account(&pool, account, &secret).await? {
+                    return Ok(HttpResponse::Ok().json(NormalResponse::new(student)));
+                }
+            }
+            // When uid is not bound, bind uid to student.
             freshman::bind_account(&pool, uid, account, &secret).await?;
 
-            let student = freshman::get_basic_info(&pool, uid).await?;
+            let student = freshman::get_basic_info_by_account(&pool, account, &secret).await?;
             return Ok((HttpResponse::Ok().json(student)));
         }
         None => return Err(ServerError::new(FreshmanError::SecretNeeded)),
@@ -57,21 +57,22 @@ pub async fn get_basic_info(
 pub struct UpdateInfo {
     pub contact: Option<String>,
     pub visible: Option<bool>,
+    pub last_seen: Option<bool>,
 }
 
 #[put("/freshman/{account}")]
 pub async fn update_account(
     pool: web::Data<PgPool>,
-    token: JwtTokenBox,
+    token: Option<JwtToken>,
     path: web::Path<String>,
     form: web::Form<UpdateInfo>,
 ) -> Result<HttpResponse> {
     // If someone didn't login before.
-    if None == token.value {
+    if None == token {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
-    let token = token.value.unwrap();
+    let token = token.unwrap();
     let uid = token.uid;
 
     // Check if the account is bound to this uid.
@@ -90,63 +91,68 @@ pub async fn update_account(
         let contact_json: serde_json::Value = serde_json::from_str(contact.as_str())?;
         freshman::update_contact_by_uid(&pool, uid, &contact_json).await?;
     }
-    Ok(HttpResponse::Ok().json(EmptyReponse))
+    // Update last seen.
+    if let Some(last_seen) = form.last_seen {
+        freshman::update_last_seen(&pool, uid).await?;
+    }
+    Ok(HttpResponse::Ok().json(EmptyReponse::default()))
 }
 
 #[get("/freshman/{account}/roommate")]
 pub async fn get_roommate(
     pool: web::Data<PgPool>,
-    token: JwtTokenBox,
+    token: Option<JwtToken>,
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
     // If someone didn't login before.
-    if None == token.value {
+    if None == token {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
-    let token = token.value.unwrap();
+    let token = token.unwrap();
     let uid = token.uid;
 
-    // Check if the account is bound to this uid.
-    let account = path.into_inner();
-    if !token.is_admin && !freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        return Err(ServerError::new(FreshmanError::DismatchAccount));
-    }
     #[derive(Serialize)]
     struct Resp {
         pub roommates: Vec<NewMate>,
     }
-    let resp = Resp {
-        roommates: freshman::get_roommates(&pool, uid).await?,
-    };
-    Ok(HttpResponse::Ok().json(NormalResponse::new(resp)))
+    // Check if the account is bound to this uid.
+    let account = path.into_inner();
+    if freshman::is_uid_bound_with(&pool, uid, &account).await? {
+        let resp = Resp {
+            roommates: freshman::get_roommates_by_uid(&pool, uid).await?,
+        };
+        Ok(HttpResponse::Ok().json(NormalResponse::new(resp)))
+    } else {
+        return Err(ServerError::new(FreshmanError::DismatchAccount));
+    }
 }
 
 #[get("/freshman/{account}/familiar")]
 pub async fn get_people_familiar(
     pool: web::Data<PgPool>,
-    token: JwtTokenBox,
+    token: Option<JwtToken>,
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
     // If someone didn't login before.
-    if None == token.value {
+    if None == token {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
-    let token = token.value.unwrap();
+    let token = token.unwrap();
     let uid = token.uid;
 
-    // Check if the account is bound to this uid.
-    let account = path.into_inner();
-    if !token.is_admin && !freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        return Err(ServerError::new(FreshmanError::DismatchAccount));
-    }
     #[derive(Serialize)]
     struct Resp {
         pub fellows: Vec<PeopleFamiliar>,
     }
+    // Check if the account is bound to this uid.
+    let account = path.into_inner();
+    if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
+        return Err(ServerError::new(FreshmanError::DismatchAccount));
+    }
     let resp = Resp {
-        fellows: freshman::get_people_familiar(&pool, uid).await?,
+        fellows: freshman::get_people_familiar_by_uid(&pool, uid).await?,
     };
     Ok(HttpResponse::Ok().json(NormalResponse::new(resp)))
 }
@@ -154,28 +160,28 @@ pub async fn get_people_familiar(
 #[get("/freshman/{account}/classmate")]
 pub async fn get_classmate(
     pool: web::Data<PgPool>,
-    token: JwtTokenBox,
+    token: Option<JwtToken>,
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
     // If someone didn't login before.
-    if None == token.value {
+    if None == token {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
-    let token = token.value.unwrap();
+    let token = token.unwrap();
     let uid = token.uid;
 
     // Check if the account is bound to this uid.
     let account = path.into_inner();
-    if !token.is_admin && !freshman::is_uid_bound_with(&pool, uid, &account).await? {
+    if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
         return Err(ServerError::new(FreshmanError::DismatchAccount));
     }
     #[derive(Serialize)]
     struct Resp {
-        pub fellows: Vec<NewMate>,
+        pub classmates: Vec<NewMate>,
     }
     let resp = Resp {
-        fellows: freshman::get_classmates(&pool, uid).await?,
+        classmates: freshman::get_classmates_by_uid(&pool, uid).await?,
     };
     Ok(HttpResponse::Ok().json(NormalResponse::new(resp)))
 }

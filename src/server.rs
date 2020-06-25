@@ -36,11 +36,12 @@ pub async fn server_main() -> std::io::Result<()> {
         App::new()
             .data(pool.clone())
             .wrap(middlewares::acl::Auth)
-            .route(
-                "/",
-                web::get().to(|| HttpResponse::Ok().body("Hello world")),
-            )
+            .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
             .service(freshman::get_basic_info)
+            .service(freshman::update_account)
+            .service(freshman::get_roommate)
+            .service(freshman::get_classmate)
+            .service(freshman::get_people_familiar)
     })
     .bind(&CONFIG.bind_addr.as_str())?
     .run()
@@ -53,11 +54,16 @@ pub struct NormalResponse<T> {
     pub data: T,
 }
 
-#[derive(Serialize)]
-struct EmptyReponse;
+#[derive(Default, Serialize)]
+struct EmptyReponse {
+    pub code: u16,
+}
 
 impl<T> NormalResponse<T> {
-    pub fn new(data: T) -> NormalResponse<T> {
+    pub fn new(data: T) -> NormalResponse<T>
+    where
+        T: Serialize,
+    {
         NormalResponse { code: 0, data }
     }
 }
@@ -81,10 +87,6 @@ pub struct JwtToken {
     pub uid: i32,
     /// current user role.
     pub is_admin: bool,
-}
-
-pub struct JwtTokenBox {
-    value: Option<JwtToken>,
 }
 
 fn get_auth_bearer_value(auth_string: &HeaderValue) -> Option<&str> {

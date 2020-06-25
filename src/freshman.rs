@@ -36,11 +36,13 @@ pub struct FreshmanBasic {
     /// like "101-1"
     pub bed: String,
     /// Counselor's name
+    #[serde(rename(serialize = "counselorName"))]
     pub counselor_name: String,
     /// Counselor's telephone
+    #[serde(rename(serialize = "counselorTel"))]
     pub counselor_tel: String,
     /// Allow people in the same city access one's contact details.
-    pub private: bool,
+    pub visible: bool,
 }
 
 /// This structure is of one student, which can be used in
@@ -67,7 +69,7 @@ pub struct NewMate {
     /// Avatar of the user
     // TODO: pub avatar: Option<String>,
     /// Contact detail like wechat, qq, telephone...
-    pub contact: Option<serde_json::Value>,
+    pub contact: Option<String>,
 }
 
 /// Information about people you might know
@@ -78,11 +80,11 @@ pub struct PeopleFamiliar {
     /// College
     pub college: String,
     /// City where the people in
-    pub city: String,
+    pub city: Option<String>,
     /// Avatar
-    pub avatar: String,
+    pub avatar: Option<String>,
     /// Contact details.
-    pub contact: String,
+    pub contact: Option<String>,
 }
 
 #[derive(Debug, Fail, ToPrimitive)]
@@ -99,29 +101,18 @@ pub enum FreshmanError {
     SecretNeeded = 22,
 }
 
-pub async fn get_stduent_id_by_account(
-    client: &PgPool,
-    account: &String,
-    secret: &String,
-) -> Result<String> {
-    // Select 学号、姓名、准考证号 and secret to select.
-    let student_id: Option<(String,)> = sqlx::query_as(
-        "SELECT student_id FROM students \
-            WHERE (name = $1 or student_id = $1 or ticket = $1) and secret = $2 LIMIT 1",
-    )
-    .bind(account)
-    .bind(secret)
-    .fetch_optional(client)
-    .await?;
-    match student_id {
-        Some(valid_id) => Ok(valid_id.0),
-        None => Err(ServerError::new(FreshmanError::NoSuchAccount)),
-    }
+pub async fn update_last_seen(client: &PgPool, uid: i32) -> Result<()> {
+    let affected_count: u64 =
+        sqlx::query("UPDATE freshman.students SET last_seen = now() WHERE uid = $1;")
+            .bind(uid)
+            .execute(client)
+            .await?;
+    Ok(())
 }
 
 pub async fn is_account_bound(client: &PgPool, account: &String, secret: &String) -> Result<bool> {
-    let row: Option<(u32,)> = sqlx::query_as(
-        "SELECT 1 FROM students \
+    let row: Option<(i32,)> = sqlx::query_as(
+        "SELECT 1 FROM freshman.students \
         WHERE (name = $1 or student_id = $1 or ticket = $1) and secret = $2 and uid is not null",
     )
     .bind(account)
@@ -132,8 +123,8 @@ pub async fn is_account_bound(client: &PgPool, account: &String, secret: &String
 }
 
 pub async fn is_uid_bound_with(client: &PgPool, uid: i32, account: &String) -> Result<bool> {
-    let row: Option<(u32,)> = sqlx::query_as(
-        "SELECT 1 FROM students \
+    let row: Option<(i32,)> = sqlx::query_as(
+        "SELECT 1 FROM freshman.students \
         WHERE uid = $1 AND (name = $2 or student_id = $2 or ticket = $2)",
     )
     .bind(uid)
@@ -173,15 +164,20 @@ pub async fn bind_account(
     }
 }
 
-pub async fn get_basic_info(client: &PgPool, uid: i32) -> Result<FreshmanBasic> {
+pub async fn get_basic_info_by_account(
+    client: &PgPool,
+    account: &String,
+    secret: &String,
+) -> Result<FreshmanBasic> {
     let student_basic: Option<FreshmanBasic> = sqlx::query_as::<_, FreshmanBasic>(
         "SELECT \
-            uid, student_id, college, major, campus, building, room, bed, \
-            counselor_name, counselor_tel, private \
-            FROM students \
-            WHERE uid = $1",
+            uid, student_id, college, major, campus, building, room, bed,
+            counselor_name, counselor_tel, visible
+            FROM freshman.students
+            WHERE (name = $1 or student_id = $1 or ticket = $1) and secret = $2",
     )
-    .bind(uid)
+    .bind(account)
+    .bind(secret)
     .fetch_optional(client)
     .await?;
 
@@ -215,11 +211,19 @@ pub async fn set_visibility(client: &PgPool, uid: i32, visible: bool) -> Result<
     Ok(())
 }
 
-pub async fn get_classmates(client: &PgPool, uid: i32) -> Result<Vec<NewMate>> {
+pub async fn get_classmates_by_uid(client: &PgPool, uid: i32) -> Result<Vec<NewMate>> {
     let classmates: Vec<NewMate> = sqlx::query_as(
-        "SELECT college, major, name, province, building, room, bed, last_seen \
-            FROM freshman.students as t \
-            WHERE class = (SELECT class FROM t WHERE uid = $1)",
+        "SELECT college, major, name, province, building, room, bed, last_seen, avatar, contact
+            FROM freshman.students AS stu
+            LEFT JOIN public.person AS person
+            ON stu.uid = person.uid
+            INNER JOIN (
+                    SELECT class, student_id FROM freshman.students WHERE uid = $1 LIMIT 1
+                ) self
+            ON
+                stu.class = self.class
+                AND stu.student_id <> self.student_id
+            ORDER BY stu.student_id ASC;",
     )
     .bind(uid)
     .fetch_all(client)
@@ -228,11 +232,19 @@ pub async fn get_classmates(client: &PgPool, uid: i32) -> Result<Vec<NewMate>> {
     Ok(classmates)
 }
 
-pub async fn get_roommates(client: &PgPool, uid: i32) -> Result<Vec<NewMate>> {
+pub async fn get_roommates_by_uid(client: &PgPool, uid: i32) -> Result<Vec<NewMate>> {
     let roommates: Vec<NewMate> = sqlx::query_as(
-        "SELECT college, major, name, province, building, room, bed, last_seen \
-            FROM freshman.students as t \
-            WHERE class = (SELECT class FROM t WHERE uid = $1)",
+        "SELECT college, major, name, province, stu.building, stu.room, bed, last_seen, avatar, contact
+            FROM freshman.students AS stu
+            LEFT JOIN public.person AS person
+            ON stu.uid = person.uid
+            INNER JOIN (
+                    SELECT building, room, student_id FROM freshman.students WHERE uid = $1 LIMIT 1
+                ) self
+            ON
+                stu.room = self.room
+                AND stu.building = self.building
+                AND stu.student_id <> self.student_id;",
     )
     .bind(uid)
     .fetch_all(client)
@@ -241,24 +253,25 @@ pub async fn get_roommates(client: &PgPool, uid: i32) -> Result<Vec<NewMate>> {
     Ok(roommates)
 }
 
-pub async fn get_people_familiar(client: &PgPool, uid: i32) -> Result<Vec<PeopleFamiliar>> {
+pub async fn get_people_familiar_by_uid(client: &PgPool, uid: i32) -> Result<Vec<PeopleFamiliar>> {
     let people_familiar: Vec<PeopleFamiliar> = sqlx::query_as(
         "SELECT DISTINCT name, college, stu.city, avatar, contact
             FROM freshman.students AS stu
-            LEFT JOIN public.persons AS person
+            LEFT JOIN public.person AS person
             ON stu.uid = person.uid
             INNER JOIN (
-                    SELECT graduated_from, city, postcode FROM freshman.students WHERE uid = '$1' LIMIT 1
+                    SELECT graduated_from, city, postcode, student_id FROM freshman.students WHERE uid = $1 LIMIT 1
                 ) self
             ON
                 ((stu.graduated_from = self.graduated_from)
                 OR stu.city = self.city
                 OR stu.postcode / 1000 = self.postcode / 1000)
-                AND visible = true
-                AND uid <> '$1';")
-        .bind(uid)
-        .fetch_all(client)
-        .await?;
+                AND stu.visible = true
+                AND stu.student_id <> self.student_id;",
+    )
+    .bind(uid)
+    .fetch_all(client)
+    .await?;
 
     Ok(people_familiar)
 }
