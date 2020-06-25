@@ -35,19 +35,24 @@ pub async fn get_basic_info(
     let account = &path.into_inner();
     let secret = parameters.secret;
 
+    #[derive(Serialize)]
+    struct BasicInfo {
+        pub me: FreshmanBasic,
+        #[serde(rename(serialize = "sameNameCount"))]
+        pub same_name_count: i64,
+    }
     match secret {
         Some(secret) => {
-            // If the uid is bound to one student, return result immediately.
-            if freshman::is_uid_bound_with(&pool, uid, &account).await? {
-                if let student = freshman::get_basic_info_by_account(&pool, account, &secret).await? {
-                    return Ok(HttpResponse::Ok().json(NormalResponse::new(student)));
-                }
+            if ! freshman::is_uid_bound_with(&pool, uid, &account).await? {
+                // When uid is not bound, bind uid to student.
+                freshman::bind_account(&pool, uid, account, &secret).await?;
             }
-            // When uid is not bound, bind uid to student.
-            freshman::bind_account(&pool, uid, account, &secret).await?;
-
             let student = freshman::get_basic_info_by_account(&pool, account, &secret).await?;
-            return Ok((HttpResponse::Ok().json(student)));
+            let self_basic = BasicInfo {
+                me: student,
+                same_name_count: freshman::get_count_of_same_name(&pool, uid).await? - 1,
+            };
+            return Ok(HttpResponse::Ok().json(NormalResponse::new(self_basic)));
         }
         None => return Err(ServerError::new(FreshmanError::SecretNeeded)),
     }
