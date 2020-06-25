@@ -4,11 +4,10 @@
 
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
-use diesel::r2d2::{self, ConnectionManager};
-use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::PgPool;
 
-use handlers::{attachment, sign, user};
+use handlers::{attachment, freshman};
 
 use crate::config::CONFIG;
 use crate::error::Result;
@@ -27,8 +26,10 @@ mod jwt;
 #[actix_rt::main]
 pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
-    let manager = ConnectionManager::<PgConnection>::new(&CONFIG.db_string);
-    let pool = r2d2::Pool::new(manager).expect("Could not create database pool");
+    let pool = PgPool::builder()
+        .build(&CONFIG.db_string.as_ref())
+        .await
+        .expect("Could not create database pool");
 
     // Run actix-web server.
     HttpServer::new(move || {
@@ -39,7 +40,7 @@ pub async fn server_main() -> std::io::Result<()> {
                 "/",
                 web::get().to(|| HttpResponse::Ok().body("Hello world")),
             )
-            .service(user::login)
+            .service(freshman::get_basic_info)
     })
     .bind(&CONFIG.bind_addr.as_str())?
     .run()

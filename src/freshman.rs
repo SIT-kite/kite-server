@@ -1,49 +1,24 @@
+//! This is the freshman module, which is a part of sit-kite project.
+//! Freshman module, as a tool, allows freshmen query their dormitory, counselor
+//! and classmates.
+//! In the design of this module, we use word "account" to express student id,
+//! name or admission ticket number, when the word "secret" used as "password".
+//! Usually, secret is the six right characters of their id card number.
+
 use chrono::NaiveDateTime;
-use diesel::pg::expression::array_comparison::any;
-use diesel::prelude::*;
-use diesel::update;
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::{PgPool, PgQueryAs, PgRow};
 
 use crate::error::{Result, ServerError};
-
-/// The content is generated automatically by diesel-cli
-///
-/// Command:
-///  diesel print-schema --schema schema
-mod freshman_schema {
-    table! {
-        freshman.students (student_id) {
-            student_id -> Varchar,
-            uid -> Nullable<Int4>,
-            ticket -> Nullable<Varchar>,
-            name -> Varchar,
-            college -> Varchar,
-            major -> Varchar,
-            room -> Int4,
-            building -> Varchar,
-            bed -> Varchar,
-            class -> Varchar,
-            province -> Nullable<Varchar>,
-            city -> Nullable<Varchar>,
-            graduated_from -> Nullable<Varchar>,
-            postcode -> Nullable<Int4>,
-            private -> Bool,
-            contact -> Nullable<Jsonb>,
-            last_seen -> Nullable<Timestamp>,
-            campus -> Varchar,
-            counselor_name -> Varchar,
-            counselor_tel -> Varchar,
-            secret -> Varchar,
-        }
-    }
-}
+use futures::future::{ready, Ready};
+use futures::StreamExt;
 
 /// FreshmanEnv
 /// Used to express campus, dormitory, counselor and other environment variables
 /// for each new student.
 /// Note: This structure is used to query only.
-#[derive(Queryable, Serialize, Deserialize)]
-pub struct FreshmanEnv {
+#[derive(Debug, sqlx::FromRow, Serialize)]
+pub struct FreshmanBasic {
     pub uid: Option<i32>,
     /// student id.
     #[serde(rename(serialize = "studentId"))]
@@ -70,7 +45,7 @@ pub struct FreshmanEnv {
 
 /// This structure is of one student, which can be used in
 /// show their classmates, roommates and people they may recognize.
-#[derive(Queryable, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct NewMate {
     /// Freshman college
     pub college: String,
@@ -96,10 +71,12 @@ pub struct NewMate {
 }
 
 /// Information about people you might know
-#[derive(Queryable, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct PeopleFamiliar {
     /// Name of the people may recognize.
     pub name: String,
+    /// College
+    pub college: String,
     /// City where the people in
     pub city: String,
     /// Avatar
@@ -114,234 +91,174 @@ pub enum FreshmanError {
     NoSuchAccount = 18,
     #[fail(display = "账户不匹配")]
     DismatchAccount = 19,
+    #[fail(display = "已绑定")]
+    BoundAlready = 20,
+    #[fail(display = "未登录")]
+    Forbidden = 21,
+    #[fail(display = "需要凭据")]
+    SecretNeeded = 22,
 }
 
-pub fn get_stduent_id_by_account(
-    client: &PgConnection,
+pub async fn get_stduent_id_by_account(
+    client: &PgPool,
     account: &String,
-    passwd: &String,
+    secret: &String,
 ) -> Result<String> {
-    use freshman_schema::students::dsl::*;
-
-    let student_id_result: Option<String> = students
-        .filter(
-            secret.eq(&passwd).and(
-                student_id
-                    .eq(&account)
-                    .or(name.eq(&account).or(ticket.eq(&account))),
-            ),
-        )
-        .select((student_id))
-        .get_result::<String>(client)
-        .optional()?;
-
-    student_id_result.ok_or(ServerError::new(FreshmanError::NoSuchAccount))
-}
-
-/// returning student id
-pub fn bind_account(
-    client: &PgConnection,
-    _uid: i32,
-    account: &String,
-    passwd: &String,
-) -> Result<String> {
-    use freshman_schema::students::dsl::*;
-
-    if let Ok(current_uid) = get_stduent_id_by_account(client, &account, &passwd) {
-        return Err(ServerError::new(FreshmanError::DismatchAccount));
+    // Select 学号、姓名、准考证号 and secret to select.
+    let student_id: Option<(String,)> = sqlx::query_as(
+        "SELECT student_id FROM students \
+            WHERE (name = $1 or student_id = $1 or ticket = $1) and secret = $2 LIMIT 1",
+    )
+    .bind(account)
+    .bind(secret)
+    .fetch_optional(client)
+    .await?;
+    match student_id {
+        Some(valid_id) => Ok(valid_id.0),
+        None => Err(ServerError::new(FreshmanError::NoSuchAccount)),
     }
-
-    let student_id_result: String = diesel::update(students)
-        .filter(
-            secret
-                .eq(&passwd)
-                .and(
-                    student_id
-                        .eq(&account)
-                        .or(name.eq(&account).or(ticket.eq(&account))),
-                )
-                .and(uid.is_not_null()),
-        )
-        .set(uid.eq(_uid))
-        .returning(student_id)
-        .get_result::<String>(client)?;
-    Ok(student_id_result)
 }
 
-pub fn get_env_by_uid(client: &PgConnection, _uid: i32) -> Result<FreshmanEnv> {
-    use freshman_schema::students::dsl::*;
+pub async fn is_account_bound(client: &PgPool, account: &String, secret: &String) -> Result<bool> {
+    let row: Option<(u32,)> = sqlx::query_as(
+        "SELECT 1 FROM students \
+        WHERE (name = $1 or student_id = $1 or ticket = $1) and secret = $2 and uid is not null",
+    )
+    .bind(account)
+    .bind(secret)
+    .fetch_optional(client)
+    .await?;
+    Ok(row.is_some())
+}
 
-    let student_env: Option<FreshmanEnv> = students
-        .filter(uid.eq(_uid))
-        .select((
-            uid,
-            student_id,
-            college,
-            major,
-            campus,
-            building,
-            room,
-            bed,
-            counselor_name,
-            counselor_tel,
-            private,
-        ))
-        .get_result::<FreshmanEnv>(client)
-        .optional()?;
+pub async fn is_uid_bound_with(client: &PgPool, uid: i32, account: &String) -> Result<bool> {
+    let row: Option<(u32,)> = sqlx::query_as(
+        "SELECT 1 FROM students \
+        WHERE uid = $1 AND (name = $2 or student_id = $2 or ticket = $2)",
+    )
+    .bind(uid)
+    .bind(account)
+    .fetch_optional(client)
+    .await?;
+    Ok(row.is_some())
+}
 
-    match student_env {
+/// Bind account(name, student_id, ticket) to uid.
+/// Note: There are two SQL queries in the function, and the first is the checking of whether
+/// they are bound. so data synchronization problems may occur.
+/// While if the account is not existing, it will return FreshmanError::NoSuchAccount.
+/// Normally, it returns a String as student_id.
+pub async fn bind_account(
+    client: &PgPool,
+    uid: i32,
+    account: &String,
+    secret: &String,
+) -> Result<String> {
+    let student_id: Option<(String,)> = sqlx::query_as(
+        "UPDATE student SET uid = $1 \
+        WHERE (name = $2 or student_id = $2 or ticket = $2) and secret = $3 and uid is null \
+        RETURNING student_id",
+    )
+    .bind(uid)
+    .bind(account)
+    .bind(secret)
+    .fetch_optional(client)
+    .await?;
+
+    // If the account is not existing, return FreshmanError::NoSuchAccount,
+    // else return student_id.
+    match student_id {
+        Some(valid_id) => Ok(valid_id.0),
+        None => Err(ServerError::new(FreshmanError::NoSuchAccount)),
+    }
+}
+
+pub async fn get_basic_info(client: &PgPool, uid: i32) -> Result<FreshmanBasic> {
+    let student_basic: Option<FreshmanBasic> = sqlx::query_as::<_, FreshmanBasic>(
+        "SELECT \
+            uid, student_id, college, major, campus, building, room, bed, \
+            counselor_name, counselor_tel, private \
+            FROM students \
+            WHERE uid = $1",
+    )
+    .bind(uid)
+    .fetch_optional(client)
+    .await?;
+
+    match student_basic {
         Some(e) => Ok(e),
         None => Err(ServerError::new(FreshmanError::NoSuchAccount)),
     }
 }
 
-pub fn get_env_firstly(
-    client: &PgConnection,
-    _uid: i32,
-    account: String,
-    passwd: String,
-) -> Result<FreshmanEnv> {
-    use freshman_schema::students::dsl::*;
-
-    let student_env: Option<FreshmanEnv> = students
-        .filter(
-            // Match (Password && (Name || StudentId || Ticket))
-            secret.eq(&passwd).and(
-                student_id
-                    .eq(&account)
-                    .or(name.eq(&account).or(ticket.eq(&account))),
-            ),
-        )
-        .select((
-            uid,
-            student_id,
-            college,
-            major,
-            campus,
-            building,
-            room,
-            bed,
-            counselor_name,
-            counselor_tel,
-            private,
-        ))
-        .get_result::<FreshmanEnv>(client)
-        .optional()?;
-
-    match student_env {
-        Some(e) => {
-            if e.uid.unwrap() == _uid {
-                Ok(e)
-            } else {
-                Err(ServerError::new(FreshmanError::DismatchAccount))
-            }
-        }
-        None => Err(ServerError::new(FreshmanError::NoSuchAccount)),
-    }
-}
-
-pub fn update_contact(
-    client: &PgConnection,
-    _uid: i32,
-    _student_id: &String,
+pub async fn update_contact_by_uid(
+    client: &PgPool,
+    uid: i32,
     new_contact: &serde_json::Value,
 ) -> Result<()> {
-    use freshman_schema::students::dsl::*;
+    let affected_count = sqlx::query("UPDATE students SET contact = $1 WHERE uid = $2")
+        .bind(new_contact)
+        .bind(uid)
+        .execute(client)
+        .await?;
 
-    let affected_rows = diesel::update(students)
-        .set(contact.eq(new_contact))
-        .filter(student_id.eq(_student_id).and(uid.eq(_uid)))
-        .execute(client)?;
-
-    if affected_rows == 0 {
-        return Err(ServerError::new(FreshmanError::NoSuchAccount));
-    }
     Ok(())
 }
 
-pub fn set_private(
-    client: &PgConnection,
-    _uid: i32,
-    _student_id: &String,
-    _private: bool,
-) -> Result<()> {
-    use freshman_schema::students::dsl::*;
+pub async fn set_visibility(client: &PgPool, uid: i32, visible: bool) -> Result<()> {
+    let affected_count = sqlx::query("UPDATE students SET visibility = $1 WHERE uid = $2")
+        .bind(visible)
+        .bind(uid)
+        .execute(client)
+        .await?;
 
-    let affected_rows = diesel::update(students)
-        .set(private.eq(_private))
-        .filter(student_id.eq(_student_id).and(uid.eq(_uid)))
-        .execute(client)?;
-
-    if affected_rows == 0 {
-        return Err(ServerError::new(FreshmanError::NoSuchAccount));
-    }
     Ok(())
 }
 
-pub fn get_classmates(
-    client: &PgConnection,
-    _uid: i32,
-    _student_id: &String,
-) -> Result<Vec<NewMate>> {
-    use freshman_schema::students::dsl::*;
+pub async fn get_classmates(client: &PgPool, uid: i32) -> Result<Vec<NewMate>> {
+    let classmates: Vec<NewMate> = sqlx::query_as(
+        "SELECT college, major, name, province, building, room, bed, last_seen \
+            FROM freshman.students as t \
+            WHERE class = (SELECT class FROM t WHERE uid = $1)",
+    )
+    .bind(uid)
+    .fetch_all(client)
+    .await?;
 
-    // SELECT * FROM students WHERE class = (SELECT class FROM students WHERE student_id = $1)"
-    let classmates: Vec<NewMate> = students
-        .filter(
-            class.eq_any(
-                students
-                    .filter(student_id.eq(_student_id).and(uid.eq(_uid)))
-                    .select(class)
-                    .into_boxed(),
-            ),
-        )
-        .select((
-            college, major, name, province, building, room, bed, last_seen,
-            /*avatar,*/ contact,
-        ))
-        .get_results::<NewMate>(client)?;
     Ok(classmates)
 }
 
-pub fn get_roommates(
-    client: &PgConnection,
-    _uid: i32,
-    _student_id: &String,
-) -> Result<Vec<NewMate>> {
-    use freshman_schema::students::dsl::*;
+pub async fn get_roommates(client: &PgPool, uid: i32) -> Result<Vec<NewMate>> {
+    let roommates: Vec<NewMate> = sqlx::query_as(
+        "SELECT college, major, name, province, building, room, bed, last_seen \
+            FROM freshman.students as t \
+            WHERE class = (SELECT class FROM t WHERE uid = $1)",
+    )
+    .bind(uid)
+    .fetch_all(client)
+    .await?;
 
-    let self_env: Option<FreshmanEnv> = students
-        .filter(uid.eq(_uid).and(student_id.eq(_student_id)))
-        .select((
-            uid,
-            student_id,
-            college,
-            major,
-            campus,
-            building,
-            room,
-            bed,
-            counselor_name,
-            counselor_tel,
-            private,
-        ))
-        .get_result::<FreshmanEnv>(client)
-        .optional()?;
+    Ok(roommates)
+}
 
-    match self_env {
-        Some(current_env) => {
-            let roommates: Vec<NewMate> = students
-                .filter(room.eq(current_env.room))
-                .select((
-                    college, major, name, province, building, room, bed, last_seen,
-                    /*avatar,*/ contact,
-                ))
-                .get_results::<NewMate>(client)?;
-            Ok(roommates
-                .into_iter()
-                .filter(|x| x.building == current_env.building)
-                .collect())
-        }
-        None => Err(ServerError::new(FreshmanError::NoSuchAccount)),
-    }
+pub async fn get_people_familiar(client: &PgPool, uid: i32) -> Result<Vec<PeopleFamiliar>> {
+    let people_familiar: Vec<PeopleFamiliar> = sqlx::query_as(
+        "SELECT DISTINCT name, college, stu.city, avatar, contact
+            FROM freshman.students AS stu
+            LEFT JOIN public.persons AS person
+            ON stu.uid = person.uid
+            INNER JOIN (
+                    SELECT graduated_from, city, postcode FROM freshman.students WHERE uid = '$1' LIMIT 1
+                ) self
+            ON
+                ((stu.graduated_from = self.graduated_from)
+                OR stu.city = self.city
+                OR stu.postcode / 1000 = self.postcode / 1000)
+                AND visible = true
+                AND uid <> '$1';")
+        .bind(uid)
+        .fetch_all(client)
+        .await?;
+
+    Ok(people_familiar)
 }

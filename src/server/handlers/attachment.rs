@@ -3,7 +3,6 @@ use std::io::Write;
 use actix_multipart::Multipart;
 use actix_web::{get, post, web, HttpRequest, HttpResponse};
 use chrono::{NaiveDateTime, Utc};
-use diesel::{r2d2::ConnectionManager, PgConnection};
 use futures::{StreamExt, TryStreamExt};
 
 use crate::error::Result;

@@ -3,19 +3,16 @@ use std::fmt;
 use actix_http::error::PayloadError;
 use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_web::{error::ResponseError, HttpResponse};
-use diesel::r2d2::PoolError;
-use diesel::result::Error as DbError;
+
 use failure::Fail;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
 use serde::export::Formatter;
 use serde::Serialize;
 use serde_json::Error as JsonError;
-use tokio_diesel::AsyncError;
+use sqlx::error::Error as SqlError;
 
-use crate::error::EventError;
-use crate::error::UserError;
-use crate::user::wechat::WxErr;
+// use crate::user::wechat::WxErr;
 
 // use actix_web::error::BlockingError;
 
@@ -56,33 +53,6 @@ impl ResponseError for ServerError {
     }
 }
 
-impl From<UserError> for ServerError {
-    fn from(sub_error: UserError) -> Self {
-        Self {
-            inner_code: sub_error.to_u16().unwrap(),
-            error_msg: sub_error.to_string(),
-        }
-    }
-}
-
-impl From<EventError> for ServerError {
-    fn from(sub_error: EventError) -> Self {
-        Self {
-            inner_code: sub_error.to_u16().unwrap(),
-            error_msg: sub_error.to_string(),
-        }
-    }
-}
-
-// impl From<T: ToPrimitive + Fail> for ServerError {
-//     fn from<T>(sub_error: T) -> Self {
-//         Self {
-//             inner_code: sub_error.to_u16().unwrap(),
-//             error_msg: sub_error.to_string(),
-//         }
-//     }
-// }
-
 impl ServerError {
     pub fn new<T: ToPrimitive + Fail>(sub_err: T) -> Self {
         Self {
@@ -107,9 +77,6 @@ macro_rules! convert_inner_errors {
 
 convert_inner_errors!(String);
 convert_inner_errors!(PayloadError);
-convert_inner_errors!(WxErr);
 convert_inner_errors!(JsonError);
-convert_inner_errors!(DbError);
 convert_inner_errors!(JwtError);
-convert_inner_errors!(PoolError);
-convert_inner_errors!(AsyncError);
+convert_inner_errors!(SqlError);
