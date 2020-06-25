@@ -38,7 +38,7 @@ pub async fn get_basic_info(
     match secret {
         Some(secret) => {
             // If the uid is bound to one student, return result immediately.
-            if token.is_admin || freshman::is_uid_bound_with(&pool, uid, &account).await? {
+            if freshman::is_uid_bound_with(&pool, uid, &account).await? {
                 if let student = freshman::get_basic_info_by_account(&pool, account, &secret).await? {
                     return Ok(HttpResponse::Ok().json(NormalResponse::new(student)));
                 }
