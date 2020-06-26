@@ -1,5 +1,4 @@
 //! This module includes interfaces about freshman queries.
-use actix_web::error::BlockingError;
 use actix_web::{get, post, put, web, HttpRequest, HttpResponse};
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -24,7 +23,7 @@ pub async fn get_basic_info(
 ) -> Result<HttpResponse> {
     /* Auth middleware may be sure that all of users are authenticated. */
     // If someone didn't login before.
-    if None == token {
+    if token.is_none() {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
@@ -73,7 +72,7 @@ pub async fn update_account(
     form: web::Form<UpdateInfo>,
 ) -> Result<HttpResponse> {
     // If someone didn't login before.
-    if None == token {
+    if token.is_none() {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
@@ -110,7 +109,7 @@ pub async fn get_roommate(
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
     // If someone didn't login before.
-    if None == token {
+    if token.is_none() {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
@@ -140,7 +139,7 @@ pub async fn get_people_familiar(
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
     // If someone didn't login before.
-    if None == token {
+    if token.is_none() {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
@@ -169,7 +168,7 @@ pub async fn get_classmate(
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
     // If someone didn't login before.
-    if None == token {
+    if token.is_none() {
         // Return error code : Forbidden
         return Err(ServerError::new(FreshmanError::Forbidden));
     }
