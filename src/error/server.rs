@@ -4,6 +4,7 @@ use actix_http::error::PayloadError;
 use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_web::{error::ResponseError, HttpResponse};
 
+use actix_web::error::BlockingError;
 use failure::Fail;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
@@ -11,6 +12,7 @@ use serde::export::Formatter;
 use serde::Serialize;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlError;
+use std::io::Error as StdIoError;
 
 // use crate::user::wechat::WxErr;
 
@@ -80,3 +82,4 @@ convert_inner_errors!(PayloadError);
 convert_inner_errors!(JsonError);
 convert_inner_errors!(JwtError);
 convert_inner_errors!(SqlError);
+convert_inner_errors!(StdIoError);

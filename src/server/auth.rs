@@ -28,3 +28,5 @@ impl FromRequest for JwtToken {
         err(ErrorUnauthorized("Unauthorized"))
     }
 }
+
+// TODO: Implement ServiceRequest for JwtToken

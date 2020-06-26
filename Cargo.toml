@@ -24,6 +24,7 @@ chrono = { version = "0.4", features = ["serde"] }
 failure = "0.1"
 toml = "0.5"
 lazy_static = "1"
+uuid = { version = "0.8", features = ["serde", "v4"] }
 
 # Serialization and Deserialization.
 serde = { version = "1.0", features = ["derive"] }
@@ -34,5 +35,5 @@ sanitize-filename = "0.2"
 jsonwebtoken = "7"
 
 # Database, diesel orm.
-sqlx = { version = "0.3", default-features = false, features = ["chrono", "json", "postgres", "runtime-tokio", "macros"]}
+sqlx = { version = "0.3", default-features = false, features = ["uuid", "chrono", "json", "postgres", "runtime-tokio", "macros"]}
 

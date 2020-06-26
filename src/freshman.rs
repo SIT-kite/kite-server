@@ -282,10 +282,10 @@ pub async fn get_people_familiar_by_uid(client: &PgPool, uid: i32) -> Result<Vec
 pub async fn get_count_of_same_name(client: &PgPool, uid: i32) -> Result<i64> {
     let same_name_count: (i64,) = sqlx::query_as(
         "SELECT COUNT(*) FROM freshman.students
-        WHERE name = (SELECT name FROM freshman.students WHERE uid = $1 LIMIT 1)"
+        WHERE name = (SELECT name FROM freshman.students WHERE uid = $1 LIMIT 1)",
     )
-        .bind(uid)
-        .fetch_one(client)
-        .await?;
+    .bind(uid)
+    .fetch_one(client)
+    .await?;
     Ok(same_name_count.0)
 }

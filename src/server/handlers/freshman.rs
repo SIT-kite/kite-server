@@ -42,7 +42,7 @@ pub async fn get_basic_info(
     }
     match secret {
         Some(secret) => {
-            if ! freshman::is_uid_bound_with(&pool, uid, &account).await? {
+            if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
                 // When uid is not bound, bind uid to student.
                 freshman::bind_account(&pool, uid, account, &secret).await?;
             }

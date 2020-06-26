@@ -9,6 +9,7 @@ extern crate num_derive;
 // Import main function.
 use crate::server::server_main;
 
+pub mod attachment;
 pub mod config;
 pub mod error;
 pub mod freshman;

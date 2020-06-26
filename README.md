@@ -14,6 +14,7 @@
 - [ ] 二手闲置交易
 - [x] 入学信息查询
 - [ ] 失物招领
+- [ ] 每日学习打卡
 
 ## 项目设计
 
@@ -43,6 +44,8 @@ db_string = "postgresql://user:password@address:port/database"
 jwt_string = "secret"
 wechat_appid = "111"
 wechat_secret = "111"
+# Directory path should be end with "\"
+attachment_dir = "D:\tmp\"
 ```
 
 微信相关接口（微信登录）需要填写 `appid` 和 `secret` 后才能使用。
