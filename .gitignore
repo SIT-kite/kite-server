@@ -1,4 +1,6 @@
 /target
 /.idea
 /migrations
-kite.toml
+/kite.toml
+/cert.pem
+/key.pem

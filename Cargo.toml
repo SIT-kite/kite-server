@@ -33,6 +33,7 @@ serde_json = "1.0"
 # Web tools.
 sanitize-filename = "0.2"
 jsonwebtoken = "7"
+rustls = "0.16"
 
 # Database, diesel orm.
 sqlx = { version = "0.3", default-features = false, features = ["uuid", "chrono", "json", "postgres", "runtime-tokio", "macros"]}

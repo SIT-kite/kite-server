@@ -1075,6 +1075,7 @@ dependencies = [
  "lazy_static",
  "num-derive",
  "num-traits",
+ "rustls",
  "sanitize-filename",
  "serde",
  "serde_json",

@@ -2,12 +2,16 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
+use std::fs::File;
+use std::io::BufReader;
+
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
+use handlers::{attachment, freshman};
+use rustls::internal::pemfile::{certs, pkcs8_private_keys, rsa_private_keys};
+use rustls::{NoClientAuth, ServerConfig};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
-
-use handlers::{attachment, freshman};
 
 use crate::config::CONFIG;
 use crate::error::Result;
@@ -31,6 +35,16 @@ pub async fn server_main() -> std::io::Result<()> {
         .await
         .expect("Could not create database pool");
 
+    // load ssl keys
+    let mut config = ServerConfig::new(NoClientAuth::new());
+    // cert.pem is as same as fullchain.pem provided by let's encrypt.
+    // and key.pem is privkey.pem
+    let cert_file = &mut BufReader::new(File::open("cert.pem").unwrap());
+    let key_file = &mut BufReader::new(File::open("key.pem").unwrap());
+    let cert_chain = certs(cert_file).unwrap();
+    let mut keys = pkcs8_private_keys(key_file).unwrap();
+    config.set_single_cert(cert_chain, keys.remove(0)).unwrap();
+
     // Run actix-web server.
     HttpServer::new(move || {
         App::new()
@@ -43,7 +57,7 @@ pub async fn server_main() -> std::io::Result<()> {
             .service(freshman::get_classmate)
             .service(freshman::get_people_familiar)
     })
-    .bind(&CONFIG.bind_addr.as_str())?
+    .bind_rustls(&CONFIG.bind_addr.as_str(), config)?
     .run()
     .await
 }
