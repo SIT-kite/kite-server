@@ -45,7 +45,7 @@ jwt_string = "secret"
 wechat_appid = "111"
 wechat_secret = "111"
 # Directory path should be end with "\"
-attachment_dir = "D:\tmp\"
+attachment_dir = "D:\\tmp\\"
 ```
 
 微信相关接口（微信登录）需要填写 `appid` 和 `secret` 后才能使用。
