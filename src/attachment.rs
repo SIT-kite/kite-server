@@ -161,7 +161,7 @@ pub async fn get_attachment_by_page(
     .fetch_all(client)
     .await?;
 
-    Ok(Vec::new())
+    Ok(attachs)
 }
 
 pub async fn delete_attachment(client: &PgPool, attachment_id: Uuid) -> Result<()> {

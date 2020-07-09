@@ -5,13 +5,10 @@
 //! name or admission ticket number, when the word "secret" used as "password".
 //! Usually, secret is the six right characters of their id card number.
 
-use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
-use sqlx::postgres::{PgPool, PgQueryAs, PgRow};
-
 use crate::error::{Result, ServerError};
-use futures::future::{ready, Ready};
-use futures::StreamExt;
+use chrono::NaiveDateTime;
+use serde::Serialize;
+use sqlx::postgres::{PgPool, PgQueryAs};
 
 /// FreshmanEnv
 /// Used to express campus, dormitory, counselor and other environment variables
@@ -105,11 +102,10 @@ pub enum FreshmanError {
 }
 
 pub async fn update_last_seen(client: &PgPool, uid: i32) -> Result<()> {
-    let affected_count: u64 =
-        sqlx::query("UPDATE freshman.students SET last_seen = now() WHERE uid = $1;")
-            .bind(uid)
-            .execute(client)
-            .await?;
+    let _: u64 = sqlx::query("UPDATE freshman.students SET last_seen = now() WHERE uid = $1;")
+        .bind(uid)
+        .execute(client)
+        .await?;
     Ok(())
 }
 
@@ -195,7 +191,7 @@ pub async fn update_contact_by_uid(
     uid: i32,
     new_contact: &serde_json::Value,
 ) -> Result<()> {
-    let affected_count = sqlx::query("UPDATE students SET contact = $1 WHERE uid = $2")
+    let _: u64 = sqlx::query("UPDATE students SET contact = $1 WHERE uid = $2")
         .bind(new_contact)
         .bind(uid)
         .execute(client)
@@ -205,7 +201,7 @@ pub async fn update_contact_by_uid(
 }
 
 pub async fn set_visibility(client: &PgPool, uid: i32, visible: bool) -> Result<()> {
-    let affected_count = sqlx::query("UPDATE students SET visibility = $1 WHERE uid = $2")
+    let _: u64 = sqlx::query("UPDATE students SET visibility = $1 WHERE uid = $2")
         .bind(visible)
         .bind(uid)
         .execute(client)

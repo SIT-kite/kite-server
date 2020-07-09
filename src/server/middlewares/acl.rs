@@ -1,13 +1,11 @@
 use std::task::{Context, Poll};
 
-use actix_http::http::{HeaderValue, Method};
+use crate::server::{get_auth_bearer_value, JwtToken};
+use actix_http::http::Method;
 use actix_service::{Service, Transform};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
-use actix_web::{error::ResponseError, Error, HttpResponse};
+use actix_web::{Error, HttpResponse};
 use futures::future::{ok, Either, Ready};
-
-use crate::error::{ServerError, UserError};
-use crate::server::{get_auth_bearer_value, JwtToken};
 
 use super::jwt::*;
 
@@ -77,6 +75,9 @@ where
     }
 }
 
+#[allow(dead_code)]
+#[allow(unreachable_code)]
+// TODO: allow all pages for debugging, update it when finish.
 fn check_anonymous_list(method: &Method, path: &str) -> bool {
     return true;
 

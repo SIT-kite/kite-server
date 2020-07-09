@@ -1,6 +1,5 @@
 //! This module includes interfaces about freshman queries.
-use actix_web::{get, post, put, web, HttpRequest, HttpResponse};
-use chrono::{NaiveDateTime, Utc};
+use actix_web::{get, put, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 
@@ -96,7 +95,7 @@ pub async fn update_account(
         freshman::update_contact_by_uid(&pool, uid, &contact_json).await?;
     }
     // Update last seen.
-    if let Some(last_seen) = form.last_seen {
+    if let Some(_) = form.last_seen {
         freshman::update_last_seen(&pool, uid).await?;
     }
     Ok(HttpResponse::Ok().json(EmptyReponse::default()))

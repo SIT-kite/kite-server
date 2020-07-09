@@ -55,19 +55,27 @@ pub(crate) async fn upload_file(
             .map_err(|_| ServerError::new(AttachmentError::FileCreationFailed))?;
         let mut writer = tokio::io::BufWriter::new(file);
 
+        // What about user canceling uploading?
         while let Some(chunk) = field.next().await {
             let data = chunk.unwrap();
             file_size += data.len();
 
-            if let Err(e) = writer.write(&data).await {
+            if let Err(_) = writer.write(&data).await {
                 success_flag = false;
                 break;
             }
         }
-        let new_attachment =
-            attachment::create_attachment(&pool, &sanitized_filename, &filepath, uid, file_size as i32)
-                .await?;
-        successd_uploaded.push(new_attachment);
+        if success_flag {
+            let new_attachment = attachment::create_attachment(
+                &pool,
+                &sanitized_filename,
+                &filepath,
+                uid,
+                file_size as i32,
+            )
+            .await?;
+            successd_uploaded.push(new_attachment);
+        }
     }
 
     let mut resp = HashMap::new();
@@ -104,11 +112,7 @@ pub async fn get_attachment_list(
 }
 
 #[get("/attachment/{attachment_id}")]
-pub async fn index(
-    pool: web::Data<PgPool>,
-    token: Option<JwtToken>,
-    id: web::Path<(Uuid,)>,
-) -> Result<HttpResponse> {
+pub async fn index(pool: web::Data<PgPool>, id: web::Path<(Uuid,)>) -> Result<HttpResponse> {
     let url = attachment::get_attachment_url_by_id(&pool, id.into_inner().0).await?;
     if let None = url {
         return Ok(HttpResponse::NotFound().finish());
