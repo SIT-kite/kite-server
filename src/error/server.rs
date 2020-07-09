@@ -4,7 +4,6 @@ use actix_http::error::PayloadError;
 use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_web::{error::ResponseError, HttpResponse};
 
-use actix_web::error::BlockingError;
 use failure::Fail;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;

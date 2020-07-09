@@ -14,9 +14,10 @@ actix-web = { version = "2.0", features = ["rustls"] }
 actix-rt = "1"
 actix-service = "1.0.0"
 actix-multipart = "0.2.0"
-actix-web-httpauth = "0.4"
+actix-files = "0.2"
 
 # About common tools.
+tokio = { version = "0.2", features = ["full"] }
 futures = "0.3"
 num-traits = "0.2"
 num-derive = "0.3"

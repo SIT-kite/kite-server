@@ -5,16 +5,16 @@
 use std::fs::File;
 use std::io::BufReader;
 
+use actix_files::Files;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use handlers::{attachment, freshman};
-use rustls::internal::pemfile::{certs, pkcs8_private_keys, rsa_private_keys};
+use rustls::internal::pemfile::{certs, pkcs8_private_keys};
 use rustls::{NoClientAuth, ServerConfig};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 
 use crate::config::CONFIG;
-use crate::error::Result;
 
 mod handlers;
 mod middlewares;
@@ -50,12 +50,19 @@ pub async fn server_main() -> std::io::Result<()> {
         App::new()
             .data(pool.clone())
             .wrap(middlewares::acl::Auth)
-            .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
-            .service(freshman::get_basic_info)
-            .service(freshman::update_account)
-            .service(freshman::get_roommate)
-            .service(freshman::get_classmate)
-            .service(freshman::get_people_familiar)
+            .service(
+                web::scope("/api/v1")
+                    .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
+                    .service(freshman::get_basic_info)
+                    .service(freshman::update_account)
+                    .service(freshman::get_roommate)
+                    .service(freshman::get_classmate)
+                    .service(freshman::get_people_familiar)
+                    .service(attachment::index)
+                    .service(attachment::upload_file)
+                    .service(attachment::get_attachment_list),
+            )
+            .service(Files::new("/static", &CONFIG.attachment_dir))
     })
     .bind_rustls(&CONFIG.bind_addr.as_str(), config)?
     .run()
