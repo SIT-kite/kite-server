@@ -13,6 +13,8 @@ use crate::server::{JwtToken, NormalResponse};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+const MAX_ATTACHMENT_SIZE: usize = 10 * 1024 * 1024;
+
 /// Upload attachment handler.
 /// Attachments may be stored on ECS or local storage in the server, and now is local storage.
 /// Adapted from https://github.com/actix/examples/.
@@ -60,20 +62,19 @@ pub(crate) async fn upload_file(
             let data = chunk.unwrap();
             file_size += data.len();
 
+            if file_size > MAX_ATTACHMENT_SIZE {
+                success_flag = false;
+                break;
+            }
             if let Err(_) = writer.write(&data).await {
                 success_flag = false;
                 break;
             }
         }
         if success_flag {
-            let new_attachment = attachment::create_attachment(
-                &pool,
-                &sanitized_filename,
-                &filepath,
-                uid,
-                file_size as i32,
-            )
-            .await?;
+            let new_attachment =
+                attachment::create_attachment(&pool, &sanitized_filename, &filepath, uid, file_size)
+                    .await?;
             successd_uploaded.push(new_attachment);
         }
     }

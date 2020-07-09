@@ -108,7 +108,7 @@ pub async fn create_attachment(
     filename: &String,
     storage_path: &String,
     uploader: i32,
-    size: i32,
+    size: usize,
 ) -> Result<SingleAttachment> {
     let attachment_id = Uuid::new_v4();
     let new_attachment = SingleAttachment {
@@ -116,7 +116,7 @@ pub async fn create_attachment(
         name: filename.clone(),
         uploader,
         upload_time: Utc::now().naive_local(),
-        size,
+        size: size as i32,
         url: Some(format!(
             "{}{}",
             get_attachment_url_prefix(),
