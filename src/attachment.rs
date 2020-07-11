@@ -98,7 +98,8 @@ pub fn get_file_extension(filename: &str) -> String {
     filename[last_terminator.unwrap()..].to_string()
 }
 
-pub fn check_file_extension(filename: &str) -> bool {
+// TODO: Add file extension check to avoid attacking.
+pub fn check_file_extension(_filename: &str) -> bool {
     false
 }
 

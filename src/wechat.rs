@@ -25,7 +25,7 @@ macro_rules! wx_function {
     ($fn_name: ident, $structure: ident, $addr: expr) => {
         async fn $fn_name(param: &str) -> Result<$structure, ServerError> {
             // create actix-web client for request.
-            let mut client = Client::default();
+            let client = Client::default();
             let url = format!("{}?{}", $addr, param);
             // return Err(ServerError::from(url));
             let response = client.get(url).send().await;

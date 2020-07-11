@@ -8,9 +8,7 @@ use sqlx::{postgres::PgQueryAs, PgPool};
 /* Constants at the edge between self and database. */
 
 /// Login Type.
-#[allow(non_snake_case)]
 const _LOGIN_BY_WECHAT: i32 = 0;
-#[allow(non_snake_case)]
 const _LOGIN_BY_PASSWORD: i32 = 1;
 
 #[derive(Fail, Debug, ToPrimitive)]

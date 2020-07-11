@@ -7,7 +7,7 @@ use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::{Error, HttpResponse};
 use futures::future::{ok, Either, Ready};
 
-use super::jwt::*;
+use crate::jwt::*;
 
 pub struct Auth;
 
@@ -62,7 +62,7 @@ where
             // If authentication type is "Bearer"
             if let Some(jwt_string) = get_auth_bearer_value(auth_string) {
                 // Unpack JWT to verify credential
-                if let Some(token) = decode_jwt::<JwtToken>(jwt_string) {
+                if validate_jwt::<JwtToken>(jwt_string) {
                     return Either::Left(self.service.call(req));
                 }
             }
@@ -78,17 +78,17 @@ where
 #[allow(dead_code)]
 #[allow(unreachable_code)]
 // TODO: allow all pages for debugging, update it when finish.
-fn check_anonymous_list(method: &Method, path: &str) -> bool {
+fn check_anonymous_list(_method: &Method, _path: &str) -> bool {
     return true;
 
-    match path {
+    match _path {
         "/" => true,
         "/session" => true,
-        "/user" => method == Method::POST,
-        "/event" => method == Method::GET,
+        "/user" => _method == Method::POST,
+        "/event" => _method == Method::GET,
         _ => {
             // TODO: try url pattern.
-            path.starts_with("/user/") && path.ends_with("/authentication")
+            _path.starts_with("/user/") && _path.ends_with("/authentication")
         }
     }
 }
