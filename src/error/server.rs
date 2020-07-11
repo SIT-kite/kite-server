@@ -4,6 +4,7 @@ use actix_http::error::PayloadError;
 use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_web::{error::ResponseError, HttpResponse};
 
+use crate::wechat::WxErr;
 use failure::Fail;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
@@ -59,6 +60,15 @@ impl ServerError {
         Self {
             inner_code: sub_err.to_u16().unwrap(),
             error_msg: sub_err.to_string(),
+        }
+    }
+}
+
+impl From<WxErr> for ServerError {
+    fn from(e: WxErr) -> Self {
+        ServerError {
+            inner_code: e.errcode,
+            error_msg: e.errmsg,
         }
     }
 }

@@ -8,7 +8,7 @@ use std::io::BufReader;
 use actix_files::Files;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
-use handlers::{attachment, freshman};
+use handlers::{attachment, freshman, user};
 use rustls::internal::pemfile::{certs, pkcs8_private_keys};
 use rustls::{NoClientAuth, ServerConfig};
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,6 @@ mod handlers;
 mod middlewares;
 // User related interfaces.
 mod auth;
-mod jwt;
 
 // TODO: Features
 // - HTTP/2 supported
@@ -53,6 +52,9 @@ pub async fn server_main() -> std::io::Result<()> {
             .service(
                 web::scope("/api/v1")
                     .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
+                    .service(user::login)
+                    .service(user::bind_authentication)
+                    .service(user::create_user)
                     .service(freshman::get_basic_info)
                     .service(freshman::update_account)
                     .service(freshman::get_roommate)
