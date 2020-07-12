@@ -145,7 +145,7 @@ pub async fn bind_account(
     secret: &String,
 ) -> Result<String> {
     let student_id: Option<(String,)> = sqlx::query_as(
-        "UPDATE student SET uid = $1 \
+        "UPDATE public.students SET uid = $1 \
         WHERE (name = $2 or student_id = $2 or ticket = $2) and secret = $3 and uid is null \
         RETURNING student_id",
     )
