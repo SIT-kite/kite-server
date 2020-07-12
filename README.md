@@ -1,5 +1,7 @@
 # 上应小风筝 Restful API
 
+![Rust](https://github.com/sunnysab/kite-server/workflows/Rust/badge.svg?branch=master)
+
 ## 项目概要
 
 本项目旨在为上海应用技术大学的学生提供校园信息整合与管理服务。
