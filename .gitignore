@@ -1,0 +1,7 @@
+/target
+/http_test
+/.idea
+/migrations
+/kite.toml
+/cert.pem
+/key.pem
