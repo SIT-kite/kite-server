@@ -20,12 +20,6 @@ pub async fn get_basic_info(
     path: web::Path<String>,
     form: web::Form<FreshmanEnvReq>,
 ) -> Result<HttpResponse> {
-    /* Auth middleware may be sure that all of users are authenticated. */
-    // If someone didn't login before.
-    if token.is_none() {
-        // Return error code : Forbidden
-        return Err(ServerError::new(FreshmanError::Forbidden));
-    }
     let token = token.unwrap();
     let parameters: FreshmanEnvReq = form.into_inner();
 
@@ -70,11 +64,6 @@ pub async fn update_account(
     path: web::Path<String>,
     form: web::Form<UpdateInfo>,
 ) -> Result<HttpResponse> {
-    // If someone didn't login before.
-    if token.is_none() {
-        // Return error code : Forbidden
-        return Err(ServerError::new(FreshmanError::Forbidden));
-    }
     let token = token.unwrap();
     let uid = token.uid;
 
@@ -107,11 +96,6 @@ pub async fn get_roommate(
     token: Option<JwtToken>,
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
-    // If someone didn't login before.
-    if token.is_none() {
-        // Return error code : Forbidden
-        return Err(ServerError::new(FreshmanError::Forbidden));
-    }
     let token = token.unwrap();
     let uid = token.uid;
 
@@ -137,11 +121,6 @@ pub async fn get_people_familiar(
     token: Option<JwtToken>,
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
-    // If someone didn't login before.
-    if token.is_none() {
-        // Return error code : Forbidden
-        return Err(ServerError::new(FreshmanError::Forbidden));
-    }
     let token = token.unwrap();
     let uid = token.uid;
 
@@ -166,11 +145,6 @@ pub async fn get_classmate(
     token: Option<JwtToken>,
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
-    // If someone didn't login before.
-    if token.is_none() {
-        // Return error code : Forbidden
-        return Err(ServerError::new(FreshmanError::Forbidden));
-    }
     let token = token.unwrap();
     let uid = token.uid;
 
