@@ -1,4 +1,5 @@
 /target
+/http_test
 /.idea
 /migrations
 /kite.toml
