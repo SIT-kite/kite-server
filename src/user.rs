@@ -8,8 +8,8 @@ use sqlx::{postgres::PgQueryAs, PgPool};
 /* Constants at the edge between self and database. */
 
 /// Login Type.
-const _LOGIN_BY_WECHAT: i32 = 0;
-const _LOGIN_BY_PASSWORD: i32 = 1;
+pub const _LOGIN_BY_WECHAT: i32 = 0;
+pub const _LOGIN_BY_PASSWORD: i32 = 1;
 
 #[derive(Fail, Debug, ToPrimitive)]
 pub enum UserError {
@@ -131,12 +131,12 @@ impl Person {
         Ok(())
     }
 
-    pub async fn create(&mut self, client: &PgPool) -> Result<()> {
+    pub async fn register(&mut self, client: &PgPool) -> Result<()> {
         let uid: Option<(i32,)> = sqlx::query_as(
-            "INSERT INTO public.persons
-                nick_name, avatar, country, province, city, language, create_time
+            "INSERT INTO public.person
+                (nick_name, avatar, country, province, city, language, create_time)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
-                RETURNING (uid)",
+                RETURNING uid",
         )
         .bind(&self.nick_name)
         .bind(&self.avatar)
@@ -154,12 +154,12 @@ impl Person {
         Ok(())
     }
 
-    pub async fn list(client: &PgPool, page_index: i32, page_size: i32) -> Result<Vec<Self>> {
+    pub async fn list(client: &PgPool, page_index: u32, page_size: u32) -> Result<Vec<Self>> {
         let users: Vec<Person> = sqlx::query_as(
-            "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
-                 FROM public.persons LIMIT $1 OFFSET $2")
-            .bind(page_size)
-            .bind((page_index - 1) * page_size)
+            "SELECT uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
+                 FROM public.person LIMIT $1 OFFSET $2")
+            .bind(page_size as i32)
+            .bind(((page_index - 1) * page_size) as i32)
             .fetch_all(client)
             .await?;
         Ok(users)
@@ -167,8 +167,8 @@ impl Person {
 
     pub async fn query_uid(client: &PgPool, uid: i32) -> Result<Option<Person>> {
         let user: Option<Person> = sqlx::query_as(
-            "SELECT nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
-                FROM public.persons WHERE uid = $1 LIMIT 1",
+            "SELECT uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
+                FROM public.person WHERE uid = $1 LIMIT 1",
         )
             .bind(uid)
             .fetch_optional(client)
@@ -184,7 +184,7 @@ impl Person {
     ) -> Result<Vec<Person>> {
         let users: Vec<Person> = sqlx::query_as(
             "SELECT nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
-                FROM public.persons WHERE nick_name = $1
+                FROM public.person WHERE nick_name = $1
                 LIMIT $2 OFFSET $3",
         )
             .bind(query_string)

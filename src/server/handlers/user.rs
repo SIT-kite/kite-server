@@ -2,8 +2,9 @@ use crate::error::{Result, ServerError};
 use crate::jwt::encode_jwt;
 use crate::server::{JwtToken, NormalResponse};
 use crate::user::{get_default_avatar, Authentication, Person, UserError};
+use crate::user::{_LOGIN_BY_PASSWORD, _LOGIN_BY_WECHAT};
 use crate::wechat::{get_session_by_code, WxSession};
-use actix_web::{post, web, HttpResponse};
+use actix_web::{get, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -61,11 +62,31 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
     let resp = LoginResponse {
         token: encode_jwt(&JwtToken {
             uid: user.uid,
-            is_admin: false,
+            is_admin: user.is_admin,
         })?,
         data: user,
     };
     Ok(HttpResponse::Ok().json(&NormalResponse::new(resp)))
+}
+
+#[derive(Deserialize)]
+pub struct ListUsers {
+    #[serde(rename = "pageSize")]
+    pub page_size: Option<u32>,
+    pub index: Option<u32>,
+}
+
+#[get("/user")]
+pub async fn list_users(pool: web::Data<PgPool>, form: web::Form<ListUsers>) -> Result<HttpResponse> {
+    let parameter = form.into_inner();
+    let userlist = Person::list(
+        &pool,
+        parameter.index.unwrap_or(1),
+        parameter.page_size.unwrap_or(20),
+    )
+    .await?;
+
+    Ok(HttpResponse::Ok().json(&NormalResponse::new(userlist)))
 }
 
 #[derive(Deserialize)]
@@ -99,13 +120,20 @@ pub async fn create_user(
     user.city = parameters.city;
     user.language = parameters.language;
 
-    user.create(&pool).await?;
+    user.register(&pool).await?;
     #[derive(Serialize)]
     struct CreateResponse {
         uid: i32,
+        token: String,
     }
 
-    let resp = CreateResponse { uid: user.uid };
+    let resp = CreateResponse {
+        uid: user.uid,
+        token: encode_jwt(&JwtToken {
+            uid: user.uid,
+            is_admin: user.is_admin,
+        })?,
+    };
     Ok(HttpResponse::Ok().body(NormalResponse::new(resp).to_string()))
 }
 

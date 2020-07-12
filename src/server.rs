@@ -54,6 +54,7 @@ pub async fn server_main() -> std::io::Result<()> {
                     .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
                     .service(user::login)
                     .service(user::bind_authentication)
+                    .service(user::list_users)
                     .service(user::create_user)
                     .service(freshman::get_basic_info)
                     .service(freshman::update_account)
