@@ -4,7 +4,7 @@ use crate::server::{JwtToken, NormalResponse};
 use crate::user::{get_default_avatar, Authentication, Person, UserError};
 use crate::user::{_LOGIN_BY_PASSWORD, _LOGIN_BY_WECHAT};
 use crate::wechat::{get_session_by_code, WxSession};
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{get, post, web, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -180,4 +180,31 @@ pub async fn bind_authentication(
     #[derive(Serialize)]
     struct EmptyReponse;
     Ok(HttpResponse::Ok().body(NormalResponse::new(EmptyReponse).to_string()))
+}
+
+#[get("/user/{uid}")]
+pub async fn get_user_detail(
+    pool: web::Data<PgPool>,
+    token: Option<JwtToken>,
+    req: HttpRequest,
+) -> Result<HttpResponse> {
+    if let None = token {
+        return Err(ServerError::new(UserError::Forbidden));
+    }
+    let token = token.unwrap();
+    let uid_to_query: i32 = req
+        .match_info()
+        .get("uid")
+        .and_then(|uid| uid.parse().ok())
+        .ok_or(ServerError::new(UserError::BadParameter))?;
+    let uid_operator: i32 = token.uid;
+
+    if uid_operator != uid_to_query && !token.is_admin {
+        return Err(ServerError::new(UserError::Forbidden));
+    }
+    let user = Person::query_uid(&pool, uid_to_query).await?;
+    if let None = user {
+        return Err(ServerError::new(UserError::NoSuchUser));
+    }
+    Ok(HttpResponse::Ok().json(&NormalResponse::new(&user.unwrap())))
 }

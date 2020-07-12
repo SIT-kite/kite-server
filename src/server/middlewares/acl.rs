@@ -79,8 +79,6 @@ where
 #[allow(unreachable_code)]
 // TODO: allow all pages for debugging, update it when finish.
 fn check_anonymous_list(_method: &Method, _path: &str) -> bool {
-    return true;
-
     match _path {
         "/" => true,
         "/session" => true,

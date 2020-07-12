@@ -56,6 +56,7 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(user::bind_authentication)
                     .service(user::list_users)
                     .service(user::create_user)
+                    .service(user::get_user_detail)
                     .service(freshman::get_basic_info)
                     .service(freshman::update_account)
                     .service(freshman::get_roommate)
