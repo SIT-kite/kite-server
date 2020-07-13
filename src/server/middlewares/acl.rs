@@ -75,18 +75,15 @@ where
     }
 }
 
-#[allow(dead_code)]
-#[allow(unreachable_code)]
-// TODO: allow all pages for debugging, update it when finish.
-fn check_anonymous_list(_method: &Method, _path: &str) -> bool {
-    match _path {
+fn check_anonymous_list(method: &Method, path: &str) -> bool {
+    // TODO: Use regex expression.
+    match path {
         "/" => true,
-        "/session" => true,
-        "/user" => _method == Method::POST,
-        "/event" => _method == Method::GET,
-        _ => {
-            // TODO: try url pattern.
-            _path.starts_with("/user/") && _path.ends_with("/authentication")
-        }
+        "/api/v1/" => true,
+        "/api/v1/session" => method == Method::POST,
+        "/api/v1/user" => method == Method::POST,
+        "/api/v1/event" => method == Method::GET,
+        "/static" => method == Method::GET,
+        _ => false,
     }
 }

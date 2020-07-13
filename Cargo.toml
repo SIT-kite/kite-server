@@ -26,6 +26,8 @@ failure = "0.1"
 toml = "0.5"
 lazy_static = "1"
 uuid = { version = "0.8", features = ["serde", "v4"] }
+fern = "0.6"
+log = "0.4"
 
 # Serialization and Deserialization.
 serde = { version = "1.0", features = ["derive"] }

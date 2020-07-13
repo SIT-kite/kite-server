@@ -3,5 +3,6 @@
 /.idea
 /migrations
 /kite.toml
+/kite.log
 /cert.pem
 /key.pem

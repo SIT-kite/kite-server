@@ -5,6 +5,7 @@
 use std::fs::File;
 use std::io::BufReader;
 
+use crate::config::CONFIG;
 use actix_files::Files;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
@@ -14,12 +15,14 @@ use rustls::{NoClientAuth, ServerConfig};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 
-use crate::config::CONFIG;
-
 mod handlers;
 mod middlewares;
 // User related interfaces.
 mod auth;
+
+pub struct AppState {
+    pub pool: PgPool,
+}
 
 // TODO: Features
 // - HTTP/2 supported
@@ -44,10 +47,16 @@ pub async fn server_main() -> std::io::Result<()> {
     let mut keys = pkcs8_private_keys(key_file).unwrap();
     config.set_single_cert(cert_chain, keys.remove(0)).unwrap();
 
+    // Logger
+    set_logger("kite.log");
+    let log_string = "%a - - [%t] \"%r\" %s %b %D \"%{User-Agent}i\"";
+
     // Run actix-web server.
     HttpServer::new(move || {
         App::new()
-            .data(pool.clone())
+            .data(AppState { pool: pool.clone() })
+            .wrap(actix_web::middleware::Compress::default())
+            .wrap(actix_web::middleware::Logger::new(log_string))
             .wrap(middlewares::acl::Auth)
             .service(
                 web::scope("/api/v1")
@@ -71,6 +80,17 @@ pub async fn server_main() -> std::io::Result<()> {
     .bind_rustls(&CONFIG.bind_addr.as_str(), config)?
     .run()
     .await
+}
+
+fn set_logger(path: &str) {
+    fern::Dispatch::new()
+        // Perform allocation-free log formatting
+        .format(|out, message, _| out.finish(format_args!("{}", message)))
+        .level(log::LevelFilter::Info)
+        // .chain(std::io::stdout())
+        .chain(fern::log_file(path).expect("Could not open log file."))
+        .apply()
+        .expect("Failed to set logger.");
 }
 
 #[derive(Debug, Serialize)]
