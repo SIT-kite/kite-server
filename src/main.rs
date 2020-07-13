@@ -15,6 +15,7 @@ pub mod config;
 pub mod error;
 pub mod freshman;
 mod jwt;
+mod motto;
 pub mod sale;
 pub mod schema;
 pub mod server;

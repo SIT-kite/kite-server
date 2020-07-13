@@ -6,10 +6,10 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::config::CONFIG;
+use crate::server::handlers::{attachment, freshman, motto, user};
 use actix_files::Files;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
-use handlers::{attachment, freshman, user};
 use rustls::internal::pemfile::{certs, pkcs8_private_keys};
 use rustls::{NoClientAuth, ServerConfig};
 use serde::{Deserialize, Serialize};
@@ -19,10 +19,6 @@ mod handlers;
 mod middlewares;
 // User related interfaces.
 mod auth;
-
-pub struct AppState {
-    pub pool: PgPool,
-}
 
 // TODO: Features
 // - HTTP/2 supported
@@ -54,7 +50,7 @@ pub async fn server_main() -> std::io::Result<()> {
     // Run actix-web server.
     HttpServer::new(move || {
         App::new()
-            .data(AppState { pool: pool.clone() })
+            .data(pool.clone())
             .wrap(actix_web::middleware::Compress::default())
             .wrap(actix_web::middleware::Logger::new(log_string))
             .wrap(middlewares::acl::Auth)
@@ -73,7 +69,8 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(freshman::get_people_familiar)
                     .service(attachment::index)
                     .service(attachment::upload_file)
-                    .service(attachment::get_attachment_list),
+                    .service(attachment::get_attachment_list)
+                    .service(motto::get_one_motto),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
     })
