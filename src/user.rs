@@ -19,6 +19,8 @@ pub enum UserError {
     Forbidden = 4,
     #[fail(display = "凭据无效")]
     LoginFailed = 5,
+    #[fail(display = "账户已禁用")]
+    Disabled = 6,
     #[fail(display = "未知错误")]
     Unknown = 7,
     #[fail(display = "存在冲突的登录凭据")]

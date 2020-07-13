@@ -52,20 +52,20 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
             return Err(ServerError::new(UserError::BadParameter));
         }
     }
+    if user.is_disabled {
+        return Err(ServerError::new(UserError::Disabled));
+    }
 
     #[derive(Serialize)]
     struct LoginResponse {
         token: String,
         data: Person,
     }
-
-    let resp = LoginResponse {
-        token: encode_jwt(&JwtToken {
-            uid: user.uid,
-            is_admin: user.is_admin,
-        })?,
-        data: user,
-    };
+    let token = encode_jwt(&JwtToken {
+        uid: user.uid,
+        is_admin: user.is_admin,
+    })?;
+    let resp = LoginResponse { token, data: user };
     Ok(HttpResponse::Ok().json(&NormalResponse::new(resp)))
 }
 
