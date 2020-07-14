@@ -15,16 +15,10 @@ use rustls::{NoClientAuth, ServerConfig};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 
+mod auth;
 mod handlers;
 mod middlewares;
-// User related interfaces.
-mod auth;
 
-// TODO: Features
-// - HTTP/2 supported
-// - HTTPS
-// - log to file / database
-// The entrance of services is following.
 #[actix_rt::main]
 pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
