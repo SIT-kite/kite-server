@@ -6,17 +6,17 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use tokio::io::AsyncWriteExt;
 
-use crate::attachment::{self, AttachmentError, SingleAttachment};
 use crate::config::CONFIG;
 use crate::error::{Result, ServerError};
-use crate::server::{JwtToken, NormalResponse};
+use crate::models::attachment::{self, AttachmentError, SingleAttachment};
+use crate::services::{JwtToken, NormalResponse};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 const MAX_ATTACHMENT_SIZE: usize = 10 * 1024 * 1024;
 
 /// Upload attachment handler.
-/// Attachments may be stored on ECS or local storage in the server, and now is local storage.
+/// Attachments may be stored on ECS or local storage in the services, and now is local storage.
 /// Adapted from https://github.com/actix/examples/.
 /// Note: client can upload multiple files, so we use payload.try_next() to iterate all the files.
 /// There is also a while loop and iteration for streams in each file.

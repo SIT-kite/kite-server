@@ -33,14 +33,14 @@ macro_rules! wx_function {
             match response {
                 // Note: Sending successfully, not receiving.
                 Ok(mut r) => {
-                    // Wechat server always return HTTP 200, with errcode field when parameter error.
+                    // Wechat services always return HTTP 200, with errcode field when parameter error.
                     // Decode json string or give an empty json.
                     let body_string = r.body().await?;
                     let body_json: $structure = serde_json::from_slice(body_string.as_ref())?;
                     return Ok(body_json);
                 }
                 Err(e) => Err(ServerError::from(format!(
-                    "While connecting to wechat server: {}",
+                    "While connecting to wechat services: {}",
                     e
                 ))),
             }

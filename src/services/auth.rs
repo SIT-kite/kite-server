@@ -1,6 +1,6 @@
 use super::get_auth_bearer_value;
 use crate::jwt::decode_jwt;
-use crate::server::JwtToken;
+use crate::services::JwtToken;
 use actix_http::{Error, Payload, PayloadStream};
 use actix_web::error::ErrorUnauthorized;
 use actix_web::{FromRequest, HttpRequest};

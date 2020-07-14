@@ -1,7 +1,7 @@
 use crate::error::Result;
-use crate::motto::Motto;
-use crate::motto::{MOTTO_MAX_SIZE, MOTTO_MIN_SIZE};
-use crate::server::NormalResponse;
+use crate::models::motto::Motto;
+use crate::models::motto::{MOTTO_MAX_SIZE, MOTTO_MIN_SIZE};
+use crate::services::NormalResponse;
 use actix_web::{get, web, HttpResponse};
 use serde::Deserialize;
 use sqlx::PgPool;

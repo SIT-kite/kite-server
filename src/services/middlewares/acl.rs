@@ -1,6 +1,6 @@
 use std::task::{Context, Poll};
 
-use crate::server::{get_auth_bearer_value, JwtToken};
+use crate::services::{get_auth_bearer_value, JwtToken};
 use actix_http::http::Method;
 use actix_service::{Service, Transform};
 use actix_web::dev::{ServiceRequest, ServiceResponse};

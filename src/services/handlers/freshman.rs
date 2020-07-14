@@ -5,8 +5,8 @@ use sqlx::postgres::PgPool;
 
 use super::super::{EmptyReponse, NormalResponse};
 use crate::error::{Result, ServerError};
-use crate::freshman::{self, FreshmanBasic, FreshmanError, NewMate, PeopleFamiliar};
-use crate::server::JwtToken;
+use crate::models::freshman::{self, FreshmanBasic, FreshmanError, NewMate, PeopleFamiliar};
+use crate::services::JwtToken;
 
 #[derive(Debug, Deserialize)]
 pub struct FreshmanEnvReq {

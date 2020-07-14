@@ -5,7 +5,7 @@
 // use sqlx::postgres::PgPool;
 //
 // use crate::error::{Result, ServerError, UserError};
-// use crate::server::JwtTokenBox;
+// use crate::services::JwtTokenBox;
 // use crate::sign::{self, ApplicantResult, Event, EventSummary};
 //
 // use super::super::NormalResponse;

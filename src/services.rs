@@ -1,4 +1,4 @@
-//! The server module is which accepts and processes requests for client and
+//! The services module is which accepts and processes requests for client and
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::config::CONFIG;
-use crate::server::handlers::{attachment, freshman, motto, user};
+use crate::services::handlers::{attachment, freshman, motto, user};
 use actix_files::Files;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
@@ -24,7 +24,7 @@ mod auth;
 // - HTTP/2 supported
 // - HTTPS
 // - log to file / database
-// The entrance of server is following.
+// The entrance of services is following.
 #[actix_rt::main]
 pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
@@ -47,7 +47,7 @@ pub async fn server_main() -> std::io::Result<()> {
     set_logger("kite.log");
     let log_string = "%a - - [%t] \"%r\" %s %b %D \"%{User-Agent}i\"";
 
-    // Run actix-web server.
+    // Run actix-web services.
     HttpServer::new(move || {
         App::new()
             .data(pool.clone())

@@ -1,9 +1,9 @@
 use crate::error::{Result, ServerError};
 use crate::jwt::encode_jwt;
-use crate::server::{JwtToken, NormalResponse};
-use crate::user::{get_default_avatar, Authentication, Person, UserError};
-use crate::user::{_LOGIN_BY_PASSWORD, _LOGIN_BY_WECHAT};
-use crate::wechat::{get_session_by_code, WxSession};
+use crate::models::user::{get_default_avatar, Authentication, Person, UserError};
+use crate::models::user::{_LOGIN_BY_PASSWORD, _LOGIN_BY_WECHAT};
+use crate::models::wechat::{get_session_by_code, WxSession};
+use crate::services::{JwtToken, NormalResponse};
 use actix_web::{get, post, web, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
