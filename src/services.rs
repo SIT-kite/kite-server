@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::config::CONFIG;
-use crate::services::handlers::{attachment, event, freshman, motto, user};
+use crate::services::handlers::{attachment, checking, event, freshman, motto, user};
 use actix_files::Files;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
@@ -56,6 +56,8 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(user::list_users)
                     .service(user::create_user)
                     .service(user::get_user_detail)
+                    .service(user::get_user_identity)
+                    .service(user::set_user_identity)
                     .service(freshman::get_basic_info)
                     .service(freshman::update_account)
                     .service(freshman::get_roommate)
@@ -65,7 +67,8 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(attachment::upload_file)
                     .service(attachment::get_attachment_list)
                     .service(motto::get_one_motto)
-                    .service(event::list_events),
+                    .service(event::list_events)
+                    .service(checking::list_approved),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
     })

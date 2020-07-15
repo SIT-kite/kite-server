@@ -1,9 +1,9 @@
 use crate::error::{Result, ServerError};
 use crate::jwt::encode_jwt;
-use crate::models::user::{get_default_avatar, Authentication, Person, UserError};
+use crate::models::user::{get_default_avatar, Authentication, Identity, Person, UserError};
 use crate::models::user::{_LOGIN_BY_PASSWORD, _LOGIN_BY_WECHAT};
 use crate::models::wechat::{get_session_by_code, WxSession};
-use crate::services::{JwtToken, NormalResponse};
+use crate::services::{EmptyReponse, JwtToken, NormalResponse};
 use actix_web::{get, post, web, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -151,7 +151,7 @@ pub async fn bind_authentication(
         .and_then(|uid| uid.parse().ok())
         .ok_or(ServerError::new(UserError::BadParameter))?;
 
-    let user = Person::query_uid(&pool, uid)
+    let user = Person::query_by_uid(&pool, uid)
         .await?
         .ok_or(ServerError::new(UserError::NoSuchUser))?;
 
@@ -202,9 +202,69 @@ pub async fn get_user_detail(
     if uid_operator != uid_to_query && !token.is_admin {
         return Err(ServerError::new(UserError::Forbidden));
     }
-    let user = Person::query_uid(&pool, uid_to_query).await?;
+    let user = Person::query_by_uid(&pool, uid_to_query).await?;
     if let None = user {
         return Err(ServerError::new(UserError::NoSuchUser));
     }
     Ok(HttpResponse::Ok().json(&NormalResponse::new(&user.unwrap())))
+}
+
+#[get("/user/{uid}/identity")]
+pub async fn get_user_identity(
+    pool: web::Data<PgPool>,
+    token: Option<JwtToken>,
+    uid: web::Path<i32>,
+) -> Result<HttpResponse> {
+    let uid = uid.into_inner();
+    let token = token.unwrap();
+
+    if token.uid != uid && !token.is_admin {
+        return Err(ServerError::new(UserError::Forbidden));
+    }
+    let identity = Person::get_identity(&pool, uid).await?;
+    if let None = identity {
+        return Err(ServerError::new(UserError::NoSuchUser));
+    }
+    Ok(HttpResponse::Ok().json(&NormalResponse::new(identity.unwrap())))
+}
+
+#[derive(Deserialize)]
+pub struct IdentityPost {
+    /// Real name
+    pub realname: String,
+    /// Student id
+    #[serde(rename = "studentId")]
+    pub student_id: String,
+    /// OA secret(password)
+    #[serde(rename = "oaSecret")]
+    pub oa_secret: Option<String>,
+    /// ID card number
+    #[serde(rename = "identityNumber")]
+    pub identity_number: Option<String>,
+}
+
+#[post("/user/{uid}/identity")]
+pub async fn set_user_identity(
+    pool: web::Data<PgPool>,
+    token: Option<JwtToken>,
+    uid: web::Path<i32>,
+    data: web::Form<IdentityPost>,
+) -> Result<HttpResponse> {
+    let uid = uid.into_inner();
+    let token = token.unwrap();
+
+    if token.uid != uid && !token.is_admin {
+        return Err(ServerError::new(UserError::Forbidden));
+    }
+    let identity_post = data.into_inner();
+    let identity = Identity {
+        uid,
+        realname: identity_post.realname,
+        student_id: identity_post.student_id,
+        oa_secret: identity_post.oa_secret,
+        oa_certified: false,
+        identity_number: identity_post.identity_number,
+    };
+    Person::set_identity(&pool, uid, &identity).await?;
+    Ok(HttpResponse::Ok().json(&EmptyReponse::default()))
 }
