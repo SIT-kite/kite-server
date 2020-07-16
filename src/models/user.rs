@@ -341,8 +341,6 @@ impl Identity {
 }
 
 mod test {
-    use crate::models::user::Identity;
-
     #[test]
     pub fn test_identity_number_validation() {
         assert_eq!(
