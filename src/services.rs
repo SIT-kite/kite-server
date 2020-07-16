@@ -70,7 +70,8 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(event::list_events)
                     .service(checking::list_approvals)
                     .service(checking::query_detail)
-                    .service(checking::add_approval),
+                    .service(checking::add_approval)
+                    .service(checking::delete_approval),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
     })

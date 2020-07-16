@@ -3,8 +3,8 @@ use crate::error::{Result, ServerError};
 use crate::models::checking::{Approval, CheckingError};
 use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
-use crate::services::{JwtToken, NormalResponse};
-use actix_web::{get, post, web, HttpResponse};
+use crate::services::{EmptyReponse, JwtToken, NormalResponse};
+use actix_web::{delete, get, post, web, HttpResponse};
 use serde::Deserialize;
 use sqlx::postgres::PgPool;
 
@@ -46,12 +46,12 @@ pub async fn query_detail(
     match Approval::query_by_uid(&pool, uid).await {
         Ok(approaval) => Ok(HttpResponse::Ok().json(&NormalResponse::new(approaval))),
         Err(e) => {
-            if e == ServerError::new(CheckingError::NoSuchAccount) {
+            if e == ServerError::new(CheckingError::NoSuchRecord) {
                 let identity_result = Person::get_identity(&pool, uid).await?;
                 if identity_result.is_none() {
                     return Err(CheckingError::IdentityNeeded.into());
                 }
-                return Err(CheckingError::NoSuchAccount.into());
+                return Err(CheckingError::NoSuchRecord.into());
             }
             Err(e)
         }
@@ -85,4 +85,18 @@ pub async fn add_approval(
     approval.submit(&pool).await?;
 
     Ok(HttpResponse::Ok().json(&NormalResponse::new(approval)))
+}
+
+#[delete("/checking/{id}")]
+pub async fn delete_approval(
+    token: Option<JwtToken>,
+    pool: web::Data<PgPool>,
+    id: web::Path<i32>,
+) -> Result<HttpResponse> {
+    if !token.unwrap().is_admin {
+        return Err(CommonError::Forbidden.into());
+    }
+
+    Approval::new(id.into_inner()).delete(&pool).await?;
+    Ok(HttpResponse::Ok().json(&EmptyReponse::default()))
 }

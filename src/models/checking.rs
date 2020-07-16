@@ -9,9 +9,7 @@ use thiserror::Error;
 #[derive(Debug, Error, ToPrimitive)]
 pub enum CheckingError {
     #[error("无审核记录或个人信息填写错误")]
-    NoSuchAccount = 1001,
-    #[error("账户已被绑定")]
-    BoundAlready = 1002,
+    NoSuchRecord = 1001,
     #[error("需要先实名认证")]
     IdentityNeeded = 1003,
 }
@@ -29,9 +27,6 @@ impl Into<ServerError> for CheckingError {
 pub struct Approval {
     /// Serial id.
     pub id: i32,
-    /// Uid in account system. It will be None when student names are imported
-    /// while the student haven't bound.
-    pub uid: Option<i32>,
     /// Student ID
     #[serde(rename = "studentId")]
     pub student_id: String,
@@ -48,14 +43,21 @@ pub struct Approval {
 }
 
 impl Approval {
+    /// Create new struct by record id.
+    pub fn new(id: i32) -> Self {
+        Self {
+            id,
+            ..Self::default()
+        }
+    }
+
     /// Save to database.
     pub async fn submit(&mut self, client: &PgPool) -> Result<()> {
         let approval_id: (i32,) = sqlx::query_as(
-            "INSERT INTO checking.approvals (uid, student_id, name, approved_time, college, major)
-                VALUES ($1, $2, $3, $4, $5, $6)
+            "INSERT INTO checking.approvals (student_id, name, approved_time, college, major)
+                VALUES ($1, $2, $3, $4, $5)
                 RETURNING id",
         )
-        .bind(self.uid)
         .bind(&self.student_id)
         .bind(&self.name)
         .bind(&self.approved_time)
@@ -64,6 +66,10 @@ impl Approval {
         .fetch_one(client)
         .await?;
 
+        // Note: BUG: submit function has not fetch self.cert_status, so if someone already set his
+        // real identity, when manager add approval record, self.cert_status is always false, try to
+        // refresh can solve this problem.
+        // 2020.7.16
         self.id = approval_id.0;
         Ok(())
     }
@@ -71,7 +77,7 @@ impl Approval {
     /// Get personal information and whether he is approved in BY UID
     pub async fn query_by_uid(client: &PgPool, uid: i32) -> Result<Self> {
         let approval_record: Option<Approval> = sqlx::query_as(
-            "SELECT id, identities.uid, identities.student_id, name, approved_time, college, major, true AS cert_status
+            "SELECT id, identities.student_id, name, approved_time, college, major, true AS cert_status
                     FROM public.identities
                 LEFT JOIN checking.approvals
                     ON identities.student_id = approvals.student_id
@@ -86,7 +92,7 @@ impl Approval {
         .bind(uid)
         .fetch_optional(client)
         .await?;
-        approval_record.ok_or(CheckingError::NoSuchAccount.into())
+        approval_record.ok_or(CheckingError::NoSuchRecord.into())
     }
 
     /// Delete approve record.
@@ -101,7 +107,7 @@ impl Approval {
     /// Get Approve List
     pub async fn list(client: &PgPool, college: &Option<String>, page: &PageView) -> Result<Vec<Self>> {
         let approve_list = sqlx::query_as(
-            "SELECT id, identities.uid, approvals.student_id, approvals.name, approved_time, college, major,
+            "SELECT id, approvals.student_id, approvals.name, approved_time, college, major,
                     (identities.oa_certified = true
                     OR (identities.identity_number = approvals.identity_number
                         AND length(identities.identity_number) <> 0) ) AS cert_status
@@ -127,7 +133,7 @@ impl Approval {
     /// Search student name
     pub async fn search(client: &PgPool, query_string: &String, count: u16) -> Result<Vec<Self>> {
         let result: Vec<Self> = sqlx::query_as(
-            "SELECT a.id, i.uid, a.student_id, name, approved_time, college, major,
+            "SELECT a.id, a.student_id, name, approved_time, college, major,
                     (i.oa_certified = true
                     OR (i.identity_number = a.identity_number
                         AND length(i.identity_number) <> 0) ) AS cert_status
@@ -148,7 +154,6 @@ impl Default for Approval {
     fn default() -> Self {
         Approval {
             id: 0,
-            uid: None,
             student_id: "".to_string(),
             name: "".to_string(),
             approved_time: Utc::now().naive_local(),
