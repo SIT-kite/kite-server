@@ -345,11 +345,11 @@ mod test {
     pub fn test_identity_number_validation() {
         assert_eq!(
             true,
-            Identity::validate_identity_number("110101192007156996".as_bytes())
+            super::Identity::validate_identity_number("110101192007156996".as_bytes())
         );
         assert_eq!(
             false,
-            Identity::validate_identity_number("random_string".as_bytes())
+            super::Identity::validate_identity_number("random_string".as_bytes())
         );
         assert_eq!(
             true,
