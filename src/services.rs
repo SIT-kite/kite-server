@@ -68,7 +68,9 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(attachment::get_attachment_list)
                     .service(motto::get_one_motto)
                     .service(event::list_events)
-                    .service(checking::list_approved),
+                    .service(checking::list_approvals)
+                    .service(checking::query_detail)
+                    .service(checking::add_approval),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
     })
