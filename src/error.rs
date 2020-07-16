@@ -31,9 +31,9 @@ use std::io::Error as StdIoError;
 #[derive(Debug, Serialize, PartialEq)]
 pub struct ServerError {
     #[serde(rename(serialize = "code"))]
-    inner_code: u16,
+    pub inner_code: u16,
     #[serde(rename(serialize = "msg"), skip_serializing_if = "String::is_empty")]
-    error_msg: String,
+    pub error_msg: String,
 }
 
 impl fmt::Display for ServerError {
@@ -53,8 +53,7 @@ impl ResponseError for ServerError {
     }
     // Make json response body for error.
     fn error_response(&self) -> HttpResponse {
-        ResponseBuilder::new(self.status_code())
-            .body(serde_json::to_string(&self).unwrap_or(r"{code: 1}".to_string()))
+        ResponseBuilder::new(self.status_code()).json(self)
     }
 }
 
