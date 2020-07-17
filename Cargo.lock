@@ -1094,6 +1094,7 @@ dependencies = [
  "log",
  "num-derive",
  "num-traits",
+ "regex",
  "rustls",
  "sanitize-filename",
  "serde",
