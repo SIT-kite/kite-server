@@ -353,7 +353,7 @@ mod test {
         );
         assert_eq!(
             true,
-            Identity::validate_identity_number("210202192007159834".as_bytes())
+            super::Identity::validate_identity_number("210202192007159834".as_bytes())
         );
     }
 }
