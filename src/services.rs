@@ -1,31 +1,24 @@
-//! The server module is which accepts and processes requests for client and
+//! The services module is which accepts and processes requests for client and
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
 use std::fs::File;
 use std::io::BufReader;
 
+use crate::config::CONFIG;
+use crate::services::handlers::{attachment, checking, event, freshman, motto, user};
 use actix_files::Files;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
-use handlers::{attachment, freshman, user};
 use rustls::internal::pemfile::{certs, pkcs8_private_keys};
 use rustls::{NoClientAuth, ServerConfig};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 
-use crate::config::CONFIG;
-
+mod auth;
 mod handlers;
 mod middlewares;
-// User related interfaces.
-mod auth;
 
-// TODO: Features
-// - HTTP/2 supported
-// - HTTPS
-// - log to file / database
-// The entrance of server is following.
 #[actix_rt::main]
 pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
@@ -44,10 +37,16 @@ pub async fn server_main() -> std::io::Result<()> {
     let mut keys = pkcs8_private_keys(key_file).unwrap();
     config.set_single_cert(cert_chain, keys.remove(0)).unwrap();
 
-    // Run actix-web server.
+    // Logger
+    set_logger("kite.log");
+    let log_string = "%a - - [%t] \"%r\" %s %b %D \"%{User-Agent}i\"";
+
+    // Run actix-web services.
     HttpServer::new(move || {
         App::new()
             .data(pool.clone())
+            .wrap(actix_web::middleware::Compress::default())
+            .wrap(actix_web::middleware::Logger::new(log_string))
             .wrap(middlewares::acl::Auth)
             .service(
                 web::scope("/api/v1")
@@ -56,6 +55,9 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(user::bind_authentication)
                     .service(user::list_users)
                     .service(user::create_user)
+                    .service(user::get_user_detail)
+                    .service(user::get_user_identity)
+                    .service(user::set_user_identity)
                     .service(freshman::get_basic_info)
                     .service(freshman::update_account)
                     .service(freshman::get_roommate)
@@ -63,13 +65,30 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(freshman::get_people_familiar)
                     .service(attachment::index)
                     .service(attachment::upload_file)
-                    .service(attachment::get_attachment_list),
+                    .service(attachment::get_attachment_list)
+                    .service(motto::get_one_motto)
+                    .service(event::list_events)
+                    .service(checking::list_approvals)
+                    .service(checking::query_detail)
+                    .service(checking::add_approval)
+                    .service(checking::delete_approval),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
     })
     .bind_rustls(&CONFIG.bind_addr.as_str(), config)?
     .run()
     .await
+}
+
+fn set_logger(path: &str) {
+    fern::Dispatch::new()
+        // Perform allocation-free log formatting
+        .format(|out, message, _| out.finish(format_args!("{}", message)))
+        .level(log::LevelFilter::Info)
+        // .chain(std::io::stdout())
+        .chain(fern::log_file(path).expect("Could not open log file."))
+        .apply()
+        .expect("Failed to set logger.");
 }
 
 #[derive(Debug, Serialize)]

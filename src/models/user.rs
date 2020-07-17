@@ -1,8 +1,9 @@
 //! This module provides the ability to create, update and delete users including authentication tokens.
 
 use crate::error::{Result, ServerError};
+use actix_http::http::StatusCode;
 use chrono::{NaiveDateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgQueryAs, PgPool};
 
 /* Constants at the edge between self and database. */
@@ -19,12 +20,20 @@ pub enum UserError {
     Forbidden = 4,
     #[fail(display = "凭据无效")]
     LoginFailed = 5,
+    #[fail(display = "账户已禁用")]
+    Disabled = 6,
     #[fail(display = "未知错误")]
     Unknown = 7,
     #[fail(display = "存在冲突的登录凭据")]
     AuthExists = 15,
     #[fail(display = "找不到用户")]
     NoSuchUser = 16,
+    #[fail(display = "无法连接校园网完成认证")]
+    OaNetworkFailed = 30,
+    #[fail(display = "OA密码认证失败")]
+    OaSecretFailed = 31,
+    #[fail(display = "错误的身份证号码")]
+    InvalidIdNumber = 32,
 }
 
 /* Models */
@@ -165,7 +174,7 @@ impl Person {
         Ok(users)
     }
 
-    pub async fn query_uid(client: &PgPool, uid: i32) -> Result<Option<Person>> {
+    pub async fn query_by_uid(client: &PgPool, uid: i32) -> Result<Option<Person>> {
         let user: Option<Person> = sqlx::query_as(
             "SELECT uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
                 FROM public.person WHERE uid = $1 LIMIT 1",
@@ -194,6 +203,45 @@ impl Person {
             .await?;
         Ok(users)
     }
+
+    /// Get identity info
+    pub async fn get_identity(client: &PgPool, uid: i32) -> Result<Option<Identity>> {
+        let identity: Option<Identity> = sqlx::query_as(
+            "SELECT uid, realname, student_id, oa_secret, oa_certified, identity_number, realname
+            FROM public.identities WHERE uid = $1",
+        )
+        .bind(uid)
+        .fetch_optional(client)
+        .await?;
+        Ok(identity)
+    }
+
+    /// Set identity info
+    pub async fn set_identity(client: &PgPool, uid: i32, identity: &Identity) -> Result<()> {
+        if let Some(id_number) = &identity.identity_number {
+            if !Identity::validate_identity_number(id_number.as_bytes()) {
+                return Err(ServerError::new(UserError::InvalidIdNumber));
+            }
+        }
+        if let Some(oa_secret) = &identity.oa_secret {
+            if !Identity::validate_oa_account(&identity.student_id, oa_secret).await? {
+                return Err(ServerError::new(UserError::OaSecretFailed));
+            }
+        }
+        let _ = sqlx::query(
+            "INSERT INTO public.identities (uid, realname, student_id, oa_secret, oa_certified, identity_number)
+                VALUES ($1, $2, $3, $4, true, $5)
+                ON CONFLICT (uid)
+                DO UPDATE SET oa_secret = $4, oa_certified = true, identity_number = $5;")
+            .bind(uid)
+            .bind(&identity.realname)
+            .bind(&identity.student_id)
+            .bind(&identity.oa_secret)
+            .bind(&identity.identity_number)
+            .execute(client)
+            .await?;
+        Ok(())
+    }
 }
 
 /// Default avatar for new user.
@@ -215,5 +263,97 @@ impl Default for Person {
             language: None,
             create_time: Utc::now().naive_local(),
         }
+    }
+}
+
+/// User real name and other personal information.
+#[derive(Debug, Default, Serialize, Deserialize, sqlx::FromRow)]
+pub struct Identity {
+    /// Person uid
+    pub uid: i32,
+    /// Real name
+    pub realname: String,
+    /// Student id
+    #[serde(rename = "studentId")]
+    pub student_id: String,
+    /// OA secret(password)
+    #[serde(rename = "oaSecret")]
+    pub oa_secret: Option<String>,
+    /// Whether OA certified or not
+    #[serde(rename = "oaCertified")]
+    pub oa_certified: bool,
+    /// ID card number
+    #[serde(rename = "identityNumber")]
+    pub identity_number: Option<String>,
+}
+
+async fn oa_password_check(account: &String, password: &String) -> Result<bool> {
+    use actix_web::client;
+
+    #[derive(Serialize)]
+    struct RequestPayload {
+        pub code: String,
+        pub pwd: String,
+    }
+    if let Ok(mut web_client) = client::Client::new()
+        .post("http://210.35.96.114/report/report/ssoCheckUser")
+        .set_header("Referer", "http://xgfy.sit.edu.cn/h5/")
+        .send_json(&RequestPayload {
+            code: account.clone(),
+            pwd: password.clone(),
+        })
+        .await
+    {
+        if web_client.status() == StatusCode::OK {
+            let body = web_client.body().await?;
+            return Ok(body.as_ref() == r#"{"code":0,"msg":null,"data":true}"#.as_bytes());
+        }
+    }
+    Err(ServerError::new(UserError::OaNetworkFailed))
+}
+
+impl Identity {
+    pub fn new(uid: i32, student_id: &String) -> Self {
+        Self {
+            uid,
+            student_id: student_id.clone(),
+            ..Identity::default()
+        }
+    }
+
+    pub async fn validate_oa_account(student_id: &String, oa_secret: &String) -> Result<bool> {
+        oa_password_check(student_id, oa_secret).await
+    }
+
+    pub fn validate_identity_number(identity_number: &[u8]) -> bool {
+        let magic_array = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+        let tail_chars = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+        let mut sum: usize = 0;
+
+        if identity_number.len() != 18 {
+            return false;
+        }
+        for i in 0..17 {
+            sum += magic_array[i] as usize * (identity_number[i] - '0' as u8) as usize;
+        }
+        return identity_number[17] as char == (if sum % 11 != 2 { tail_chars[sum % 11] } else { 'X' });
+    }
+}
+
+mod test {
+    #[test]
+    pub fn test_identity_number_validation() {
+        assert_eq!(
+            true,
+            super::Identity::validate_identity_number("110101192007156996".as_bytes())
+        );
+        assert_eq!(
+            false,
+            super::Identity::validate_identity_number("random_string".as_bytes())
+        );
+        assert_eq!(
+            true,
+            Identity::validate_identity_number("210202192007159834".as_bytes())
+        );
     }
 }

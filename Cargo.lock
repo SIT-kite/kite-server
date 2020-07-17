@@ -714,6 +714,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 
 [[package]]
+name = "fern"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c9a4820f0ccc8a7afd67c39a0f1a0f4b07ca1725164271a64939d7aeb9af065"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "flate2"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1078,9 +1087,11 @@ dependencies = [
  "actix-web",
  "chrono",
  "failure",
+ "fern",
  "futures",
  "jsonwebtoken",
  "lazy_static",
+ "log",
  "num-derive",
  "num-traits",
  "rustls",
@@ -1088,6 +1099,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "thiserror",
  "tokio",
  "toml",
  "uuid",
