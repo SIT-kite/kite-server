@@ -1,4 +1,4 @@
-use crate::error::{Result, ServerError};
+use crate::error::{ApiError, Result};
 use serde::Serialize;
 use sqlx::{postgres::PgQueryAs, PgPool};
 
@@ -51,6 +51,6 @@ impl Motto {
         if let Some(motto) = motto {
             return Ok(motto);
         }
-        Err(ServerError::new(MottoError::NoMoreItem))
+        Err(ApiError::new(MottoError::NoMoreItem))
     }
 }

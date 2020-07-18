@@ -1,7 +1,7 @@
 //! This module includes interfaces about the event and sign.
 use crate::error::Result;
 use crate::models::event;
-use crate::services::NormalResponse;
+use crate::services::response::ApiResponse;
 use actix_web::{get, web, HttpResponse};
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -34,5 +34,5 @@ pub async fn list_events(pool: web::Data<PgPool>, form: web::Query<ListEvent>) -
     )
     .await?;
 
-    Ok(HttpResponse::Ok().json(&NormalResponse::new(event_summaries)))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(event_summaries)))
 }

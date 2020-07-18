@@ -1,13 +1,7 @@
-pub type Result<T> = std::result::Result<T, ServerError>;
-pub type Error = ServerError;
-
-use std::fmt;
-
+use crate::models::wechat::WxErr;
 use actix_http::error::PayloadError;
 use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_web::{error::ResponseError, HttpResponse};
-
-use crate::models::wechat::WxErr;
 use failure::Fail;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
@@ -15,38 +9,40 @@ use serde::export::Formatter;
 use serde::Serialize;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlError;
+use std::fmt;
 use std::io::Error as StdIoError;
 
-// use crate::user::wechat::WxErr;
+pub type Result<T> = std::result::Result<T, ApiError>;
+pub type Error = ApiError;
 
-// use actix_web::error::BlockingError;
+// Reference:
+// [Actix error handler](https://actix.rs/docs/errors/)
+// [fmt::Display](https://doc.rust-lang.org/std/fmt/trait.Display.html)
 
-// 自定义错误
-// See: https://actix.rs/docs/errors/
-// fmt::Display
-// See: https://doc.rust-lang.org/std/fmt/trait.Display.html
-
-// 对外部接口来说，逻辑错误返回相应的错误码，由各模块提供的错误类型提供错误码和提示信息
-// 内部模块（如数据库、网络）错误返回错误类型 1（内部错误），并返回相应的错误信息提示
+/// Server error type, show internal library error with error code 1 and hide real error message.
+/// While show logical and business errors with (code, message).
 #[derive(Debug, Serialize, PartialEq)]
-pub struct ServerError {
-    #[serde(rename(serialize = "code"))]
-    pub inner_code: u16,
-    #[serde(rename(serialize = "msg"), skip_serializing_if = "String::is_empty")]
-    pub error_msg: String,
+pub struct ApiError {
+    pub code: u16,
+    // TODO: Add inner error handler and the uncomment following line.
+    #[serde(skip_serializing)]
+    pub inner_msg: Option<String>,
+    #[serde(rename(serialize = "msg"), skip_serializing_if = "Option::is_none")]
+    pub error_msg: Option<String>,
 }
 
-impl fmt::Display for ServerError {
+impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "ServerError {{code: {}, msg: {}}} ",
-            self.inner_code, self.error_msg
+            self.code,
+            self.error_msg.as_ref().unwrap_or(&String::from(""))
         )
     }
 }
 
-impl ResponseError for ServerError {
+impl ResponseError for ApiError {
     // Always return 200 ok and prompt real code at json body.
     fn status_code(&self) -> StatusCode {
         StatusCode::OK
@@ -57,31 +53,34 @@ impl ResponseError for ServerError {
     }
 }
 
-impl ServerError {
+impl ApiError {
     pub fn new<T: ToPrimitive + Fail>(sub_err: T) -> Self {
         Self {
-            inner_code: sub_err.to_u16().unwrap(),
-            error_msg: sub_err.to_string(),
+            code: sub_err.to_u16().unwrap(),
+            inner_msg: None,
+            error_msg: Some(sub_err.to_string()),
         }
     }
 }
 
-impl From<WxErr> for ServerError {
+impl From<WxErr> for ApiError {
     fn from(e: WxErr) -> Self {
-        ServerError {
-            inner_code: e.errcode,
-            error_msg: e.errmsg,
+        ApiError {
+            code: e.errcode,
+            inner_msg: Some(e.errmsg),
+            error_msg: None,
         }
     }
 }
 
 macro_rules! convert_inner_errors {
     ($src_err_type: ident) => {
-        impl From<$src_err_type> for ServerError {
+        impl From<$src_err_type> for ApiError {
             fn from(sub_err: $src_err_type) -> Self {
                 Self {
-                    inner_code: 1,
-                    error_msg: sub_err.to_string(),
+                    code: 1,
+                    inner_msg: None,
+                    error_msg: Some(sub_err.to_string()),
                 }
             }
         }

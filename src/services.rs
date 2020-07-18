@@ -19,6 +19,7 @@ use sqlx::postgres::PgPool;
 mod auth;
 mod handlers;
 mod middlewares;
+pub(crate) mod response;
 
 #[actix_rt::main]
 pub async fn server_main() -> std::io::Result<()> {
@@ -97,38 +98,6 @@ fn set_logger(path: &str) {
         .chain(fern::log_file(path).expect("Could not open log file."))
         .apply()
         .expect("Failed to set logger.");
-}
-
-#[derive(Debug, Serialize)]
-pub struct NormalResponse<T> {
-    code: u16,
-    data: T,
-}
-
-#[derive(Default, Serialize)]
-struct EmptyReponse {
-    pub code: u16,
-}
-
-impl<T> NormalResponse<T> {
-    pub fn new(data: T) -> NormalResponse<T>
-    where
-        T: Serialize,
-    {
-        NormalResponse { code: 0, data }
-    }
-}
-
-impl<T> ToString for NormalResponse<T>
-where
-    T: Serialize,
-{
-    fn to_string(&self) -> String {
-        if let Ok(body_json) = serde_json::to_string(&self) {
-            return body_json;
-        }
-        r"{code: 1}".to_string()
-    }
 }
 
 /// User Jwt token carried in each request.

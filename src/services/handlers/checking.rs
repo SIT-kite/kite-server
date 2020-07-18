@@ -1,9 +1,9 @@
 //! This module includes interfaces about go-school-checking.
-use crate::error::{Result, ServerError};
+use crate::error::{ApiError, Result};
 use crate::models::checking::{Approval, CheckingError};
 use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
-use crate::services::{EmptyReponse, JwtToken, NormalResponse};
+use crate::services::{response::ApiResponse, JwtToken};
 use actix_web::{delete, get, post, web, HttpResponse};
 use serde::Deserialize;
 use sqlx::postgres::PgPool;
@@ -28,7 +28,7 @@ pub async fn list_approvals(
     } else {
         Approval::list(&pool, &None, &page).await?
     };
-    Ok(HttpResponse::Ok().json(NormalResponse::new(approvement)))
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(approvement)))
 }
 
 #[get("/checking/{uid}")]
@@ -44,9 +44,9 @@ pub async fn query_detail(
         return Err(CommonError::Forbidden.into());
     }
     match Approval::query_by_uid(&pool, uid).await {
-        Ok(approaval) => Ok(HttpResponse::Ok().json(&NormalResponse::new(approaval))),
+        Ok(approaval) => Ok(HttpResponse::Ok().json(&ApiResponse::normal(approaval))),
         Err(e) => {
-            if e == ServerError::new(CheckingError::NoSuchRecord) {
+            if e == ApiError::new(CheckingError::NoSuchRecord) {
                 let identity_result = Person::get_identity(&pool, uid).await?;
                 if identity_result.is_none() {
                     return Err(CheckingError::IdentityNeeded.into());
@@ -84,7 +84,7 @@ pub async fn add_approval(
     approval.major = submitted.major;
     approval.submit(&pool).await?;
 
-    Ok(HttpResponse::Ok().json(&NormalResponse::new(approval)))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(approval)))
 }
 
 #[delete("/checking/{id}")]
@@ -96,7 +96,6 @@ pub async fn delete_approval(
     if !token.unwrap().is_admin {
         return Err(CommonError::Forbidden.into());
     }
-
     Approval::new(id.into_inner()).delete(&pool).await?;
-    Ok(HttpResponse::Ok().json(&EmptyReponse::default()))
+    Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }

@@ -73,9 +73,10 @@ where
             if should_allow {
                 return Either::Left(self.service.call(req));
             }
+            // TODO: Use Common error.
             return Either::Right(ok(req.into_response(
                 HttpResponse::Forbidden()
-                    .json(r#"{"code": 503, "msg": "不支持您所在的区域"}"#)
+                    .json(r#"{"code": 3,"msg": "未在允许的IP地址段内"}"#)
                     .into_body(),
             )));
         }

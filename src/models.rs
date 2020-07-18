@@ -15,7 +15,7 @@ pub mod user;
 /// Wechat module, call wechat interface.
 pub mod wechat;
 
-use crate::error::ServerError;
+use crate::error::ApiError;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -29,15 +29,22 @@ pub enum CommonError {
     Success = 0,
     #[error("接口依赖的模块出现问题, 可能遇到了bug, 请重试或联系易班工作站")]
     Internal = 1,
+    #[error("请求的参数错误")]
+    Parameter = 2,
+    #[error("当前您所在的区域暂不提供服务")]
+    AddrNotSupported = 3,
+    #[error("该操作需要登录")]
+    LoginNeeded = 4,
     #[error("请求的权限不足")]
-    Forbidden = 2,
+    Forbidden = 5,
 }
 
-impl Into<ServerError> for CommonError {
-    fn into(self) -> ServerError {
-        ServerError {
-            inner_code: self.to_u16().unwrap(),
-            error_msg: self.to_string(),
+impl Into<ApiError> for CommonError {
+    fn into(self) -> ApiError {
+        ApiError {
+            code: self.to_u16().unwrap(),
+            inner_msg: None,
+            error_msg: Some(self.to_string()),
         }
     }
 }
