@@ -21,7 +21,7 @@ pub async fn get_basic_info(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
     path: web::Path<String>,
-    form: web::Form<FreshmanEnvReq>,
+    form: web::Query<FreshmanEnvReq>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
     let parameters: FreshmanEnvReq = form.into_inner();

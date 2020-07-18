@@ -77,7 +77,7 @@ pub struct ListUsers {
 }
 
 #[get("/user")]
-pub async fn list_users(pool: web::Data<PgPool>, form: web::Form<ListUsers>) -> Result<HttpResponse> {
+pub async fn list_users(pool: web::Data<PgPool>, form: web::Query<ListUsers>) -> Result<HttpResponse> {
     let parameter = form.into_inner();
     let userlist = Person::list(
         &pool,

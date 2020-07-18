@@ -94,7 +94,7 @@ pub struct PageOption {
 pub async fn get_attachment_list(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
-    form: web::Form<PageOption>,
+    form: web::Query<PageOption>,
 ) -> Result<HttpResponse> {
     if token.is_none() {
         return Err(ApiError::new(AttachmentError::Forbidden));
