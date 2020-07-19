@@ -6,11 +6,6 @@ use actix_web::{get, put, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 
-use super::super::{EmptyReponse, NormalResponse};
-use crate::error::{Result, ServerError};
-use crate::models::freshman::{self, FreshmanBasic, FreshmanError, NewMate, PeopleFamiliar};
-use crate::services::JwtToken;
-
 #[derive(Debug, Deserialize)]
 pub struct FreshmanEnvReq {
     pub secret: Option<String>,
