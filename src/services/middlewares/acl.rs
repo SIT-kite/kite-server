@@ -1,4 +1,6 @@
+use crate::error::ApiError;
 use crate::jwt::*;
+use crate::models::CommonError;
 use crate::services::{get_auth_bearer_value, JwtToken};
 use actix_http::http::Method;
 use actix_service::{Service, Transform};
@@ -66,7 +68,7 @@ where
         }
         return Either::Right(ok(req.into_response(
             HttpResponse::Forbidden()
-                .json(r#"{"code": 4,"msg": "请登录后再试"}"#)
+                .json(ApiError::new(CommonError::LoginNeeded))
                 .into_body(),
         )));
     }

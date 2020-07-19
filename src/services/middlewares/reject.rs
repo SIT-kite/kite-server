@@ -1,4 +1,6 @@
+use crate::error::ApiError;
 use crate::ipset;
+use crate::models::CommonError;
 use actix_service::{Service, Transform};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::{Error, HttpResponse};
@@ -73,10 +75,9 @@ where
             if should_allow {
                 return Either::Left(self.service.call(req));
             }
-            // TODO: Use Common error.
             return Either::Right(ok(req.into_response(
                 HttpResponse::Forbidden()
-                    .json(r#"{"code": 3,"msg": "未在允许的IP地址段内"}"#)
+                    .json(ApiError::new(CommonError::AddrNotSupported))
                     .into_body(),
             )));
         }

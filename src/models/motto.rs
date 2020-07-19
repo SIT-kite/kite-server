@@ -12,7 +12,7 @@ pub const MOTTO_MAX_SIZE: u8 = 255;
 #[derive(Fail, Debug, ToPrimitive)]
 pub enum MottoError {
     #[fail(display = "无数据")]
-    NoMoreItem = 2,
+    NoMoreItem = 100,
 }
 
 /* Model */
