@@ -36,7 +36,7 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
             ..
         } => {
             let auth: Authentication = Authentication::from_password(&username, &password);
-            user = auth.login(&pool).await?;
+            user = auth.password_login(&pool).await?;
         }
         // Login by wechat.
         AuthParameters {
@@ -46,7 +46,7 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
         } => {
             let wechat_token: WxSession = get_session_by_code(wechat_code.as_str()).await?;
             let auth: Authentication = Authentication::from_wechat(&wechat_token.openid);
-            user = auth.login(&pool).await?;
+            user = auth.wechat_login(&pool).await?;
         }
         _ => {
             return Err(ApiError::new(UserError::BadParameter));
