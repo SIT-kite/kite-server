@@ -140,17 +140,21 @@ pub async fn create_user(
 #[post("/user/{uid}/authentication")]
 pub async fn bind_authentication(
     pool: web::Data<PgPool>,
+    token: Option<JwtToken>,
     form: web::Form<AuthParameters>,
     req: web::HttpRequest,
 ) -> Result<HttpResponse> {
     let parameters: AuthParameters = form.into_inner();
-
+    let token = token.unwrap();
     let uid: i32 = req
         .match_info()
         .get("uid")
         .and_then(|uid| uid.parse().ok())
         .ok_or(ApiError::new(UserError::BadParameter))?;
 
+    if token.uid != uid && !token.is_admin {
+        return Err(ApiError::new(UserError::BadParameter));
+    }
     let user = Person::query_by_uid(&pool, uid)
         .await?
         .ok_or(ApiError::new(UserError::NoSuchUser))?;
