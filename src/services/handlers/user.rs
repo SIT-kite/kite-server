@@ -165,7 +165,8 @@ pub async fn bind_authentication(
             wechat_code: Some(wechat_code),
             ..
         } => {
-            let auth = Authentication::from_wechat(&wechat_code);
+            let wechat_token: WxSession = get_session_by_code(wechat_code.as_str()).await?;
+            let auth: Authentication = Authentication::from_wechat(&wechat_token.openid);
             user.update_authentication(&pool, &auth).await?;
         }
         AuthParameters {
