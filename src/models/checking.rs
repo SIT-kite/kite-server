@@ -1,4 +1,4 @@
-use crate::error::{Result, ServerError};
+use crate::error::{ApiError, Result};
 use crate::models::PageView;
 use chrono::{NaiveDateTime, Utc};
 use num_traits::ToPrimitive;
@@ -14,11 +14,12 @@ pub enum CheckingError {
     IdentityNeeded = 1003,
 }
 
-impl Into<ServerError> for CheckingError {
-    fn into(self) -> ServerError {
-        ServerError {
-            inner_code: self.to_u16().unwrap(), // Error code
-            error_msg: self.to_string(),        // Error message
+impl Into<ApiError> for CheckingError {
+    fn into(self) -> ApiError {
+        ApiError {
+            code: self.to_u16().unwrap(), // Error code
+            inner_msg: None,
+            error_msg: Some(self.to_string()), // Error message
         }
     }
 }

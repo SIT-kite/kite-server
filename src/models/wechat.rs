@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde_json;
 
 use crate::config::CONFIG;
-use crate::error::ServerError;
+use crate::error::ApiError;
 
 #[macro_export]
 macro_rules! make_parameter {
@@ -23,11 +23,11 @@ macro_rules! make_parameter {
 // #[macro_export]
 macro_rules! wx_function {
     ($fn_name: ident, $structure: ident, $addr: expr) => {
-        async fn $fn_name(param: &str) -> Result<$structure, ServerError> {
+        async fn $fn_name(param: &str) -> Result<$structure, ApiError> {
             // create actix-web client for request.
             let client = Client::default();
             let url = format!("{}?{}", $addr, param);
-            // return Err(ServerError::from(url));
+            // return Err(ApiError::from(url));
             let response = client.get(url).send().await;
 
             match response {
@@ -39,7 +39,7 @@ macro_rules! wx_function {
                     let body_json: $structure = serde_json::from_slice(body_string.as_ref())?;
                     return Ok(body_json);
                 }
-                Err(e) => Err(ServerError::from(format!(
+                Err(e) => Err(ApiError::from(format!(
                     "While connecting to wechat services: {}",
                     e
                 ))),
@@ -91,7 +91,7 @@ pub struct WxSession {
     pub openid: String,
 }
 
-pub async fn get_session_by_code(wechat_code: &str) -> Result<WxSession, ServerError> {
+pub async fn get_session_by_code(wechat_code: &str) -> Result<WxSession, ApiError> {
     let resp: SessionResponse = _get_session_key(
         make_parameter!(
             "appid" => &CONFIG.wechat_appid,
@@ -116,9 +116,9 @@ pub async fn get_session_by_code(wechat_code: &str) -> Result<WxSession, ServerE
             errcode: Some(errcode),
             errmsg: Some(errmsg),
             ..
-        } => return Err(ServerError::from(WxErr { errcode, errmsg })),
+        } => return Err(ApiError::from(WxErr { errcode, errmsg })),
         _ => {
-            return Err(ServerError::from(WxErr {
+            return Err(ApiError::from(WxErr {
                 errcode: 0,
                 errmsg: String::from("Unknown."),
             }))
@@ -131,7 +131,7 @@ pub struct WxAccessToken {
     pub expires_in: i32,
 }
 
-pub async fn get_access_token() -> Result<WxAccessToken, ServerError> {
+pub async fn get_access_token() -> Result<WxAccessToken, ApiError> {
     let resp: AccessTokenResponse = _get_access_token(
         make_parameter!(
             "appid" => &CONFIG.wechat_appid,
@@ -155,8 +155,8 @@ pub async fn get_access_token() -> Result<WxAccessToken, ServerError> {
             errcode: Some(errcode),
             errmsg: Some(errmsg),
             ..
-        } => Err(ServerError::from(WxErr { errcode, errmsg })),
-        _ => Err(ServerError::from(WxErr {
+        } => Err(ApiError::from(WxErr { errcode, errmsg })),
+        _ => Err(ApiError::from(WxErr {
             errcode: 0,
             errmsg: String::from("Unknown."),
         })),

@@ -1,6 +1,6 @@
 //! This module provides the ability to create, update and delete users including authentication tokens.
 
-use crate::error::{Result, ServerError};
+use crate::error::{ApiError, Result};
 use actix_http::http::StatusCode;
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -87,7 +87,7 @@ impl Authentication {
             .await?;
         match user {
             Some(user) => Ok(user),
-            None => Err(ServerError::new(UserError::LoginFailed)),
+            None => Err(ApiError::new(UserError::LoginFailed)),
         }
     }
 }
@@ -220,12 +220,12 @@ impl Person {
     pub async fn set_identity(client: &PgPool, uid: i32, identity: &Identity) -> Result<()> {
         if let Some(id_number) = &identity.identity_number {
             if !Identity::validate_identity_number(id_number.as_bytes()) {
-                return Err(ServerError::new(UserError::InvalidIdNumber));
+                return Err(ApiError::new(UserError::InvalidIdNumber));
             }
         }
         if let Some(oa_secret) = &identity.oa_secret {
             if !Identity::validate_oa_account(&identity.student_id, oa_secret).await? {
-                return Err(ServerError::new(UserError::OaSecretFailed));
+                return Err(ApiError::new(UserError::OaSecretFailed));
             }
         }
         let _ = sqlx::query(
@@ -309,7 +309,7 @@ async fn oa_password_check(account: &String, password: &String) -> Result<bool> 
             return Ok(body.as_ref() == r#"{"code":0,"msg":null,"data":true}"#.as_bytes());
         }
     }
-    Err(ServerError::new(UserError::OaNetworkFailed))
+    Err(ApiError::new(UserError::OaNetworkFailed))
 }
 
 impl Identity {

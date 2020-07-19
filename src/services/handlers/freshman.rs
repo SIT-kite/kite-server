@@ -1,12 +1,10 @@
 //! This module includes interfaces about freshman queries.
+use crate::error::{ApiError, Result};
+use crate::models::freshman::{self, FreshmanBasic, FreshmanError, NewMate, PeopleFamiliar};
+use crate::services::{response::ApiResponse, JwtToken};
 use actix_web::{get, put, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
-
-use super::super::{EmptyReponse, NormalResponse};
-use crate::error::{Result, ServerError};
-use crate::models::freshman::{self, FreshmanBasic, FreshmanError, NewMate, PeopleFamiliar};
-use crate::services::JwtToken;
 
 #[derive(Debug, Deserialize)]
 pub struct FreshmanEnvReq {
@@ -18,7 +16,7 @@ pub async fn get_basic_info(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
     path: web::Path<String>,
-    form: web::Form<FreshmanEnvReq>,
+    form: web::Query<FreshmanEnvReq>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
     let parameters: FreshmanEnvReq = form.into_inner();
@@ -44,9 +42,9 @@ pub async fn get_basic_info(
                 me: student,
                 same_name_count: freshman::get_count_of_same_name(&pool, uid).await? - 1,
             };
-            return Ok(HttpResponse::Ok().json(NormalResponse::new(self_basic)));
+            return Ok(HttpResponse::Ok().json(ApiResponse::normal(self_basic)));
         }
-        None => return Err(ServerError::new(FreshmanError::SecretNeeded)),
+        None => return Err(ApiError::new(FreshmanError::SecretNeeded)),
     }
 }
 
@@ -70,7 +68,7 @@ pub async fn update_account(
     // Check if the account is bound to this uid.
     let account = path.into_inner();
     if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        return Err(ServerError::new(FreshmanError::DismatchAccount));
+        return Err(ApiError::new(FreshmanError::DismatchAccount));
     }
 
     // Set visibility.
@@ -87,7 +85,7 @@ pub async fn update_account(
     if let Some(_) = form.last_seen {
         freshman::update_last_seen(&pool, uid).await?;
     }
-    Ok(HttpResponse::Ok().json(EmptyReponse::default()))
+    Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }
 
 #[get("/freshman/{account}/roommate")]
@@ -109,9 +107,9 @@ pub async fn get_roommate(
         let resp = Resp {
             roommates: freshman::get_roommates_by_uid(&pool, uid).await?,
         };
-        Ok(HttpResponse::Ok().json(NormalResponse::new(resp)))
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(resp)))
     } else {
-        return Err(ServerError::new(FreshmanError::DismatchAccount));
+        return Err(ApiError::new(FreshmanError::DismatchAccount));
     }
 }
 
@@ -131,12 +129,12 @@ pub async fn get_people_familiar(
     // Check if the account is bound to this uid.
     let account = path.into_inner();
     if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        return Err(ServerError::new(FreshmanError::DismatchAccount));
+        return Err(ApiError::new(FreshmanError::DismatchAccount));
     }
     let resp = Resp {
         fellows: freshman::get_people_familiar_by_uid(&pool, uid).await?,
     };
-    Ok(HttpResponse::Ok().json(NormalResponse::new(resp)))
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(resp)))
 }
 
 #[get("/freshman/{account}/classmate")]
@@ -151,7 +149,7 @@ pub async fn get_classmate(
     // Check if the account is bound to this uid.
     let account = path.into_inner();
     if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        return Err(ServerError::new(FreshmanError::DismatchAccount));
+        return Err(ApiError::new(FreshmanError::DismatchAccount));
     }
     #[derive(Serialize)]
     struct Resp {
@@ -160,5 +158,5 @@ pub async fn get_classmate(
     let resp = Resp {
         classmates: freshman::get_classmates_by_uid(&pool, uid).await?,
     };
-    Ok(HttpResponse::Ok().json(NormalResponse::new(resp)))
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(resp)))
 }

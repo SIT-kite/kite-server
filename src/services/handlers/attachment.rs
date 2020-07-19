@@ -7,9 +7,9 @@ use std::collections::HashMap;
 use tokio::io::AsyncWriteExt;
 
 use crate::config::CONFIG;
-use crate::error::{Result, ServerError};
+use crate::error::{ApiError, Result};
 use crate::models::attachment::{self, AttachmentError, SingleAttachment};
-use crate::services::{JwtToken, NormalResponse};
+use crate::services::{response::ApiResponse, JwtToken};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -27,7 +27,7 @@ pub(crate) async fn upload_file(
     mut payload: Multipart,
 ) -> Result<HttpResponse> {
     if token.is_none() {
-        return Err(ServerError::new(AttachmentError::Forbidden));
+        return Err(ApiError::new(AttachmentError::Forbidden));
     }
     // Vector of uploaded file.
     let mut successd_uploaded: Vec<SingleAttachment> = Vec::new();
@@ -54,7 +54,7 @@ pub(crate) async fn upload_file(
 
         let file = tokio::fs::File::create(&filepath)
             .await
-            .map_err(|_| ServerError::new(AttachmentError::FileCreationFailed))?;
+            .map_err(|_| ApiError::new(AttachmentError::FileCreationFailed))?;
         let mut writer = tokio::io::BufWriter::new(file);
 
         // What about user canceling uploading?
@@ -81,7 +81,7 @@ pub(crate) async fn upload_file(
 
     let mut resp = HashMap::new();
     resp.insert("uploaded", successd_uploaded);
-    Ok(HttpResponse::Ok().json(NormalResponse::new(resp)))
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(resp)))
 }
 
 #[derive(Deserialize)]
@@ -94,13 +94,13 @@ pub struct PageOption {
 pub async fn get_attachment_list(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
-    form: web::Form<PageOption>,
+    form: web::Query<PageOption>,
 ) -> Result<HttpResponse> {
     if token.is_none() {
-        return Err(ServerError::new(AttachmentError::Forbidden));
+        return Err(ApiError::new(AttachmentError::Forbidden));
     }
     if !token.unwrap().is_admin {
-        return Err(ServerError::new(AttachmentError::Forbidden));
+        return Err(ApiError::new(AttachmentError::Forbidden));
     }
 
     let attachs =
@@ -109,7 +109,7 @@ pub async fn get_attachment_list(
 
     let mut resp = HashMap::new();
     resp.insert("attachments", attachs);
-    Ok(HttpResponse::Ok().json(&NormalResponse::new(resp)))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(resp)))
 }
 
 #[get("/attachment/{attachment_id}")]

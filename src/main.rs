@@ -11,9 +11,11 @@ extern crate log;
 
 mod config;
 mod error;
+mod ipset;
 mod jwt;
 mod models;
 mod services;
+mod task;
 
 // Import main function.
 use crate::services::server_main;

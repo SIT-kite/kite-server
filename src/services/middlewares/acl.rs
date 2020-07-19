@@ -1,13 +1,13 @@
-use std::task::{Context, Poll};
-
+use crate::jwt::*;
 use crate::services::{get_auth_bearer_value, JwtToken};
 use actix_http::http::Method;
 use actix_service::{Service, Transform};
-use actix_web::dev::{ServiceRequest, ServiceResponse};
-use actix_web::{Error, HttpResponse};
+use actix_web::{
+    dev::{ServiceRequest, ServiceResponse},
+    Error, HttpResponse,
+};
 use futures::future::{ok, Either, Ready};
-
-use crate::jwt::*;
+use std::task::{Context, Poll};
 
 pub struct Auth;
 
@@ -53,11 +53,8 @@ where
             return Either::Left(self.service.call(req));
         }
 
-        /*
-            For logined users, they can access all of the resources, and then each module will check whether they
-            can do or not.
-        */
-        // Get authentication header.
+        // For logined users, they can access all of the resources, and then each module will check
+        // whether they can do or not.
         if let Some(auth_string) = req.headers().get("Authorization") {
             // If authentication type is "Bearer"
             if let Some(jwt_string) = get_auth_bearer_value(auth_string) {
@@ -67,11 +64,11 @@ where
                 }
             }
         }
-        Either::Right(ok(req.into_response(
+        return Either::Right(ok(req.into_response(
             HttpResponse::Forbidden()
-                .body(r#"{"code": 503, "msg": "Login needed.", "data": {}}"#)
+                .json(r#"{"code": 4,"msg": "请登录后再试"}"#)
                 .into_body(),
-        )))
+        )));
     }
 }
 

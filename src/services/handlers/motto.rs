@@ -1,7 +1,7 @@
 use crate::error::Result;
 use crate::models::motto::Motto;
 use crate::models::motto::{MOTTO_MAX_SIZE, MOTTO_MIN_SIZE};
-use crate::services::NormalResponse;
+use crate::services::response::ApiResponse;
 use actix_web::{get, web, HttpResponse};
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -27,5 +27,5 @@ pub async fn get_one_motto(
     )
     .await?;
 
-    Ok(HttpResponse::Ok().json(&NormalResponse::new(motto)))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(motto)))
 }

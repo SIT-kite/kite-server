@@ -1,9 +1,9 @@
-use crate::error::{Result, ServerError};
+use crate::error::{ApiError, Result};
 use crate::jwt::encode_jwt;
 use crate::models::user::{get_default_avatar, Authentication, Identity, Person, UserError};
 use crate::models::user::{_LOGIN_BY_PASSWORD, _LOGIN_BY_WECHAT};
 use crate::models::wechat::{get_session_by_code, WxSession};
-use crate::services::{EmptyReponse, JwtToken, NormalResponse};
+use crate::services::{response::ApiResponse, JwtToken};
 use actix_web::{get, post, web, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -49,11 +49,11 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
             user = auth.login(&pool).await?;
         }
         _ => {
-            return Err(ServerError::new(UserError::BadParameter));
+            return Err(ApiError::new(UserError::BadParameter));
         }
     }
     if user.is_disabled {
-        return Err(ServerError::new(UserError::Disabled));
+        return Err(ApiError::new(UserError::Disabled));
     }
 
     #[derive(Serialize)]
@@ -66,7 +66,7 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
         is_admin: user.is_admin,
     })?;
     let resp = LoginResponse { token, data: user };
-    Ok(HttpResponse::Ok().json(&NormalResponse::new(resp)))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(resp)))
 }
 
 #[derive(Deserialize)]
@@ -77,7 +77,7 @@ pub struct ListUsers {
 }
 
 #[get("/user")]
-pub async fn list_users(pool: web::Data<PgPool>, form: web::Form<ListUsers>) -> Result<HttpResponse> {
+pub async fn list_users(pool: web::Data<PgPool>, form: web::Query<ListUsers>) -> Result<HttpResponse> {
     let parameter = form.into_inner();
     let userlist = Person::list(
         &pool,
@@ -86,7 +86,7 @@ pub async fn list_users(pool: web::Data<PgPool>, form: web::Form<ListUsers>) -> 
     )
     .await?;
 
-    Ok(HttpResponse::Ok().json(&NormalResponse::new(userlist)))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(userlist)))
 }
 
 #[derive(Deserialize)]
@@ -134,26 +134,30 @@ pub async fn create_user(
             is_admin: user.is_admin,
         })?,
     };
-    Ok(HttpResponse::Ok().body(NormalResponse::new(resp).to_string()))
+    Ok(HttpResponse::Ok().body(ApiResponse::normal(resp).to_string()))
 }
 
 #[post("/user/{uid}/authentication")]
 pub async fn bind_authentication(
     pool: web::Data<PgPool>,
+    token: Option<JwtToken>,
     form: web::Form<AuthParameters>,
     req: web::HttpRequest,
 ) -> Result<HttpResponse> {
     let parameters: AuthParameters = form.into_inner();
-
+    let token = token.unwrap();
     let uid: i32 = req
         .match_info()
         .get("uid")
         .and_then(|uid| uid.parse().ok())
-        .ok_or(ServerError::new(UserError::BadParameter))?;
+        .ok_or(ApiError::new(UserError::BadParameter))?;
 
+    if token.uid != uid && !token.is_admin {
+        return Err(ApiError::new(UserError::BadParameter));
+    }
     let user = Person::query_by_uid(&pool, uid)
         .await?
-        .ok_or(ServerError::new(UserError::NoSuchUser))?;
+        .ok_or(ApiError::new(UserError::NoSuchUser))?;
 
     match parameters {
         AuthParameters {
@@ -161,7 +165,8 @@ pub async fn bind_authentication(
             wechat_code: Some(wechat_code),
             ..
         } => {
-            let auth = Authentication::from_wechat(&wechat_code);
+            let wechat_token: WxSession = get_session_by_code(wechat_code.as_str()).await?;
+            let auth: Authentication = Authentication::from_wechat(&wechat_token.openid);
             user.update_authentication(&pool, &auth).await?;
         }
         AuthParameters {
@@ -174,12 +179,12 @@ pub async fn bind_authentication(
             user.update_authentication(&pool, &auth).await?;
         }
         _ => {
-            return Err(ServerError::new(UserError::BadParameter));
+            return Err(ApiError::new(UserError::BadParameter));
         }
     }
     #[derive(Serialize)]
     struct EmptyReponse;
-    Ok(HttpResponse::Ok().body(NormalResponse::new(EmptyReponse).to_string()))
+    Ok(HttpResponse::Ok().body(ApiResponse::normal(EmptyReponse).to_string()))
 }
 
 #[get("/user/{uid}")]
@@ -189,24 +194,24 @@ pub async fn get_user_detail(
     req: HttpRequest,
 ) -> Result<HttpResponse> {
     if let None = token {
-        return Err(ServerError::new(UserError::Forbidden));
+        return Err(ApiError::new(UserError::Forbidden));
     }
     let token = token.unwrap();
     let uid_to_query: i32 = req
         .match_info()
         .get("uid")
         .and_then(|uid| uid.parse().ok())
-        .ok_or(ServerError::new(UserError::BadParameter))?;
+        .ok_or(ApiError::new(UserError::BadParameter))?;
     let uid_operator: i32 = token.uid;
 
     if uid_operator != uid_to_query && !token.is_admin {
-        return Err(ServerError::new(UserError::Forbidden));
+        return Err(ApiError::new(UserError::Forbidden));
     }
     let user = Person::query_by_uid(&pool, uid_to_query).await?;
     if let None = user {
-        return Err(ServerError::new(UserError::NoSuchUser));
+        return Err(ApiError::new(UserError::NoSuchUser));
     }
-    Ok(HttpResponse::Ok().json(&NormalResponse::new(&user.unwrap())))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(&user.unwrap())))
 }
 
 #[get("/user/{uid}/identity")]
@@ -219,13 +224,13 @@ pub async fn get_user_identity(
     let token = token.unwrap();
 
     if token.uid != uid && !token.is_admin {
-        return Err(ServerError::new(UserError::Forbidden));
+        return Err(ApiError::new(UserError::Forbidden));
     }
     let identity = Person::get_identity(&pool, uid).await?;
     if let None = identity {
-        return Err(ServerError::new(UserError::NoSuchUser));
+        return Err(ApiError::new(UserError::NoSuchUser));
     }
-    Ok(HttpResponse::Ok().json(&NormalResponse::new(identity.unwrap())))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(identity.unwrap())))
 }
 
 #[derive(Deserialize)]
@@ -254,7 +259,7 @@ pub async fn set_user_identity(
     let token = token.unwrap();
 
     if token.uid != uid && !token.is_admin {
-        return Err(ServerError::new(UserError::Forbidden));
+        return Err(ApiError::new(UserError::Forbidden));
     }
     let identity_post = data.into_inner();
     let identity = Identity {
@@ -266,5 +271,5 @@ pub async fn set_user_identity(
         identity_number: identity_post.identity_number,
     };
     Person::set_identity(&pool, uid, &identity).await?;
-    Ok(HttpResponse::Ok().json(&EmptyReponse::default()))
+    Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }
