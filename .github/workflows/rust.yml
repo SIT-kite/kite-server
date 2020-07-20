@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, develop ]
   pull_request:
     branches: [ develop, master ]
 
@@ -20,15 +20,8 @@ jobs:
       run: cargo build --verbose --release
     - name: Run tests
       run: cargo test --verbose
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: copy file via ssh password
+      
+    - name: Copy file via ssh password
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.SERVER_HOST }}
