@@ -17,23 +17,19 @@ pub enum UserError {
     #[fail(display = "参数错误")]
     BadParameter = 2,
     #[fail(display = "权限不足")]
-    Forbidden = 4,
+    Forbidden = 5,
     #[fail(display = "凭据无效")]
-    LoginFailed = 5,
+    LoginFailed = 6,
     #[fail(display = "账户已禁用")]
-    Disabled = 6,
-    #[fail(display = "未知错误")]
-    Unknown = 7,
-    #[fail(display = "存在冲突的登录凭据")]
-    AuthExists = 15,
+    Disabled = 50,
     #[fail(display = "找不到用户")]
-    NoSuchUser = 16,
+    NoSuchUser = 51,
     #[fail(display = "无法连接校园网完成认证")]
-    OaNetworkFailed = 30,
+    OaNetworkFailed = 52,
     #[fail(display = "OA密码认证失败")]
-    OaSecretFailed = 31,
+    OaSecretFailed = 53,
     #[fail(display = "错误的身份证号码")]
-    InvalidIdNumber = 32,
+    InvalidIdNumber = 54,
 }
 
 /* Models */
@@ -73,16 +69,31 @@ impl Authentication {
     // Require to verify the credential and login.
     // The function will return an error::Result. When the process success, an i32 value as uid
     // will be returned. Otherwise, a UserError enum, provides the reason.
-    pub async fn login(&self, client: &PgPool) -> Result<Person> {
+    pub async fn password_login(&self, client: &PgPool) -> Result<Person> {
         let user: Option<Person> = sqlx::query_as(
             "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
                 FROM public.person p
                 RIGHT JOIN authentication auth on p.uid = auth.uid
-                WHERE auth.login_type = $1 AND auth.account = $2 AND auth.credential = $3"
+                WHERE auth.login_type = 1 AND auth.account = $1 AND auth.credential = $2"
         )
-            .bind(self.login_type)
             .bind(&self.account)
             .bind(&self.credential)
+            .fetch_optional(client)
+            .await?;
+        match user {
+            Some(user) => Ok(user),
+            None => Err(ApiError::new(UserError::LoginFailed)),
+        }
+    }
+
+    pub async fn wechat_login(&self, client: &PgPool) -> Result<Person> {
+        let user: Option<Person> = sqlx::query_as(
+            "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
+                FROM public.person p
+                RIGHT JOIN authentication auth on p.uid = auth.uid
+                WHERE auth.login_type = 0 AND auth.account = $1"
+        )
+            .bind(&self.account)
             .fetch_optional(client)
             .await?;
         match user {
