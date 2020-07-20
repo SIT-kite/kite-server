@@ -74,7 +74,7 @@ impl Authentication {
             "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
                 FROM public.person p
                 RIGHT JOIN authentication auth on p.uid = auth.uid
-                WHERE auth.login_type = 1 AND auth.account = $2 AND auth.credential = $3"
+                WHERE auth.login_type = 1 AND auth.account = $1 AND auth.credential = $2"
         )
             .bind(&self.account)
             .bind(&self.credential)
