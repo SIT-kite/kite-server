@@ -83,6 +83,12 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(checking::delete_approval),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
+            .service(
+                Files::new("/console/", "console/")
+                    .index_file("index.html")
+                    .use_etag(true)
+                    .use_last_modified(true),
+            )
     })
     .bind_rustls(&CONFIG.bind_addr.as_str(), config)?
     .run()
