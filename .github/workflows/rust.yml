@@ -44,6 +44,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_SECRET }}
         script: |
-          mv ${{ secrets.DEPLOY_PATH }}/kite-server.tmp ${{ secrets.DEPLOY_PATH }}/kite-server
-          systemctl restart kite.service
+          systemctl stop kite
+          mv ${{ secrets.DEPLOY_PATH }}/kite-server.tmp/target/release/kite-server ${{ secrets.DEPLOY_PATH }}/kite-server
+          systemctl start kite
     
