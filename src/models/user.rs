@@ -283,6 +283,7 @@ pub struct Identity {
     /// Person uid
     pub uid: i32,
     /// Real name
+    #[serde(rename = "realName")]
     pub real_name: String,
     /// Student id
     #[serde(rename = "studentId")]
