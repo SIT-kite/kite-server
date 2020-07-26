@@ -82,7 +82,7 @@ impl Approval {
                     FROM public.identities
                 LEFT JOIN checking.approvals
                     ON identities.student_id = approvals.student_id
-                        AND identities.realname = approvals.name
+                        AND identities.real_name = approvals.name
                 WHERE
                     (identities.oa_certified = true
                     OR (identities.identity_number = approvals.identity_number

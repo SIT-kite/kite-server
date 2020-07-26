@@ -218,7 +218,7 @@ impl Person {
     /// Get identity info
     pub async fn get_identity(client: &PgPool, uid: i32) -> Result<Option<Identity>> {
         let identity: Option<Identity> = sqlx::query_as(
-            "SELECT uid, real_name, student_id, oa_secret, oa_certified, identity_number, real_name
+            "SELECT uid, real_name, student_id, oa_secret, oa_certified, identity_number
             FROM public.identities WHERE uid = $1",
         )
         .bind(uid)
