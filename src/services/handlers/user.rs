@@ -175,6 +175,11 @@ pub async fn bind_authentication(
             credential: Some(password),
             ..
         } => {
+            // Patch: Ordinary users are not allowed to log in with a password,
+            // so as to prevent abuse of the interface.
+            if !token.is_admin {
+                return Err(ApiError::new(UserError::AuthTypeNotAllowed));
+            }
             let auth = Authentication::from_password(&username, &password);
             user.update_authentication(&pool, &auth).await?;
         }

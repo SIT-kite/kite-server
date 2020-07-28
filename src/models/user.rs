@@ -30,6 +30,8 @@ pub enum UserError {
     OaSecretFailed = 53,
     #[fail(display = "错误的身份证号码")]
     InvalidIdNumber = 54,
+    #[fail(display = "普通用户不允许使用用户名密码登录")]
+    AuthTypeNotAllowed = 55,
 }
 
 /* Models */
