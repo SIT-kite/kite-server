@@ -82,7 +82,8 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(checking::add_approval)
                     .service(checking::delete_approval)
                     .service(edu::get_planned_course)
-                    .service(edu::query_major),
+                    .service(edu::query_major)
+                    .service(edu::list_course_classes),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
             .service(
