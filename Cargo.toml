@@ -9,7 +9,7 @@ readme = "README.md"
 
 [dependencies]
 # Kite component
-kite-protocol = { version = "*", path = "../kite-protocol" }
+kite-protocol = { git = "https://github.com/sunnysab/kite-protocol.git", branch = "master" }
 
 # About actix.
 actix-http = "1"
