@@ -1,10 +1,10 @@
-mod class;
+mod course;
 mod major;
 
 use serde::Serialize;
 
-pub use class::get_current_term;
-pub use class::CourseClass;
+pub use course::{get_current_term, is_valid_term};
+pub use course::{CourseBase, CourseClass};
 pub use major::{Major, PlannedCourse};
 
 #[derive(Debug, Serialize)]

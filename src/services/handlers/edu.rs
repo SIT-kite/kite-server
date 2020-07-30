@@ -1,12 +1,12 @@
 //! This module includes interfaces about course, major and score.
 
 use crate::error::Result;
-use crate::models::edu::{get_current_term, CourseClass, Major, PlannedCourse};
-use crate::models::CommonError;
+use crate::models::edu::{self, CourseBase, CourseClass, Major, PlannedCourse};
+use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use actix_web::{get, web, HttpResponse};
 use chrono::Datelike;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 #[derive(Debug, Deserialize)]
@@ -55,12 +55,51 @@ pub async fn list_course_classes(
     query: web::Query<ListClasses>,
 ) -> Result<HttpResponse> {
     let term = query.into_inner().term;
-    let re = regex::Regex::new(r"^20[\d]{2}[AB]$").unwrap();
+    // If term field exists, check it.
     if let Some(term) = &term {
-        if re.is_match(term.as_str()) {
+        if !edu::is_valid_term(term.as_str()) {
             return Err(CommonError::Parameter.into());
         }
     }
-    let results = CourseClass::list(&pool, &course_code, &term.unwrap_or(get_current_term())).await?;
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(results)))
+    let term_string = term.unwrap_or(edu::get_current_term());
+    let course = CourseBase::get(&pool, &course_code, &term_string).await?;
+    if let Some(course) = course {
+        let classes = CourseClass::list(&pool, &course_code, &term_string).await?;
+        #[derive(Serialize)]
+        struct Response {
+            pub course: CourseBase,
+            pub classes: Vec<CourseClass>,
+        }
+        Ok(HttpResponse::Ok().json(&ApiResponse::normal(Response { classes, course })))
+    } else {
+        Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SearchCourse {
+    pub q: String,
+    pub term: Option<String>,
+}
+
+#[get("/edu/course")]
+pub async fn query_course(
+    pool: web::Data<PgPool>,
+    query: web::Query<SearchCourse>,
+    page: web::Query<PageView>,
+) -> Result<HttpResponse> {
+    let parameters = query.into_inner();
+    let term = parameters.term;
+    // If term field exists, check it.
+    if let Some(term) = &term {
+        if !edu::is_valid_term(term.as_str()) {
+            return Err(CommonError::Parameter.into());
+        }
+    }
+    if parameters.q.is_empty() {
+        return Ok(HttpResponse::Ok().json(&ApiResponse::empty()));
+    }
+    let term_string = term.unwrap_or(edu::get_current_term());
+    let course = CourseBase::query(&pool, &parameters.q, &term_string, &page).await?;
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(course)))
 }
