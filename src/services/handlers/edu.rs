@@ -24,7 +24,7 @@ pub async fn query_major(pool: web::Data<PgPool>, query: web::Query<ListMajor>) 
 
 #[derive(Debug, Deserialize)]
 pub struct ListPlannedCourse {
-    pub year: i16,
+    pub year: Option<i16>,
 }
 
 #[get("/edu/major/{major_code}")]
@@ -35,11 +35,16 @@ pub async fn get_planned_course(
 ) -> Result<HttpResponse> {
     use chrono::Local;
 
-    let parameters: ListPlannedCourse = query.into_inner();
-    if parameters.year < 2015 || parameters.year as i32 > Local::today().naive_local().year() {
-        return Err(CommonError::Parameter.into());
+    // Get local current year as the default year.
+    let mut year = Local::today().naive_local().year() as i16;
+    // If user submit a year and it's valid, then use user defined year.
+    // This limit is to reduce possible unnecessary database queries
+    if let Some(input_year) = query.into_inner().year {
+        if (2017..=year).contains(&input_year) {
+            year = input_year;
+        }
     }
-    let results = PlannedCourse::query(&pool, &major_code, parameters.year).await?;
+    let results = PlannedCourse::query(&pool, &major_code, year).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(results)))
 }
 
