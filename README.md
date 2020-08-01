@@ -59,12 +59,10 @@ cargo run
 
 | 项目         | 说明             |
 | ------------ | ---------------- |
-| kite-crawler | 后端数据抓取工具 |
-|              |                  |
-|              |                  |
-
-小程序代码和管理页面代码待有关同学补充。
-
+| [kite-crawler](https://github.com/sunnysab/kite-crawler) | 后端数据抓取工具 |
+| [kite-protocol](https://github.com/sunnysab/kite-protocol) | 通信协议库  |
+| [kite-checking](https://github.com/snomiao/kite-checking) | 返校码管理后台 |
+| [kite-admin](https://github.com/Crystal-RainSlide/kite-admin) | 综合管理后台 |
 
 
 ## 如何贡献
