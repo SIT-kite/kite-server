@@ -73,11 +73,13 @@ pub struct Administrator {
 
 impl StudentStatus {
     /// Save to database.
-    pub async fn submit(&mut self, client: &PgPool) -> Result<()> {
+    pub async fn submit(&self, client: &PgPool) -> Result<()> {
         let _ = sqlx::query(
             "INSERT INTO checking.approvals 
                     (student_id, name, audit_time, audit_admin, college, major, identity_number)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT (student_id)
+                DO UPDATE SET audit_time = $3, audit_admin = $4",
         )
         .bind(&self.student_id)
         .bind(&self.name)
@@ -88,19 +90,15 @@ impl StudentStatus {
         .bind(&self.identity_number)
         .execute(client)
         .await?;
-
         Ok(())
     }
 
     /// Get personal information and whether he is approved in BY student-id.
-    pub async fn query(client: &PgPool, student_id: &String) -> Result<Self> {
+    pub async fn get(client: &PgPool, student_id: &String) -> Result<Self> {
         let approval_record: Option<StudentStatus> = sqlx::query_as(
-            "SELECT student_id, s.uid, s.name, audit_time, a.name || ' (' || a.job_id || ')' as audit_admin, college, major, identity_number
-                FROM checking.approvals s
-                LEFT JOIN checking.administrators a
-                ON job_id = audit_admin
-                WHERE student_id = $1
-                LIMIT 1",
+            "SELECT student_id, uid, name, audit_time, audit_admin, college, major, identity_number
+                FROM checking.approval_view
+                WHERE student_id = $1 LIMIT 1",
         )
         .bind(student_id)
         .fetch_optional(client)
@@ -120,10 +118,8 @@ impl StudentStatus {
     /// Get Approve List
     pub async fn list(client: &PgPool, college: &Option<String>, page: &PageView) -> Result<Vec<Self>> {
         let approve_list = sqlx::query_as(
-            "SELECT student_id, s.uid, s.name, audit_time, a.name || ' (' || a.job_id || ')' as audit_admin, college, major, identity_number
-                FROM checking.approvals s
-                LEFT JOIN checking.administrators a
-                ON job_id = audit_admin
+            "SELECT student_id, uid, name, audit_time, audit_admin, college, major, identity_number
+                FROM checking.approval_view
                 WHERE college LIKE $1 ORDER BY audit_time DESC 
                 OFFSET $2 LIMIT $3",
         )
@@ -143,32 +139,15 @@ impl StudentStatus {
     /// Search student name
     pub async fn search(client: &PgPool, query_string: &String, count: u16) -> Result<Vec<Self>> {
         let result: Vec<Self> = sqlx::query_as(
-            "SELECT student_id, s.uid, s.name, audit_time, a.name || ' (' || a.job_id || ')' as audit_admin, college, major, identity_number
-                FROM checking.approvals s
-                LEFT JOIN checking.administrators a
-                ON job_id = audit_admin
-                WHERE s.name LIKE $1 ORDER BY audit_time DESC LIMIT $2",
+            "SELECT student_id, uid, name, audit_time, audit_admin, college, major, identity_number
+                FROM checking.approval_view
+                WHERE name LIKE $1 ORDER BY audit_time DESC LIMIT $2",
         )
         .bind(format!("%{}%", query_string))
         .bind(count as i32)
         .fetch_all(client)
         .await?;
         Ok(result)
-    }
-
-    /// Update
-    pub async fn update(&self, pool: &PgPool) -> Result<()> {
-        let _ = sqlx::query(
-            "UPDATE checking.approvals
-                SET audit_admin = $1, audit_time = $2
-                WHERE student_id = $3",
-        )
-        .bind(&self.audit_admin)
-        .bind(&self.audit_time)
-        .bind(&self.student_id)
-        .execute(pool)
-        .await?;
-        Ok(())
     }
 }
 

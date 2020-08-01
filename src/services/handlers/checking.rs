@@ -52,7 +52,7 @@ pub async fn query_detail(
     let token = token.unwrap();
     let current_admin = AdministratorManager::get_by_uid(&pool, token.uid).await?;
     // Select student status.
-    let student = StudentStatus::query(&pool, &student_id.into_inner()).await?;
+    let student = StudentStatus::get(&pool, &student_id.into_inner()).await?;
     // If visitor is administrator, or student himself, return status. Or, the status code (forbidden).
     if let Some(secret) = &form.secret {
         if student.identity_number.ends_with(secret) {
@@ -95,7 +95,7 @@ pub async fn add_approval(
         if !(admin.role == 3 || admin.department == submitted.college) {
             return Err(CheckingError::DismatchCollege.into());
         }
-        if let Ok(_) = StudentStatus::query(&pool, &submitted.student_id).await {
+        if let Ok(_) = StudentStatus::get(&pool, &submitted.student_id).await {
             return Err(CheckingError::StudentExisted.into());
         }
         // Construct student info.
@@ -134,7 +134,7 @@ pub async fn change_approval(
     let current_admin = AdministratorManager::get_by_uid(&pool, token.uid).await?;
     // Return forbidden if the user is not belong to administrators.
     if let Some(admin) = current_admin {
-        if let Ok(mut s) = StudentStatus::query(&pool, &student_id).await {
+        if let Ok(mut s) = StudentStatus::get(&pool, &student_id).await {
             // Check admin privilege.
             if !(admin.role == 3 || admin.department == s.college) {
                 return Err(CheckingError::DismatchCollege.into());
@@ -147,7 +147,7 @@ pub async fn change_approval(
                 s.audit_admin = None;
                 s.audit_time = None;
             }
-            s.update(&pool).await?;
+            s.submit(&pool).await?;
 
             return Ok(HttpResponse::Ok().json(&ApiResponse::normal(s)));
         }
