@@ -115,6 +115,7 @@ pub struct Person {
     /// User avatar url.
     pub avatar: String,
     /// Is disabled. False by default.
+    #[serde(skip_serializing)]
     pub is_disabled: bool,
     /// Is administrator. False by default.
     pub is_admin: bool,
