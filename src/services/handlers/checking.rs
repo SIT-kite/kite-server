@@ -148,6 +148,10 @@ pub async fn change_approval(
                 s.audit_time = None;
             }
             s.submit(&pool).await?;
+            // FIX BUG: Return audit_admin with name and job id.
+            if submitted.approval_status {
+                s.audit_admin = Some(format!("{} （{}）", admin.name, admin.job_id));
+            }
 
             return Ok(HttpResponse::Ok().json(&ApiResponse::normal(s)));
         }
