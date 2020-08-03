@@ -138,11 +138,12 @@ impl Person {
 
     /// Bind authentication, if auth type already exists, this function will override the old record.
     pub async fn update_authentication(&self, client: &PgPool, auth: &Authentication) -> Result<()> {
+        // Note: Alter username is not allowed.
         let _ = sqlx::query(
             "INSERT INTO
                     authentication (uid, login_type, account, credential) VALUES ($1, $2, $3, $4)
                     ON CONFLICT (uid, login_type)
-                    DO UPDATE SET account = $3, credential = $4 WHERE authentication.uid = $1",
+                    DO UPDATE SET credential = $4 WHERE authentication.uid = $1",
         )
         .bind(self.uid)
         .bind(auth.login_type)
