@@ -141,13 +141,17 @@ pub async fn change_approval(
             }
             // Construct student info.
             if submitted.approval_status {
-                s.audit_admin = Some(admin.job_id);
+                s.audit_admin = Some(admin.job_id.clone());
                 s.audit_time = Some(Utc::now().naive_local());
             } else {
                 s.audit_admin = None;
                 s.audit_time = None;
             }
             s.submit(&pool).await?;
+            // FIX BUG: Return audit_admin with name and job id.
+            if submitted.approval_status {
+                s.audit_admin = Some(format!("{} （{}）", admin.name, admin.job_id));
+            }
 
             return Ok(HttpResponse::Ok().json(&ApiResponse::normal(s)));
         }
