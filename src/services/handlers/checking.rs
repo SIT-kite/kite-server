@@ -1,11 +1,13 @@
 //! This module includes interfaces about go-school-checking.
 use crate::error::{ApiError, Result};
-use crate::models::checking::{Administrator, AdministratorManager, CheckingError, StudentStatus};
+use crate::models::checking::{
+    Administrator, AdministratorManager, CheckingError, StudentManager, StudentStatus,
+};
 use crate::models::{CommonError, PageView};
 use crate::services::{response::ApiResponse, JwtToken};
 use actix_web::{delete, get, patch, post, web, HttpResponse};
 use chrono::Utc;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 
 #[derive(Debug, Deserialize)]
@@ -20,21 +22,42 @@ pub async fn list_student_status(
     page: web::Query<PageView>,
     query: web::Query<QueryString>,
 ) -> Result<HttpResponse> {
-    let current_admin = AdministratorManager::get_by_uid(&pool, token.unwrap().uid).await?;
-    if let Some(admin) = current_admin {
-        let student_status = if let Some(q) = &query.q {
-            StudentStatus::search(&pool, q, page.count(50)).await?
+    let query_string = query.into_inner().q;
+    // To check whether query string is empty or not. If it's not empty...
+    if query_string.ne(&Some(String::new())) {
+        let admin_manager = AdministratorManager::new(&pool);
+        let student_manager = StudentManager::new(&pool);
+
+        // Get role (as privilege) and college of current admin account.
+        let current_admin = admin_manager.get_by_uid(token.unwrap().uid).await?;
+        if let Some(admin) = current_admin {
+            let college_domain = if admin.role == 3 {
+                "%".to_string()
+            } else {
+                admin.department
+            };
+            let students = student_manager
+                .list(query_string.clone(), &college_domain, &page)
+                .await?;
+            let count = if query_string.is_some() {
+                students.len() as u32
+            } else {
+                student_manager.count(&college_domain).await? as u32
+            };
+
+            #[derive(Serialize)]
+            struct Response {
+                count: u32,
+                students: Vec<StudentStatus>,
+            }
+            Ok(HttpResponse::Ok().json(ApiResponse::normal(&Response { count, students })))
         } else {
-            StudentStatus::list(&pool, &None, &page).await?
-        };
-        // Select.
-        let student_status: Vec<StudentStatus> = student_status
-            .into_iter()
-            .filter(|x| admin.role == 3 || x.college == admin.department)
-            .collect();
-        return Ok(HttpResponse::Ok().json(ApiResponse::normal(student_status)));
+            return Err(CommonError::Forbidden.into());
+        }
+    } else {
+        // Return an empty list if query string is empty.
+        Ok(HttpResponse::Ok().json(ApiResponse::empty()))
     }
-    Err(CommonError::Forbidden.into())
 }
 
 #[derive(Debug, Deserialize)]
@@ -50,9 +73,12 @@ pub async fn query_detail(
     form: web::Form<StudentCredential>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
-    let current_admin = AdministratorManager::get_by_uid(&pool, token.uid).await?;
+    let admin_manager = AdministratorManager::new(&pool);
+    let current_admin = admin_manager.get_by_uid(token.uid).await?;
+    let student_manager = StudentManager::new(&pool);
+
     // Select student status.
-    let student = StudentStatus::get(&pool, &student_id.into_inner()).await?;
+    let student = student_manager.get(&student_id.into_inner()).await?;
     // If visitor is administrator, or student himself, return status. Or, the status code (forbidden).
     if let Some(secret) = &form.secret {
         if student.identity_number.ends_with(secret) {
@@ -88,30 +114,33 @@ pub async fn add_approval(
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
     let submitted = data.into_inner();
-    let current_admin = AdministratorManager::get_by_uid(&pool, token.uid).await?;
+    let admin_manager = AdministratorManager::new(&pool);
+    let current_admin = admin_manager.get_by_uid(token.uid).await?;
+
     // Return forbidden if the user is not belong to administrators.
     if let Some(admin) = current_admin {
         // Check admin privilege.
         if !(admin.role == 3 || admin.department == submitted.college) {
             return Err(CheckingError::DismatchCollege.into());
         }
-        if let Ok(_) = StudentStatus::get(&pool, &submitted.student_id).await {
+        let student_manager = StudentManager::new(&pool);
+        if let Ok(_) = student_manager.get(&submitted.student_id).await {
             return Err(CheckingError::StudentExisted.into());
         }
         // Construct student info.
-        let mut approval = StudentStatus::default();
-        approval.student_id = submitted.student_id;
-        approval.name = submitted.name;
-        approval.college = submitted.college;
-        approval.major = submitted.major;
-        approval.identity_number = submitted.identity_number;
+        let mut student = StudentStatus::default();
+        student.student_id = submitted.student_id;
+        student.name = submitted.name;
+        student.college = submitted.college;
+        student.major = submitted.major;
+        student.identity_number = submitted.identity_number;
         if submitted.approval_status.unwrap_or(false) {
-            approval.audit_admin = Some(admin.job_id);
-            approval.audit_time = Some(Utc::now().naive_local());
+            student.audit_admin = Some(admin.job_id);
+            student.audit_time = Some(Utc::now().naive_local());
         }
-        approval.submit(&pool).await?;
+        student_manager.submit(&student).await?;
 
-        return Ok(HttpResponse::Ok().json(&ApiResponse::normal(approval)));
+        return Ok(HttpResponse::Ok().json(&ApiResponse::normal(student)));
     }
     Err(CommonError::Forbidden.into())
 }
@@ -131,10 +160,13 @@ pub async fn change_approval(
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
     let submitted = data.into_inner();
-    let current_admin = AdministratorManager::get_by_uid(&pool, token.uid).await?;
+    let admin_manager = AdministratorManager::new(&pool);
+    let current_admin = admin_manager.get_by_uid(token.uid).await?;
     // Return forbidden if the user is not belong to administrators.
     if let Some(admin) = current_admin {
-        if let Ok(mut s) = StudentStatus::get(&pool, &student_id).await {
+        let student_manager = StudentManager::new(&pool);
+
+        if let Ok(mut s) = student_manager.get(&student_id).await {
             // Check admin privilege.
             if !(admin.role == 3 || admin.department == s.college) {
                 return Err(CheckingError::DismatchCollege.into());
@@ -147,7 +179,7 @@ pub async fn change_approval(
                 s.audit_admin = None;
                 s.audit_time = None;
             }
-            s.submit(&pool).await?;
+            student_manager.submit(&s).await?;
             // FIX BUG: Return audit_admin with name and job id.
             if submitted.approval_status {
                 s.audit_admin = Some(format!("{} （{}）", admin.name, admin.job_id));
@@ -166,10 +198,13 @@ pub async fn delete_approval(
     pool: web::Data<PgPool>,
     student_id: web::Path<String>,
 ) -> Result<HttpResponse> {
-    if !token.unwrap().is_admin {
+    let admin_manager = AdministratorManager::new(&pool);
+    let student_manager = StudentManager::new(&pool);
+
+    if admin_manager.get_by_uid(token.unwrap().uid).await?.is_none() {
         return Err(CommonError::Forbidden.into());
     }
-    StudentStatus::delete(&pool, &student_id.into_inner()).await?;
+    student_manager.delete(&student_id.into_inner()).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }
 
@@ -180,13 +215,16 @@ pub async fn list_admin(
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
-    let current_admin = AdministratorManager::get_by_uid(&pool, token.uid).await?;
+    let admin_manager = AdministratorManager::new(&pool);
+    let current_admin = admin_manager.get_by_uid(token.uid).await?;
+
     if let Some(admin) = current_admin {
-        let admins: Vec<Administrator> = AdministratorManager::list(&pool, &page)
+        let admins = admin_manager
+            .list(&page)
             .await?
             .into_iter()
             .filter(|x| x.role <= admin.role)
-            .collect();
+            .collect::<Vec<Administrator>>();
         return Ok(HttpResponse::Ok().json(&ApiResponse::normal(admins)));
     }
     Err(CommonError::Forbidden.into())
@@ -199,19 +237,23 @@ pub async fn delete_admin(
     job_id: web::Path<String>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
-    let current_admin = AdministratorManager::get_by_uid(&pool, token.uid)
+    let admin_manager = AdministratorManager::new(&pool);
+
+    let current_admin = admin_manager
+        .get_by_uid(token.uid)
         .await?
         .ok_or(ApiError::new(CommonError::Forbidden))?;
-    let target_admin = AdministratorManager::get(&pool, &job_id.into_inner())
+    let target_admin = admin_manager
+        .get(&job_id.into_inner())
         .await?
         .ok_or(ApiError::new(CheckingError::NoSuchAdmin))?;
-    /* Is there someone going to delete his account? */
 
+    /* Is there someone going to delete his account? */
     if current_admin.role < target_admin.role
         || (current_admin.role != 3 && current_admin.department != target_admin.department)
     {
         return Err(CheckingError::DismatchCollege.into());
     }
-    AdministratorManager::delete(&pool, &target_admin.job_id).await?;
+    admin_manager.delete(&target_admin.job_id).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }

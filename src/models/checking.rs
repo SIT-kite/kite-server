@@ -34,7 +34,7 @@ impl Into<ApiError> for CheckingError {
     }
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Default, Serialize, sqlx::FromRow)]
 pub struct StudentStatus {
     /// Student ID
     #[serde(rename = "studentId")]
@@ -48,6 +48,7 @@ pub struct StudentStatus {
     pub audit_time: Option<NaiveDateTime>,
     #[serde(rename = "approvedAdmin")]
     pub audit_admin: Option<String>,
+
     /* Belows are some personal information */
     /// Student college
     pub college: String,
@@ -57,7 +58,7 @@ pub struct StudentStatus {
     pub identity_number: String,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Serialize, sqlx::FromRow)]
 pub struct Administrator {
     /// Job number, usually a 4 bit number like 1024 :D
     pub job_id: String,
@@ -71,91 +72,108 @@ pub struct Administrator {
     pub role: i16,
 }
 
-impl StudentStatus {
+pub struct StudentManager<'a> {
+    pool: &'a PgPool,
+}
+
+/// Administrator manager.
+pub struct AdministratorManager<'a> {
+    pool: &'a PgPool,
+}
+
+impl<'a> StudentManager<'a> {
+    /// Create a new student manager object.
+    pub fn new(pool: &'a PgPool) -> Self {
+        Self { pool }
+    }
+
+    /// Count
+    pub async fn count(&self, college: &String) -> Result<i64> {
+        let count: Option<(i64,)> =
+            sqlx::query_as("SELECT COUNT(student_id) FROM checking.students WHERE college LIKE $1")
+                .bind(college)
+                .fetch_optional(self.pool)
+                .await?;
+        Ok(count.unwrap().0)
+    }
+
     /// Save to database.
-    pub async fn submit(&self, client: &PgPool) -> Result<()> {
+    pub async fn submit(&self, student: &StudentStatus) -> Result<()> {
         let _ = sqlx::query(
             "INSERT INTO checking.students 
-                    (student_id, name, audit_time, audit_admin, college, major, identity_number)
+                    (student_id, name, audit_tim , audit_admin, college, major, identity_number)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 ON CONFLICT (student_id)
                 DO UPDATE SET audit_time = $3, audit_admin = $4",
         )
-        .bind(&self.student_id)
-        .bind(&self.name)
-        .bind(&self.audit_time)
-        .bind(&self.audit_admin)
-        .bind(&self.college)
-        .bind(&self.major)
-        .bind(&self.identity_number)
-        .execute(client)
+        .bind(&student.student_id)
+        .bind(&student.name)
+        .bind(&student.audit_time)
+        .bind(&student.audit_admin)
+        .bind(&student.college)
+        .bind(&student.major)
+        .bind(&student.identity_number)
+        .execute(self.pool)
         .await?;
         Ok(())
     }
 
     /// Get personal information and whether he is approved in BY student-id.
-    pub async fn get(client: &PgPool, student_id: &String) -> Result<Self> {
+    pub async fn get(&self, student_id: &String) -> Result<StudentStatus> {
         let approval_record: Option<StudentStatus> = sqlx::query_as(
             "SELECT student_id, uid, name, audit_time, audit_admin, college, major, identity_number
                 FROM checking.approval_view
                 WHERE student_id = $1 LIMIT 1",
         )
         .bind(student_id)
-        .fetch_optional(client)
+        .fetch_optional(self.pool)
         .await?;
         approval_record.ok_or(CheckingError::NoSuchStudent.into())
     }
 
     /// Delete approve record.
-    pub async fn delete(client: &PgPool, student_id: &String) -> Result<()> {
-        let _ = sqlx::query("DELETE FROM checking.students WHERE student_id = $1")
+    pub async fn delete(&self, student_id: &String) -> Result<()> {
+        sqlx::query("DELETE FROM checking.students WHERE student_id = $1")
             .bind(student_id)
-            .execute(client)
+            .execute(self.pool)
             .await?;
         Ok(())
     }
 
     /// Get Approve List
-    pub async fn list(client: &PgPool, college: &Option<String>, page: &PageView) -> Result<Vec<Self>> {
+    pub async fn list(
+        &self,
+        query_string: Option<String>,
+        college_domain: &String,
+        page: &PageView,
+    ) -> Result<Vec<StudentStatus>> {
+        let query_string = query_string
+            .map(|x| format!("%{}%", x))
+            .unwrap_or("%".to_string());
+
         let approve_list = sqlx::query_as(
             "SELECT student_id, uid, name, audit_time, audit_admin, college, major, identity_number
                 FROM checking.approval_view
-                WHERE college LIKE $1 ORDER BY audit_time DESC 
-                OFFSET $2 LIMIT $3",
+                WHERE (college LIKE $1 OR name LIKE $1 OR student_id LIKE $1) AND college LIKE $2
+                ORDER BY student_id
+                OFFSET $3 LIMIT $4",
         )
-        .bind(if let Some(college) = college {
-            // Note: This field may lead postgres scanning full table.
-            format!("%{}%", college)
-        } else {
-            "%".to_string()
-        })
+        .bind(query_string)
+        .bind(college_domain)
         .bind(page.offset(50) as i32)
         .bind(page.count(50) as i32)
-        .fetch_all(client)
+        .fetch_all(self.pool)
         .await?;
         Ok(approve_list)
     }
-
-    /// Search student name
-    pub async fn search(client: &PgPool, query_string: &String, count: u16) -> Result<Vec<Self>> {
-        let result: Vec<Self> = sqlx::query_as(
-            "SELECT student_id, uid, name, audit_time, audit_admin, college, major, identity_number
-                FROM checking.approval_view
-                WHERE name LIKE $1 ORDER BY audit_time DESC LIMIT $2",
-        )
-        .bind(format!("%{}%", query_string))
-        .bind(count as i32)
-        .fetch_all(client)
-        .await?;
-        Ok(result)
-    }
 }
 
-/// Administrator manager.
-pub struct AdministratorManager {}
+impl<'a> AdministratorManager<'a> {
+    pub fn new(pool: &'a PgPool) -> Self {
+        Self { pool }
+    }
 
-impl AdministratorManager {
-    pub async fn list(pool: &PgPool, page: &PageView) -> Result<Vec<Administrator>> {
+    pub async fn list(&self, page: &PageView) -> Result<Vec<Administrator>> {
         let administrators: Vec<Administrator> = sqlx::query_as(
             "SELECT job_id, name, department, uid, role
             FROM checking.administrators
@@ -164,12 +182,12 @@ impl AdministratorManager {
         )
         .bind(page.count(50) as i16)
         .bind(page.offset(50) as i16)
-        .fetch_all(pool)
+        .fetch_all(self.pool)
         .await?;
         Ok(administrators)
     }
 
-    pub async fn get(pool: &PgPool, job_id: &String) -> Result<Option<Administrator>> {
+    pub async fn get(&self, job_id: &String) -> Result<Option<Administrator>> {
         let administrator: Option<Administrator> = sqlx::query_as(
             "SELECT job_id, name, department, uid, role
             FROM checking.administrators
@@ -177,27 +195,27 @@ impl AdministratorManager {
             LIMIT 1",
         )
         .bind(job_id)
-        .fetch_optional(pool)
+        .fetch_optional(self.pool)
         .await?;
         Ok(administrator)
     }
 
-    pub async fn get_by_uid(pool: &PgPool, uid: i32) -> Result<Option<Administrator>> {
+    pub async fn get_by_uid(&self, uid: i32) -> Result<Option<Administrator>> {
         let result: Option<Administrator> = sqlx::query_as(
             "SELECT job_id, name, department, uid, role
                 FROM checking.administrators 
                 WHERE uid = $1 LIMIT 1",
         )
         .bind(uid)
-        .fetch_optional(pool)
+        .fetch_optional(self.pool)
         .await?;
         Ok(result)
     }
-    pub async fn add(pool: &PgPool, admin_user: Administrator) -> Result<()> {
-        if Self::get(pool, &admin_user.job_id).await?.is_some() {
+    pub async fn add(&self, admin_user: Administrator) -> Result<()> {
+        if self.get(&admin_user.job_id).await?.is_some() {
             return Err(CheckingError::AdminExisted.into());
         }
-        let _ = sqlx::query(
+        sqlx::query(
             "INSERT INTO checking.administrators (job_id, name, department, uid, role)
                     VALUES ($1, $2, $3, $4)",
         )
@@ -206,31 +224,16 @@ impl AdministratorManager {
         .bind(admin_user.department)
         .bind(admin_user.job_id)
         .bind(admin_user.role)
-        .execute(pool)
+        .execute(self.pool)
         .await?;
         Ok(())
     }
 
-    pub async fn delete(pool: &PgPool, job_id: &String) -> Result<()> {
+    pub async fn delete(&self, job_id: &String) -> Result<()> {
         let _ = sqlx::query("DELETE FROM checking.administrators WHERE job_id = $1")
             .bind(job_id)
-            .execute(pool)
+            .execute(self.pool)
             .await?;
         Ok(())
-    }
-}
-
-impl Default for StudentStatus {
-    fn default() -> Self {
-        StudentStatus {
-            student_id: String::from(""),
-            uid: None,
-            name: String::from(""),
-            audit_time: None,
-            college: String::from(""),
-            major: None,
-            audit_admin: None,
-            identity_number: String::from(""),
-        }
     }
 }
