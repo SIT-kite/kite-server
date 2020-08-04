@@ -6,3 +6,4 @@
 /kite.log
 /cert.pem
 /key.pem
+.vscode/sftp.json
