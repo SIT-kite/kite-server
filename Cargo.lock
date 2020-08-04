@@ -1115,7 +1115,7 @@ dependencies = [
 [[package]]
 name = "kite-protocol"
 version = "0.1.0"
-source = "git+https://github.com/sunnysab/kite-protocol#c844bfd1bd07f2b10024d66d428fe9dc9b671c73"
+source = "git+https://github.com/sunnysab/kite-protocol.git?branch=master#c844bfd1bd07f2b10024d66d428fe9dc9b671c73"
 dependencies = [
  "bincode",
  "bytes",

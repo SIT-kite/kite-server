@@ -56,7 +56,7 @@ pub async fn server_main() -> std::io::Result<()> {
             .wrap(actix_web::middleware::Compress::default())
             .wrap(middlewares::acl::Auth)
             .wrap(actix_web::middleware::Logger::new(log_string))
-            .wrap(Reject::new(buffer.as_str()))
+            // .wrap(Reject::new(buffer.as_str()))
             .service(
                 web::scope("/api/v1")
                     .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
