@@ -61,6 +61,7 @@ pub struct StudentStatus {
 #[derive(Serialize, sqlx::FromRow)]
 pub struct Administrator {
     /// Job number, usually a 4 bit number like 1024 :D
+    #[serde(rename = "jobId")]
     pub job_id: String,
     /// Admin name
     pub name: String,
