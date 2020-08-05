@@ -24,39 +24,39 @@ pub async fn list_student_status(
 ) -> Result<HttpResponse> {
     let query_string = query.into_inner().q;
     // To check whether query string is empty or not. If it's not empty...
-    if query_string.ne(&Some(String::new())) {
-        let admin_manager = AdministratorManager::new(&pool);
-        let student_manager = StudentManager::new(&pool);
+    let admin_manager = AdministratorManager::new(&pool);
+    let student_manager = StudentManager::new(&pool);
 
-        // Get role (as privilege) and college of current admin account.
-        let current_admin = admin_manager.get_by_uid(token.unwrap().uid).await?;
-        if let Some(admin) = current_admin {
-            let college_domain = if admin.role == 3 {
-                "%".to_string()
-            } else {
-                admin.department
-            };
-            let students = student_manager
-                .list(query_string.clone(), &college_domain, &page)
-                .await?;
-            let count = if query_string.is_some() {
-                students.len() as u32
-            } else {
-                student_manager.count(&college_domain).await? as u32
-            };
-
-            #[derive(Serialize)]
-            struct Response {
-                count: u32,
-                students: Vec<StudentStatus>,
-            }
-            Ok(HttpResponse::Ok().json(ApiResponse::normal(&Response { count, students })))
+    // Get role (as privilege) and college of current admin account.
+    let current_admin = admin_manager.get_by_uid(token.unwrap().uid).await?;
+    if let Some(admin) = current_admin {
+        // Top admin can list all of students, while college admin could only see which he's belong to.
+        let college_domain = if admin.role == 3 {
+            "%".to_string()
         } else {
-            return Err(CommonError::Forbidden.into());
+            admin.department
+        };
+        // Note:
+        // If query string is None, return all results.
+        // If query string exists, while it's empty, return all results.
+        // In both situation, the count is all student count (may be under a certain college).
+        // Otherwise, return selected students and selected count.
+        let students = student_manager
+            .list(query_string.clone(), &college_domain, &page)
+            .await?;
+        let mut count = students.len() as u32;
+        if query_string.unwrap_or_default().is_empty() {
+            count = student_manager.count(&college_domain).await? as u32;
         }
+
+        #[derive(Serialize)]
+        struct Response {
+            count: u32,
+            students: Vec<StudentStatus>,
+        }
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(&Response { count, students })))
     } else {
-        // Return an empty list if query string is empty.
-        Ok(HttpResponse::Ok().json(ApiResponse::empty()))
+        return Err(CommonError::Forbidden.into());
     }
 }
 

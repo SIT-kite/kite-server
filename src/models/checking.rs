@@ -102,7 +102,7 @@ impl<'a> StudentManager<'a> {
     pub async fn submit(&self, student: &StudentStatus) -> Result<()> {
         let _ = sqlx::query(
             "INSERT INTO checking.students 
-                    (student_id, name, audit_tim , audit_admin, college, major, identity_number)
+                    (student_id, name, audit_time, audit_admin, college, major, identity_number)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 ON CONFLICT (student_id)
                 DO UPDATE SET audit_time = $3, audit_admin = $4",
