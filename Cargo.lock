@@ -1154,6 +1154,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "sys-info",
  "thiserror",
  "tokio",
  "toml",
@@ -2053,6 +2054,16 @@ dependencies = [
  "quote",
  "syn",
  "unicode-xid",
+]
+
+[[package]]
+name = "sys-info"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5cfbd84f86389198ade41b439f72a5b1b3a8ba728e61cd589e1720d0df44c39"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]

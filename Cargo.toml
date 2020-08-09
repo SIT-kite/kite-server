@@ -33,6 +33,7 @@ fern = "0.6"
 log = "0.4"
 thiserror = "1"
 regex = "1"
+sys-info = "0.7"
 
 # Serialization and Deserialization.
 serde = { version = "1.0", features = ["derive"] }

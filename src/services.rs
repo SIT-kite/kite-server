@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 
 use crate::config::CONFIG;
-use crate::services::handlers::{attachment, checking, edu, event, freshman, motto, user};
+use crate::services::handlers::{attachment, checking, edu, event, freshman, motto, status, user};
 use crate::services::middlewares::reject::Reject;
 use actix_files::Files;
 use actix_http::http::HeaderValue;
@@ -87,7 +87,9 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(edu::get_planned_course)
                     .service(edu::query_major)
                     .service(edu::list_course_classes)
-                    .service(edu::query_course),
+                    .service(edu::query_course)
+                    .service(status::get_timestamp)
+                    .service(status::get_system_status),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
             .service(
