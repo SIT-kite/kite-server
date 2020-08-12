@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 
 use crate::config::CONFIG;
-use crate::services::handlers::{attachment, checking, event, freshman, motto, user};
+use crate::services::handlers::{attachment, checking, edu, event, freshman, motto, status, user};
 use crate::services::middlewares::reject::Reject;
 use actix_files::Files;
 use actix_http::http::HeaderValue;
@@ -72,15 +72,26 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(freshman::get_roommate)
                     .service(freshman::get_classmate)
                     .service(freshman::get_people_familiar)
+                    .service(freshman::get_analysis_data)
+                    .service(freshman::post_analysis_log)
                     .service(attachment::index)
                     .service(attachment::upload_file)
                     .service(attachment::get_attachment_list)
                     .service(motto::get_one_motto)
                     .service(event::list_events)
-                    .service(checking::list_approvals)
+                    .service(checking::list_student_status)
                     .service(checking::query_detail)
                     .service(checking::add_approval)
-                    .service(checking::delete_approval),
+                    .service(checking::delete_approval)
+                    .service(checking::list_admin)
+                    .service(checking::delete_admin)
+                    .service(checking::change_approval)
+                    .service(edu::get_planned_course)
+                    .service(edu::query_major)
+                    .service(edu::list_course_classes)
+                    .service(edu::query_course)
+                    .service(status::get_timestamp)
+                    .service(status::get_system_status),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
             .service(

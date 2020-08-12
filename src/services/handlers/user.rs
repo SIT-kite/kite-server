@@ -175,6 +175,11 @@ pub async fn bind_authentication(
             credential: Some(password),
             ..
         } => {
+            // Patch: Ordinary users are not allowed to log in with a password,
+            // so as to prevent abuse of the interface.
+            if !token.is_admin {
+                return Err(ApiError::new(UserError::AuthTypeNotAllowed));
+            }
             let auth = Authentication::from_password(&username, &password);
             user.update_authentication(&pool, &auth).await?;
         }
@@ -236,7 +241,8 @@ pub async fn get_user_identity(
 #[derive(Deserialize)]
 pub struct IdentityPost {
     /// Real name
-    pub realname: String,
+    #[serde(rename = "realName")]
+    pub real_name: String,
     /// Student id
     #[serde(rename = "studentId")]
     pub student_id: String,
@@ -264,7 +270,7 @@ pub async fn set_user_identity(
     let identity_post = data.into_inner();
     let identity = Identity {
         uid,
-        realname: identity_post.realname,
+        real_name: identity_post.real_name,
         student_id: identity_post.student_id,
         oa_secret: identity_post.oa_secret,
         oa_certified: false,

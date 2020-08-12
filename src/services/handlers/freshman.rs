@@ -1,14 +1,15 @@
 //! This module includes interfaces about freshman queries.
-use crate::error::{ApiError, Result};
-use crate::models::freshman::{self, FreshmanBasic, FreshmanError, NewMate, PeopleFamiliar};
+use crate::error::Result;
+use crate::models::freshman::{FreshmanAnalysis, FreshmanManager, NewMate, PeopleFamiliar};
+use crate::models::CommonError;
 use crate::services::{response::ApiResponse, JwtToken};
-use actix_web::{get, put, web, HttpResponse};
+use actix_web::{get, patch, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 
 #[derive(Debug, Deserialize)]
-pub struct FreshmanEnvReq {
-    pub secret: Option<String>,
+pub struct FreshmanReqSecret {
+    pub secret: String,
 }
 
 #[get("/freshman/{account}")]
@@ -16,74 +17,58 @@ pub async fn get_basic_info(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
     path: web::Path<String>,
-    form: web::Query<FreshmanEnvReq>,
+    form: web::Form<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
-    let parameters: FreshmanEnvReq = form.into_inner();
-
-    let uid = token.uid;
-    let account = &path.into_inner();
+    let parameters: FreshmanReqSecret = form.into_inner();
+    let account = path.into_inner();
     let secret = parameters.secret;
 
-    #[derive(Serialize)]
-    struct BasicInfo {
-        pub me: FreshmanBasic,
-        #[serde(rename(serialize = "sameNameCount"))]
-        pub same_name_count: i64,
+    if account.is_empty() {
+        return Err(CommonError::Parameter.into());
     }
-    match secret {
-        Some(secret) => {
-            if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
-                // When uid is not bound, bind uid to student.
-                freshman::bind_account(&pool, uid, account, &secret).await?;
-            }
-            let student = freshman::get_basic_info_by_account(&pool, account, &secret).await?;
-            let self_basic = BasicInfo {
-                me: student,
-                same_name_count: freshman::get_count_of_same_name(&pool, uid).await? - 1,
-            };
-            return Ok(HttpResponse::Ok().json(ApiResponse::normal(self_basic)));
-        }
-        None => return Err(ApiError::new(FreshmanError::SecretNeeded)),
+    let freshman_manager = FreshmanManager::new(&pool);
+    let freshman = freshman_manager.query(&account, secret.as_str()).await?;
+    if freshman.uid.is_none() {
+        freshman_manager
+            .bind(&freshman.student_id, Some(token.uid))
+            .await?;
     }
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(freshman)))
 }
 
 #[derive(Deserialize)]
 pub struct UpdateInfo {
     pub contact: Option<String>,
     pub visible: Option<bool>,
-    pub last_seen: Option<bool>,
+    pub secret: String,
 }
 
-#[put("/freshman/{account}")]
+#[patch("/freshman/{account}")]
 pub async fn update_account(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
     path: web::Path<String>,
     form: web::Form<UpdateInfo>,
 ) -> Result<HttpResponse> {
-    let token = token.unwrap();
-    let uid = token.uid;
-
-    // Check if the account is bound to this uid.
+    let _ = token.unwrap();
     let account = path.into_inner();
-    if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        return Err(ApiError::new(FreshmanError::DismatchAccount));
-    }
+    let form = form.into_inner();
+    let secret = form.secret;
+
+    let freshman_manager = FreshmanManager::new(&pool);
+    let student = freshman_manager.query(&account, &secret).await?;
 
     // Set visibility.
-    let form = form.into_inner();
     if let Some(visible) = form.visible {
-        freshman::set_visibility(&pool, uid, visible).await?;
+        if visible != student.visible {
+            student.set_visibility(&pool, visible).await?;
+        }
     }
     // Set contact information.
     if let Some(contact) = form.contact {
         let contact_json: serde_json::Value = serde_json::from_str(contact.as_str())?;
-        freshman::update_contact_by_uid(&pool, uid, &contact_json).await?;
-    }
-    // Update last seen.
-    if let Some(_) = form.last_seen {
-        freshman::update_last_seen(&pool, uid).await?;
+        student.set_contact(&pool, contact_json).await?;
     }
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }
@@ -93,24 +78,25 @@ pub async fn get_roommate(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
     path: web::Path<String>,
+    secret: web::Form<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
-    let token = token.unwrap();
-    let uid = token.uid;
+    let _ = token.unwrap();
+    let account = path.into_inner();
+    let secret = secret.into_inner().secret;
 
     #[derive(Serialize)]
     struct Resp {
         pub roommates: Vec<NewMate>,
     }
-    // Check if the account is bound to this uid.
-    let account = path.into_inner();
-    if freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        let resp = Resp {
-            roommates: freshman::get_roommates_by_uid(&pool, uid).await?,
-        };
-        Ok(HttpResponse::Ok().json(ApiResponse::normal(resp)))
-    } else {
-        return Err(ApiError::new(FreshmanError::DismatchAccount));
-    }
+
+    let freshman_manager = FreshmanManager::new(&pool);
+    let roommates = freshman_manager
+        .query(&account, &secret)
+        .await?
+        .get_roommates(&pool)
+        .await?;
+
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { roommates })))
 }
 
 #[get("/freshman/{account}/familiar")]
@@ -118,23 +104,25 @@ pub async fn get_people_familiar(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
     path: web::Path<String>,
+    secret: web::Form<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
-    let token = token.unwrap();
-    let uid = token.uid;
+    let _ = token.unwrap();
+    let account = path.into_inner();
+    let secret = secret.into_inner().secret;
 
     #[derive(Serialize)]
     struct Resp {
-        pub fellows: Vec<PeopleFamiliar>,
+        pub people_familiar: Vec<PeopleFamiliar>,
     }
-    // Check if the account is bound to this uid.
-    let account = path.into_inner();
-    if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        return Err(ApiError::new(FreshmanError::DismatchAccount));
-    }
-    let resp = Resp {
-        fellows: freshman::get_people_familiar_by_uid(&pool, uid).await?,
-    };
-    Ok(HttpResponse::Ok().json(ApiResponse::normal(resp)))
+
+    let freshman_manager = FreshmanManager::new(&pool);
+    let people_familiar = freshman_manager
+        .query(&account, &secret)
+        .await?
+        .get_people_familiar(&pool)
+        .await?;
+
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { people_familiar })))
 }
 
 #[get("/freshman/{account}/classmate")]
@@ -142,21 +130,70 @@ pub async fn get_classmate(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
     path: web::Path<String>,
+    secret: web::Form<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
-    let token = token.unwrap();
-    let uid = token.uid;
-
-    // Check if the account is bound to this uid.
+    let _ = token.unwrap();
     let account = path.into_inner();
-    if !freshman::is_uid_bound_with(&pool, uid, &account).await? {
-        return Err(ApiError::new(FreshmanError::DismatchAccount));
-    }
+    let secret = secret.into_inner().secret;
+
     #[derive(Serialize)]
     struct Resp {
         pub classmates: Vec<NewMate>,
     }
-    let resp = Resp {
-        classmates: freshman::get_classmates_by_uid(&pool, uid).await?,
-    };
-    Ok(HttpResponse::Ok().json(ApiResponse::normal(resp)))
+    let freshman_manager = FreshmanManager::new(&pool);
+    let classmates = freshman_manager
+        .query(&account, &secret)
+        .await?
+        .get_classmates(&pool)
+        .await?;
+
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { classmates })))
+}
+
+#[get("/freshman/{account}/analysis")]
+pub async fn get_analysis_data(
+    pool: web::Data<PgPool>,
+    token: Option<JwtToken>,
+    path: web::Path<String>,
+    secret: web::Form<FreshmanReqSecret>,
+) -> Result<HttpResponse> {
+    let _ = token.unwrap();
+    let account = path.into_inner();
+    let secret = secret.into_inner().secret;
+
+    #[derive(Serialize)]
+    struct Resp {
+        pub freshman: FreshmanAnalysis,
+    }
+    let freshman_manager = FreshmanManager::new(&pool);
+    let freshman = freshman_manager
+        .query(&account, &secret)
+        .await?
+        .get_analysis(&pool)
+        .await?;
+
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { freshman })))
+}
+
+#[post("/freshman/{account}/analysis/log")]
+pub async fn post_analysis_log(
+    pool: web::Data<PgPool>,
+    path: web::Path<String>,
+    secret: web::Form<FreshmanReqSecret>,
+) -> Result<HttpResponse> {
+    let account = path.into_inner();
+    let secret = secret.into_inner().secret;
+
+    #[derive(Serialize)]
+    struct Resp {
+        pub freshman: FreshmanAnalysis,
+    }
+    let freshman_manager = FreshmanManager::new(&pool);
+    let freshman = freshman_manager.query(&account, &secret).await?;
+    sqlx::query("INSERT INTO freshman.share_log (student_id) VALUES ($1)")
+        .bind(&freshman.student_id)
+        .execute(pool.get_ref())
+        .await?;
+
+    Ok(HttpResponse::Ok().json(ApiResponse::empty()))
 }

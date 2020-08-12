@@ -4,6 +4,8 @@
 pub mod attachment;
 /// Back to school audit
 pub mod checking;
+/// Course and score management.
+pub mod edu;
 /// Event display, sign-in and statistics
 pub mod event;
 /// Freshman query.

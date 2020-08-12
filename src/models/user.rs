@@ -30,6 +30,8 @@ pub enum UserError {
     OaSecretFailed = 53,
     #[fail(display = "错误的身份证号码")]
     InvalidIdNumber = 54,
+    #[fail(display = "普通用户不允许使用用户名密码登录")]
+    AuthTypeNotAllowed = 55,
 }
 
 /* Models */
@@ -113,6 +115,7 @@ pub struct Person {
     /// User avatar url.
     pub avatar: String,
     /// Is disabled. False by default.
+    #[serde(skip_serializing)]
     pub is_disabled: bool,
     /// Is administrator. False by default.
     pub is_admin: bool,
@@ -135,11 +138,12 @@ impl Person {
 
     /// Bind authentication, if auth type already exists, this function will override the old record.
     pub async fn update_authentication(&self, client: &PgPool, auth: &Authentication) -> Result<()> {
+        // Note: Alter username is not allowed.
         let _ = sqlx::query(
             "INSERT INTO
                     authentication (uid, login_type, account, credential) VALUES ($1, $2, $3, $4)
                     ON CONFLICT (uid, login_type)
-                    DO UPDATE SET account = $3, credential = $4 WHERE authentication.uid = $1",
+                    DO UPDATE SET credential = $4 WHERE authentication.uid = $1",
         )
         .bind(self.uid)
         .bind(auth.login_type)
@@ -218,7 +222,7 @@ impl Person {
     /// Get identity info
     pub async fn get_identity(client: &PgPool, uid: i32) -> Result<Option<Identity>> {
         let identity: Option<Identity> = sqlx::query_as(
-            "SELECT uid, realname, student_id, oa_secret, oa_certified, identity_number, realname
+            "SELECT uid, real_name, student_id, oa_secret, oa_certified, identity_number
             FROM public.identities WHERE uid = $1",
         )
         .bind(uid)
@@ -230,7 +234,7 @@ impl Person {
     /// Set identity info
     pub async fn set_identity(client: &PgPool, uid: i32, identity: &Identity) -> Result<()> {
         if let Some(id_number) = &identity.identity_number {
-            if !Identity::validate_identity_number(id_number.as_bytes()) {
+            if !Identity::validate_identity_number(id_number.as_str()) {
                 return Err(ApiError::new(UserError::InvalidIdNumber));
             }
         }
@@ -240,12 +244,12 @@ impl Person {
             }
         }
         let _ = sqlx::query(
-            "INSERT INTO public.identities (uid, realname, student_id, oa_secret, oa_certified, identity_number)
+            "INSERT INTO public.identities (uid, real_name, student_id, oa_secret, oa_certified, identity_number)
                 VALUES ($1, $2, $3, $4, true, $5)
                 ON CONFLICT (uid)
                 DO UPDATE SET oa_secret = $4, oa_certified = true, identity_number = $5;")
             .bind(uid)
-            .bind(&identity.realname)
+            .bind(&identity.real_name)
             .bind(&identity.student_id)
             .bind(&identity.oa_secret)
             .bind(&identity.identity_number)
@@ -283,7 +287,8 @@ pub struct Identity {
     /// Person uid
     pub uid: i32,
     /// Real name
-    pub realname: String,
+    #[serde(rename = "realName")]
+    pub real_name: String,
     /// Student id
     #[serde(rename = "studentId")]
     pub student_id: String,
@@ -336,35 +341,45 @@ impl Identity {
         oa_password_check(student_id, oa_secret).await
     }
 
-    pub fn validate_identity_number(identity_number: &[u8]) -> bool {
-        let magic_array = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
-        let tail_chars = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
-        let mut sum: usize = 0;
+    pub fn validate_identity_number(identity_number: &str) -> bool {
+        // Commented on July 22, 2020.
+        // Due to changes in business requirements, a complete ID number is no longer required.
+        //
+        // let magic_array = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+        // let tail_chars = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+        // let mut sum: usize = 0;
+        //
+        // if identity_number.len() != 18 {
+        //     return false;
+        // }
+        // for i in 0..17 {
+        //     sum += magic_array[i] as usize * (identity_number[i] - '0' as u8) as usize;
+        // }
+        // return identity_number[17] as char == (if sum % 11 != 2 { tail_chars[sum % 11] } else { 'X' });
 
-        if identity_number.len() != 18 {
-            return false;
-        }
-        for i in 0..17 {
-            sum += magic_array[i] as usize * (identity_number[i] - '0' as u8) as usize;
-        }
-        return identity_number[17] as char == (if sum % 11 != 2 { tail_chars[sum % 11] } else { 'X' });
+        let re = regex::Regex::new("[0-9]{5}[0-9X]{1}").unwrap();
+        return re.is_match(identity_number) && identity_number.len() == 6;
     }
 }
 
+#[cfg(test)]
 mod test {
-    #[test]
-    pub fn test_identity_number_validation() {
-        assert_eq!(
-            true,
-            super::Identity::validate_identity_number("110101192007156996".as_bytes())
-        );
-        assert_eq!(
-            false,
-            super::Identity::validate_identity_number("random_string".as_bytes())
-        );
-        assert_eq!(
-            true,
-            super::Identity::validate_identity_number("210202192007159834".as_bytes())
-        );
-    }
+    // Commented on July 22, 2020.
+    // Due to changes in business requirements, a complete ID number is no longer required.
+    //
+    // #[test]
+    // pub fn test_identity_number_validation() {
+    //     assert_eq!(
+    //         true,
+    //         super::Identity::validate_identity_number("110101192007156996".as_bytes())
+    //     );
+    //     assert_eq!(
+    //         false,
+    //         super::Identity::validate_identity_number("random_string".as_bytes())
+    //     );
+    //     assert_eq!(
+    //         true,
+    //         super::Identity::validate_identity_number("210202192007159834".as_bytes())
+    //     );
+    // }
 }

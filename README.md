@@ -1,7 +1,5 @@
 # 上应小风筝 Restful API
 
-![Rust](https://github.com/sunnysab/kite-server/workflows/Rust/badge.svg?branch=master)
-
 ## 项目概要
 
 本项目旨在为上海应用技术大学的学生提供校园信息整合与管理服务。
@@ -9,7 +7,7 @@
 ## 功能
 
 - [x] 登录模块
-- [ ] 活动与签到
+- [x] 活动与签到
 - [ ] 易取
 - [ ] 第二课堂
 - [ ] 课表查询与选课
@@ -57,17 +55,14 @@ attachment_dir = "D:\\tmp\\"
 cargo run
 ```
 
-## 源码阅读
-
-
 ## 有关项目
 
 | 项目         | 说明             |
 | ------------ | ---------------- |
-| kite-crawler | 后端数据抓取工具 |
-
-小程序代码和管理页面代码待有关同学补充。
-
+| [kite-crawler](https://github.com/sunnysab/kite-crawler) | 后端数据抓取工具 |
+| [kite-protocol](https://github.com/sunnysab/kite-protocol) | 通信协议库  |
+| [kite-checking](https://github.com/snomiao/kite-checking) | 返校码管理后台 |
+| [kite-admin](https://github.com/Crystal-RainSlide/kite-admin) | 综合管理后台 |
 
 
 ## 如何贡献
@@ -82,4 +77,4 @@ cargo run
 
 [GPL v3](https://github.com/sunnysab/kite-server/blob/master/LICENSE) © 上海应用技术大学易班 sunnysab
 
-除此之外，您也不能将本程序用于各类竞赛、毕业设计、论文等。
+除此之外，您不能将本程序用于各类竞赛、毕业设计、论文等。

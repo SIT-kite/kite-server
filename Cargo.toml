@@ -8,6 +8,9 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Kite component
+kite-protocol = { git = "https://github.com/sunnysab/kite-protocol.git", branch = "master" }
+
 # About actix.
 actix-http = "1"
 actix-web = { version = "2.0", features = ["rustls"] }
@@ -30,6 +33,7 @@ fern = "0.6"
 log = "0.4"
 thiserror = "1"
 regex = "1"
+sys-info = "0.7"
 
 # Serialization and Deserialization.
 serde = { version = "1.0", features = ["derive"] }
