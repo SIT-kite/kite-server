@@ -72,6 +72,8 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(freshman::get_roommate)
                     .service(freshman::get_classmate)
                     .service(freshman::get_people_familiar)
+                    .service(freshman::get_analysis_data)
+                    .service(freshman::post_analysis_log)
                     .service(attachment::index)
                     .service(attachment::upload_file)
                     .service(attachment::get_attachment_list)
