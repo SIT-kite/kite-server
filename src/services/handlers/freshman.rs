@@ -27,12 +27,10 @@ pub async fn get_basic_info(
     if account.is_empty() {
         return Err(CommonError::Parameter.into());
     }
-    let freshman_manager = FreshmanManager::new(&pool);
-    let freshman = freshman_manager.query(&account, secret.as_str()).await?;
-    if freshman.uid.is_none() {
-        freshman_manager
-            .bind(&freshman.student_id, Some(token.uid))
-            .await?;
+    let manager = FreshmanManager::new(&pool);
+    let freshman = manager.query(&account, secret.as_str()).await?;
+    if freshman.uid.is_none() && !manager.is_bound(token.uid).await? {
+        manager.bind(&freshman.student_id, Some(token.uid)).await?;
     }
     Ok(HttpResponse::Ok().json(ApiResponse::normal(freshman)))
 }

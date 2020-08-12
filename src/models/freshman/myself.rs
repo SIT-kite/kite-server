@@ -3,6 +3,13 @@ use crate::error::{ApiError, Result};
 use sqlx::postgres::{PgPool, PgQueryAs};
 
 impl FreshmanBasic {
+    pub async fn update_last_seen(self, pool: &PgPool) -> Result<Self> {
+        sqlx::query("UPDATE freshman.students SET last_seen = now() WHERE student_id = $1")
+            .bind(&self.student_id)
+            .execute(pool)
+            .await?;
+        Ok(self)
+    }
     pub async fn get_contact(&self, pool: &PgPool) -> Result<serde_json::Value> {
         let result: Option<(serde_json::Value,)> =
             sqlx::query_as("SELECT contact FROM freshman.students WHERE student_id = $1 LIMIT 1")
@@ -48,29 +55,22 @@ impl<'a> FreshmanManager<'a> {
     ///
     /// Query string can be name, student id, or ticket number.
     pub async fn query(&self, query_string: &str, secret: &str) -> Result<FreshmanBasic> {
-        let results = self.query_batch(query_string).await?;
-
-        for each_freshman in results {
-            if each_freshman.secret == secret {
-                return Ok(each_freshman);
-            }
-        }
-        Err(ApiError::new(FreshmanError::NoSuchAccount))
-    }
-
-    /// Query student basic without secret. Provided for administrators or other management approaches.
-    pub async fn query_batch(&self, query_string: &str) -> Result<Vec<FreshmanBasic>> {
-        let student_basic: Vec<FreshmanBasic> = sqlx::query_as(
+        let student_basic: Option<FreshmanBasic> = sqlx::query_as(
             "SELECT
                     uid, student_id, college, major, campus, building, room, bed, secret,
                     counselor_name, counselor_tel, visible
                 FROM freshman.students
-                WHERE name = $1 or student_id = $1 or ticket = $1",
+                WHERE (name = $1 OR student_id = $1 OR ticket = $1) AND secret = $2",
         )
         .bind(query_string)
-        .fetch_all(self.pool)
+        .bind(secret)
+        .fetch_optional(self.pool)
         .await?;
-        Ok(student_basic)
+
+        match student_basic {
+            Some(i) => Ok(i.update_last_seen(self.pool).await?),
+            None => Err(ApiError::new(FreshmanError::NoSuchAccount)),
+        }
     }
 
     /// Bind student id with uid.
