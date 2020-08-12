@@ -131,15 +131,15 @@ trait MapDefaultAvatar {
     fn map_default_avatar(self) -> Self;
 }
 
-const DEFAULT_AVATAR_URL: &str = "https://kite.sunnysab.cn/static/icon.png";
+use super::user::get_default_avatar;
 
 macro_rules! impl_default_avatar {
-    ($strutcure: ident) => {
-        impl MapDefaultAvatar for Vec<$strutcure> {
-            fn map_default_avatar(self) -> Vec<$strutcure> {
+    ($structure: ident) => {
+        impl MapDefaultAvatar for Vec<$structure> {
+            fn map_default_avatar(self) -> Vec<$structure> {
                 self.into_iter()
                     .map(|mut x| {
-                        x.avatar = Some(x.avatar.unwrap_or(DEFAULT_AVATAR_URL.to_string()));
+                        x.avatar = Some(x.avatar.unwrap_or(get_default_avatar().to_string()));
                         x
                     })
                     .collect()

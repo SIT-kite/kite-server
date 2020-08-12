@@ -17,7 +17,7 @@ pub enum MottoError {
 
 /* Model */
 /// Motto structure, as a motto item.
-#[derive(Default, Debug, Serialize, sqlx::FromRow)]
+#[derive(Default, Serialize, sqlx::FromRow)]
 pub struct Motto {
     /// Motto id, as a serial column in table.
     pub id: i32,

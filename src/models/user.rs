@@ -9,17 +9,11 @@ use sqlx::{postgres::PgQueryAs, PgPool};
 /* Constants at the edge between self and database. */
 
 /// Login Type.
-pub const _LOGIN_BY_WECHAT: i32 = 0;
-pub const _LOGIN_BY_PASSWORD: i32 = 1;
+pub const LOGIN_BY_WECHAT: i32 = 0;
+pub const LOGIN_BY_PASSWORD: i32 = 1;
 
 #[derive(Fail, Debug, ToPrimitive)]
 pub enum UserError {
-    #[fail(display = "参数错误")]
-    BadParameter = 2,
-    #[fail(display = "权限不足")]
-    Forbidden = 5,
-    #[fail(display = "凭据无效")]
-    LoginFailed = 6,
     #[fail(display = "账户已禁用")]
     Disabled = 50,
     #[fail(display = "找不到用户")]
@@ -32,13 +26,15 @@ pub enum UserError {
     InvalidIdNumber = 54,
     #[fail(display = "普通用户不允许使用用户名密码登录")]
     AuthTypeNotAllowed = 55,
+    #[fail(display = "凭据无效")]
+    LoginFailed = 56,
 }
 
 /* Models */
 
 /// Authentication structure, similar to table "authentication" in database.
 /// Record everybody's login credentials.
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Authentication {
     /// Target user.
     pub uid: i32,
@@ -54,7 +50,7 @@ impl Authentication {
     pub fn from_password(username: &String, password: &String) -> Self {
         Authentication {
             uid: 0,
-            login_type: _LOGIN_BY_PASSWORD,
+            login_type: LOGIN_BY_PASSWORD,
             account: username.clone(),
             credential: Some(password.clone()),
         }
@@ -63,7 +59,7 @@ impl Authentication {
     pub fn from_wechat(open_id: &String) -> Self {
         Authentication {
             uid: 0,
-            login_type: _LOGIN_BY_WECHAT,
+            login_type: LOGIN_BY_WECHAT,
             account: open_id.clone(),
             credential: None,
         }
@@ -106,11 +102,12 @@ impl Authentication {
 }
 
 /// Base information of each account.
-#[derive(Debug, sqlx::FromRow, Serialize)]
+#[derive(sqlx::FromRow, Serialize)]
 pub struct Person {
     /// Target user, key.
     pub uid: i32,
-    /// Nickname. For users uses wechat to register, use wehcat name by default.
+    /// Nickname. For users uses wechat to register, use wechat name by default.
+    #[serde(rename = "nickName")]
     pub nick_name: String,
     /// User avatar url.
     pub avatar: String,
@@ -118,6 +115,7 @@ pub struct Person {
     #[serde(skip_serializing)]
     pub is_disabled: bool,
     /// Is administrator. False by default.
+    #[serde(rename = "isAdmin")]
     pub is_admin: bool,
     /// Country from wechat
     pub country: Option<String>,
@@ -282,7 +280,7 @@ impl Default for Person {
 }
 
 /// User real name and other personal information.
-#[derive(Debug, Default, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Default, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Identity {
     /// Person uid
     pub uid: i32,
@@ -357,7 +355,7 @@ impl Identity {
         // }
         // return identity_number[17] as char == (if sum % 11 != 2 { tail_chars[sum % 11] } else { 'X' });
 
-        let re = regex::Regex::new("[0-9]{5}[0-9X]{1}").unwrap();
+        let re = regex::Regex::new("[0-9]{5}[0-9X]").unwrap();
         return re.is_match(identity_number) && identity_number.len() == 6;
     }
 }
