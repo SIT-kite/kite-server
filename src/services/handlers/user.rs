@@ -5,7 +5,7 @@ use crate::models::user::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
 use crate::models::wechat::{get_session_by_code, WxSession};
 use crate::models::CommonError;
 use crate::services::{response::ApiResponse, JwtToken};
-use actix_web::{get, post, web, HttpRequest, HttpResponse};
+use actix_web::{get, patch, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -94,7 +94,7 @@ pub async fn list_users(pool: web::Data<PgPool>, form: web::Query<ListUsers>) ->
 pub struct SubmittedPerson {
     /// Nickname. For users uses wechat to register, use wehcat name by default.
     #[serde(rename = "nickName")]
-    pub nick_name: String,
+    pub nick_name: Option<String>,
     /// User avatar url.
     pub avatar: Option<String>,
     /// Country from wechat
@@ -112,9 +112,12 @@ pub async fn create_user(
     form: web::Form<SubmittedPerson>,
 ) -> Result<HttpResponse> {
     let parameters: SubmittedPerson = form.into_inner();
-
     let mut user: Person = Person::new();
-    user.nick_name = parameters.nick_name;
+
+    if parameters.nick_name.is_none() {
+        return Err(ApiError::new(CommonError::Parameter));
+    }
+    user.nick_name = parameters.nick_name.unwrap();
     user.avatar = parameters.avatar.unwrap_or(get_default_avatar().to_string());
     user.country = parameters.country;
     user.province = parameters.province;
@@ -138,27 +141,57 @@ pub async fn create_user(
     Ok(HttpResponse::Ok().body(ApiResponse::normal(resp).to_string()))
 }
 
+#[patch("/user/{uid}")]
+pub async fn update_user_detail(
+    token: Option<JwtToken>,
+    pool: web::Data<PgPool>,
+    form: web::Form<SubmittedPerson>,
+    uid: web::Path<i32>,
+) -> Result<HttpResponse> {
+    let token = token.unwrap();
+    let uid = uid.into_inner();
+
+    if !token.is_admin && uid != token.uid {
+        return Err(ApiError::new(CommonError::Forbidden));
+    }
+    let mut person = Person::get(&pool, uid).await?;
+    let form = form.into_inner();
+
+    if let Some(nick_name) = form.nick_name {
+        person.nick_name = nick_name;
+    }
+    if let Some(city) = form.city {
+        person.city = Some(city);
+    }
+    if let Some(province) = form.province {
+        person.province = Some(province);
+    }
+    if let Some(country) = form.country {
+        person.country = Some(country);
+    }
+    if let Some(avatar) = form.avatar {
+        person.avatar = avatar;
+    }
+    person.update(&pool).await?;
+
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(person)))
+}
+
 #[post("/user/{uid}/authentication")]
 pub async fn bind_authentication(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
     form: web::Form<AuthParameters>,
-    req: web::HttpRequest,
+    uid: web::Path<i32>,
 ) -> Result<HttpResponse> {
     let parameters: AuthParameters = form.into_inner();
     let token = token.unwrap();
-    let uid: i32 = req
-        .match_info()
-        .get("uid")
-        .and_then(|uid| uid.parse().ok())
-        .ok_or(ApiError::new(CommonError::Parameter))?;
+    let uid = uid.into_inner();
 
     if token.uid != uid && !token.is_admin {
         return Err(ApiError::new(CommonError::Parameter));
     }
-    let user = Person::query_by_uid(&pool, uid)
-        .await?
-        .ok_or(ApiError::new(UserError::NoSuchUser))?;
+    let user = Person::get(&pool, uid).await?;
 
     match parameters {
         AuthParameters {
@@ -197,27 +230,19 @@ pub async fn bind_authentication(
 pub async fn get_user_detail(
     pool: web::Data<PgPool>,
     token: Option<JwtToken>,
-    req: HttpRequest,
+    uid: web::Path<i32>,
 ) -> Result<HttpResponse> {
     if let None = token {
         return Err(ApiError::new(CommonError::Forbidden));
     }
     let token = token.unwrap();
-    let uid_to_query: i32 = req
-        .match_info()
-        .get("uid")
-        .and_then(|uid| uid.parse().ok())
-        .ok_or(ApiError::new(CommonError::Parameter))?;
-    let uid_operator: i32 = token.uid;
+    let uid = uid.into_inner();
 
-    if uid_operator != uid_to_query && !token.is_admin {
+    if uid != token.uid && !token.is_admin {
         return Err(ApiError::new(CommonError::Forbidden));
     }
-    let user = Person::query_by_uid(&pool, uid_to_query).await?;
-    if let None = user {
-        return Err(ApiError::new(UserError::NoSuchUser));
-    }
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(&user.unwrap())))
+    let user = Person::get(&pool, uid).await?;
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(&user)))
 }
 
 #[get("/user/{uid}/identity")]

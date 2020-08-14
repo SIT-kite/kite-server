@@ -69,7 +69,7 @@ impl Authentication {
     // will be returned. Otherwise, a UserError enum, provides the reason.
     pub async fn password_login(&self, client: &PgPool) -> Result<Person> {
         let user: Option<Person> = sqlx::query_as(
-            "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
+            "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, gender, country, province, city, language, create_time
                 FROM public.person p
                 RIGHT JOIN authentication auth on p.uid = auth.uid
                 WHERE auth.login_type = 1 AND auth.account = $1 AND auth.credential = $2"
@@ -86,7 +86,7 @@ impl Authentication {
 
     pub async fn wechat_login(&self, client: &PgPool) -> Result<Person> {
         let user: Option<Person> = sqlx::query_as(
-            "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
+            "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, gender, country, province, city, language, create_time
                 FROM public.person p
                 RIGHT JOIN authentication auth on p.uid = auth.uid
                 WHERE auth.login_type = 0 AND auth.account = $1"
@@ -117,12 +117,15 @@ pub struct Person {
     /// Is administrator. False by default.
     #[serde(rename = "isAdmin")]
     pub is_admin: bool,
+    /// Gender. 0 for unknown, 1 for male, 2 for female.
+    pub gender: i16,
     /// Country from wechat
     pub country: Option<String>,
     /// Province from wechat.
     pub province: Option<String>,
     pub city: Option<String>,
     /// Language code, like zh-cn
+    #[serde(skip_serializing)]
     pub language: Option<String>,
     /// Account create time.
     #[serde(rename = "createTime")]
@@ -176,9 +179,25 @@ impl Person {
         Ok(())
     }
 
+    pub async fn update(&self, client: &PgPool) -> Result<()> {
+        sqlx::query(
+            "UPDATE public.person SET gender = $1, country = $2, province = $3, city = $4, avatar = $5\
+                WHERE uid = $6",
+        )
+        .bind(self.gender)
+        .bind(&self.country)
+        .bind(&self.province)
+        .bind(&self.city)
+        .bind(&self.avatar)
+        .bind(self.uid)
+        .execute(client)
+        .await?;
+        Ok(())
+    }
+
     pub async fn list(client: &PgPool, page_index: u32, page_size: u32) -> Result<Vec<Self>> {
         let users: Vec<Person> = sqlx::query_as(
-            "SELECT uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
+            "SELECT uid, nick_name, avatar, is_disabled, is_admin, gender, country, province, city, language, create_time
                  FROM public.person LIMIT $1 OFFSET $2")
             .bind(page_size as i32)
             .bind(((page_index - 1) * page_size) as i32)
@@ -187,15 +206,15 @@ impl Person {
         Ok(users)
     }
 
-    pub async fn query_by_uid(client: &PgPool, uid: i32) -> Result<Option<Person>> {
+    pub async fn get(client: &PgPool, uid: i32) -> Result<Person> {
         let user: Option<Person> = sqlx::query_as(
-            "SELECT uid, nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
+            "SELECT uid, nick_name, avatar, is_disabled, is_admin, gender, country, province, city, language, create_time
                 FROM public.person WHERE uid = $1 LIMIT 1",
         )
             .bind(uid)
             .fetch_optional(client)
             .await?;
-        Ok(user)
+        user.ok_or(ApiError::new(UserError::NoSuchUser))
     }
 
     pub async fn fuzzy_query(
@@ -205,7 +224,7 @@ impl Person {
         count: u32,
     ) -> Result<Vec<Person>> {
         let users: Vec<Person> = sqlx::query_as(
-            "SELECT nick_name, avatar, is_disabled, is_admin, country, province, city, language, create_time
+            "SELECT nick_name, avatar, is_disabled, is_admin, gender, country, province, city, language, create_time
                 FROM public.person WHERE nick_name = $1
                 LIMIT $2 OFFSET $3",
         )
@@ -270,6 +289,7 @@ impl Default for Person {
             avatar: get_default_avatar().to_string(),
             is_disabled: false,
             is_admin: false,
+            gender: 0,
             country: None,
             province: None,
             city: None,
