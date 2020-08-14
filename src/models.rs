@@ -14,8 +14,6 @@ pub mod freshman;
 pub mod motto;
 /// User management.
 pub mod user;
-/// Wechat module, call wechat interface.
-pub mod wechat;
 
 use crate::error::ApiError;
 use num_traits::ToPrimitive;

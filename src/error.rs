@@ -1,4 +1,4 @@
-use crate::models::wechat::WxErr;
+use crate::models::user::wechat::WxErr;
 use actix_http::error::PayloadError;
 use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_web::{error::ResponseError, HttpResponse};

@@ -1,8 +1,8 @@
 use crate::error::{ApiError, Result};
 use crate::jwt::encode_jwt;
+use crate::models::user::wechat::{get_session_by_code, WxSession};
 use crate::models::user::{get_default_avatar, Authentication, Identity, Person, UserError};
 use crate::models::user::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
-use crate::models::wechat::{get_session_by_code, WxSession};
 use crate::models::CommonError;
 use crate::services::{response::ApiResponse, JwtToken};
 use actix_web::{get, patch, post, web, HttpResponse};
