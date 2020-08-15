@@ -2,7 +2,7 @@ use crate::error::{ApiError, Result};
 use crate::jwt::encode_jwt;
 use crate::models::user::wechat::{get_session_by_code, WxSession};
 use crate::models::user::{get_default_avatar, Authentication, Identity, Person, UserError};
-use crate::models::user::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
+use crate::models::user::{LOGIN_BY_CAMPUS_WEB, LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
 use crate::models::CommonError;
 use crate::services::{response::ApiResponse, JwtToken};
 use actix_web::{get, patch, post, web, HttpResponse};
@@ -36,7 +36,7 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
             credential: Some(password),
             ..
         } => {
-            let auth: Authentication = Authentication::from_password(&username, &password);
+            let auth: Authentication = Authentication::from_password(username, password);
             user = auth.password_login(&pool).await?;
         }
         // Login by wechat.
@@ -48,6 +48,30 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
             let wechat_token: WxSession = get_session_by_code(wechat_code.as_str()).await?;
             let auth: Authentication = Authentication::from_wechat(&wechat_token.openid);
             user = auth.wechat_login(&pool).await?;
+        }
+        // Login by campus web (student id and password).
+        AuthParameters {
+            login_type: LOGIN_BY_CAMPUS_WEB,
+            account: Some(account),
+            credential: Some(password),
+            ..
+        } => {
+            let mut auth = Authentication::from_campus_auth(account.clone(), password.clone());
+            let result = auth.campus_login(&pool).await;
+
+            match result {
+                Ok(u) => user = u,
+                Err(e) => {
+                    Identity::validate_oa_account(&account, &password).await?;
+                    // If password failed, verify on auth-server to update.
+                    if e == ApiError::new(UserError::LoginFailed) {
+                        auth.campus_update(&pool).await?;
+                        user = auth.campus_login(&pool).await?;
+                    } else {
+                        return Err(e);
+                    }
+                }
+            };
         }
         _ => {
             return Err(ApiError::new(CommonError::Parameter));
@@ -214,16 +238,25 @@ pub async fn bind_authentication(
             if !token.is_admin {
                 return Err(ApiError::new(UserError::AuthTypeNotAllowed));
             }
-            let auth = Authentication::from_password(&username, &password);
+            let auth = Authentication::from_password(username, password);
+            user.update_authentication(&pool, &auth).await?;
+        }
+        AuthParameters {
+            login_type: LOGIN_BY_CAMPUS_WEB,
+            account: Some(account),
+            credential: Some(password),
+            ..
+        } => {
+            let auth = Authentication::from_campus_auth(account.clone(), password.clone());
+
+            Identity::validate_oa_account(&account, &password).await?;
             user.update_authentication(&pool, &auth).await?;
         }
         _ => {
             return Err(ApiError::new(CommonError::Parameter));
         }
     }
-    #[derive(Serialize)]
-    struct EmptyReponse;
-    Ok(HttpResponse::Ok().body(ApiResponse::normal(EmptyReponse).to_string()))
+    Ok(HttpResponse::Ok().json(ApiResponse::empty()))
 }
 
 #[get("/user/{uid}")]
@@ -294,7 +327,7 @@ pub async fn set_user_identity(
         return Err(ApiError::new(CommonError::Forbidden));
     }
     let identity_post = data.into_inner();
-    let identity = Identity {
+    let mut identity = Identity {
         uid,
         real_name: identity_post.real_name,
         student_id: identity_post.student_id,
@@ -302,6 +335,16 @@ pub async fn set_user_identity(
         oa_certified: false,
         identity_number: identity_post.identity_number,
     };
-    Person::set_identity(&pool, uid, &identity).await?;
+    let person = Person::get(&pool, uid).await?;
+    person.set_identity(&pool, &mut identity).await?;
+
+    if identity.oa_certified {
+        let auth = Authentication::from_campus_auth(
+            identity.student_id.clone(),
+            identity.oa_secret.unwrap_or_default(),
+        );
+        // Update authentication approach so that students can log in by student-id and password in campus network.
+        person.update_authentication(&pool, &auth).await?;
+    }
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }

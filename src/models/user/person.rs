@@ -2,16 +2,17 @@ use super::{Authentication, Identity, Person, UserError};
 use super::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
 use crate::error::ApiError;
 use crate::error::Result;
+use crate::models::user::LOGIN_BY_CAMPUS_WEB;
 use chrono::Utc;
 use sqlx::{postgres::PgQueryAs, PgPool};
 
 impl Authentication {
-    pub fn from_password(username: &String, password: &String) -> Self {
+    pub fn from_password(username: String, password: String) -> Self {
         Authentication {
             uid: 0,
             login_type: LOGIN_BY_PASSWORD,
-            account: username.clone(),
-            credential: Some(password.clone()),
+            account: username,
+            credential: Some(password),
         }
     }
 
@@ -23,15 +24,22 @@ impl Authentication {
             credential: None,
         }
     }
-    // Require to verify the credential and login.
-    // The function will return an error::Result. When the process success, an i32 value as uid
-    // will be returned. Otherwise, a UserError enum, provides the reason.
+
+    pub fn from_campus_auth(account: String, password: String) -> Self {
+        Authentication {
+            uid: 0,
+            login_type: LOGIN_BY_CAMPUS_WEB,
+            account,
+            credential: Some(password),
+        }
+    }
+    /// Login by a password, return a Person structure if success. Otherwise, an UserError will be returned.
     pub async fn password_login(&self, client: &PgPool) -> Result<Person> {
         let user: Option<Person> = sqlx::query_as(
             "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, gender, country, province, city, language, create_time
                 FROM public.person p
                 RIGHT JOIN authentication auth on p.uid = auth.uid
-                WHERE auth.login_type = 1 AND auth.account = $1 AND auth.credential = $2"
+                WHERE auth.login_type = 1 AND auth.account = $1 AND auth.credential = $2 LIMIT 1"
         )
             .bind(&self.account)
             .bind(&self.credential)
@@ -48,7 +56,7 @@ impl Authentication {
             "SELECT p.uid, nick_name, avatar, is_disabled, is_admin, gender, country, province, city, language, create_time
                 FROM public.person p
                 RIGHT JOIN authentication auth on p.uid = auth.uid
-                WHERE auth.login_type = 0 AND auth.account = $1"
+                WHERE auth.login_type = 0 AND auth.account = $1 LIMIT 1"
         )
             .bind(&self.account)
             .fetch_optional(client)
@@ -57,6 +65,39 @@ impl Authentication {
             Some(user) => Ok(user),
             None => Err(ApiError::new(UserError::LoginFailed)),
         }
+    }
+
+    pub async fn campus_login(&mut self, client: &PgPool) -> Result<Person> {
+        let auth: Option<Authentication> = sqlx::query_as(
+            "SELECT uid, login_type, account, credential FROM public.authentication
+                WHERE login_type = 2 AND account = $1 LIMIT 1",
+        )
+        .bind(&self.account)
+        .fetch_optional(client)
+        .await?;
+
+        // If campus credential filled in database, return login success, even if the credential is
+        // out of date. Because password error will be thrown out if backend function failed, when,
+        // for example, loading course data...
+        let auth = auth.ok_or(ApiError::new(UserError::NoSuchUser))?;
+        self.uid = auth.uid;
+
+        if auth.credential.eq(&self.credential) && auth.credential.is_some() {
+            return Person::get(&client, auth.uid).await;
+        }
+        Err(ApiError::new(UserError::LoginFailed))
+    }
+
+    pub async fn campus_update(&self, client: &PgPool) -> Result<()> {
+        sqlx::query(
+            "UPDATE public.authentication SET credential = $1
+                WHERE login_type = 2 AND account = $2",
+        )
+        .bind(&self.credential)
+        .bind(&self.account)
+        .execute(client)
+        .await?;
+        Ok(())
     }
 }
 
@@ -71,8 +112,8 @@ impl Person {
         let _ = sqlx::query(
             "INSERT INTO
                     authentication (uid, login_type, account, credential) VALUES ($1, $2, $3, $4)
-                    ON CONFLICT (uid, login_type)
-                    DO UPDATE SET credential = $4 WHERE authentication.uid = $1",
+                ON CONFLICT (uid, login_type)
+                DO UPDATE SET credential = $4",
         )
         .bind(self.uid)
         .bind(auth.login_type)
@@ -177,7 +218,7 @@ impl Person {
     }
 
     /// Set identity info
-    pub async fn set_identity(client: &PgPool, uid: i32, identity: &Identity) -> Result<()> {
+    pub async fn set_identity(&self, client: &PgPool, identity: &mut Identity) -> Result<()> {
         if let Some(id_number) = &identity.identity_number {
             if !Identity::validate_identity_number(id_number.as_str()) {
                 return Err(ApiError::new(UserError::InvalidIdNumber));
@@ -186,13 +227,14 @@ impl Person {
         if let Some(oa_secret) = &identity.oa_secret {
             // Throw UserError::OaSecretFailed if password is wrong.
             Identity::validate_oa_account(&identity.student_id, oa_secret).await?;
+            identity.oa_certified = true;
         }
         let _ = sqlx::query(
             "INSERT INTO public.identities (uid, real_name, student_id, oa_secret, oa_certified, identity_number)
                 VALUES ($1, $2, $3, $4, true, $5)
                 ON CONFLICT (uid)
                 DO UPDATE SET oa_secret = $4, oa_certified = true, identity_number = $5;")
-            .bind(uid)
+            .bind(self.uid)
             .bind(&identity.real_name)
             .bind(&identity.student_id)
             .bind(&identity.oa_secret)

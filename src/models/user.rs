@@ -15,6 +15,7 @@ pub use person::get_default_avatar;
 /// Login Type.
 pub const LOGIN_BY_WECHAT: i32 = 0;
 pub const LOGIN_BY_PASSWORD: i32 = 1;
+pub const LOGIN_BY_CAMPUS_WEB: i32 = 2;
 
 #[derive(Fail, Debug, ToPrimitive)]
 pub enum UserError {
@@ -38,7 +39,7 @@ pub enum UserError {
 
 /// Authentication structure, similar to table "authentication" in database.
 /// Record everybody's login credentials.
-#[derive(Default)]
+#[derive(Default, sqlx::FromRow)]
 pub struct Authentication {
     /// Target user.
     pub uid: i32,

@@ -7,10 +7,10 @@ async fn oa_password_check(account: &String, password: &String) -> Result<()> {
 }
 
 impl Identity {
-    pub fn new(uid: i32, student_id: &String) -> Self {
+    pub fn new(uid: i32, student_id: String) -> Self {
         Self {
             uid,
-            student_id: student_id.clone(),
+            student_id,
             ..Identity::default()
         }
     }
