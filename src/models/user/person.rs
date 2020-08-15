@@ -184,9 +184,8 @@ impl Person {
             }
         }
         if let Some(oa_secret) = &identity.oa_secret {
-            if !Identity::validate_oa_account(&identity.student_id, oa_secret).await? {
-                return Err(ApiError::new(UserError::OaSecretFailed));
-            }
+            // Throw UserError::OaSecretFailed if password is wrong.
+            Identity::validate_oa_account(&identity.student_id, oa_secret).await?;
         }
         let _ = sqlx::query(
             "INSERT INTO public.identities (uid, real_name, student_id, oa_secret, oa_certified, identity_number)

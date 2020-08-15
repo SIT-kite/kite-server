@@ -47,3 +47,8 @@ rustls = "0.16"
 # Database, diesel orm.
 sqlx = { version = "0.3", default-features = false, features = ["uuid", "chrono", "json", "postgres", "runtime-tokio", "macros"]}
 
+# Encryption and code
+aes = "0.4"
+base64 = "0.12"
+block-modes = "0.5"
+urlencoding = "1.0"

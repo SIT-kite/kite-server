@@ -1,5 +1,6 @@
 //! This module provides the ability to create, update and delete users including authentication tokens.
 
+mod authserver;
 mod identity;
 mod person;
 pub(crate) mod wechat;
