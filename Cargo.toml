@@ -8,16 +8,16 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# Kite component
-kite-protocol = { git = "https://github.com/sunnysab/kite-protocol.git", branch = "master" }
 
 # About actix.
+actix = "0.9"
 actix-http = "1"
 actix-web = { version = "2.0", features = ["rustls"] }
 actix-rt = "1"
 actix-service = "1.0.0"
 actix-multipart = "0.2.0"
 actix-files = "0.2"
+actix-web-actors = "2"
 
 # About common tools.
 tokio = { version = "0.2", features = ["full"] }

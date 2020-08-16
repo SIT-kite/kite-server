@@ -8,6 +8,7 @@ use std::io::{BufReader, Read};
 use crate::config::CONFIG;
 use crate::services::handlers::{attachment, checking, edu, event, freshman, motto, status, user};
 use crate::services::middlewares::reject::Reject;
+use actix::Actor;
 use actix_files::Files;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
@@ -49,16 +50,18 @@ pub async fn server_main() -> std::io::Result<()> {
     file.read_to_string(&mut buffer).unwrap();
     drop(file);
 
+    let host = crate::task::Host::default().start();
+
     // Run actix-web services.
     HttpServer::new(move || {
         App::new()
-            .data(pool.clone())
             .wrap(actix_web::middleware::Compress::default())
             .wrap(middlewares::acl::Auth)
             .wrap(actix_web::middleware::Logger::new(log_string))
             .wrap(Reject::new(buffer.as_str()))
             .service(
                 web::scope("/api/v1")
+                    .data(pool.clone())
                     .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
                     .service(user::login)
                     .service(user::bind_authentication)
@@ -96,10 +99,14 @@ pub async fn server_main() -> std::io::Result<()> {
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
             .service(
+                web::scope("/agent")
+                    .data(host.clone())
+                    .route("/", web::get().to(crate::task::agent_route)),
+            )
+            .service(
                 Files::new("/console/", "console/")
                     .index_file("index.html")
-                    .use_etag(true)
-                    .use_last_modified(true),
+                    .use_etag(true),
             )
     })
     .bind_rustls(&CONFIG.bind_addr.as_str(), config)?
