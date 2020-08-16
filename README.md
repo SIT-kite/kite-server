@@ -58,10 +58,10 @@ cargo run
 
 | 项目         | 说明             |
 | ------------ | ---------------- |
-| [kite-crawler](https://github.com/sunnysab/kite-crawler) | 后端数据抓取工具 |
-| [kite-protocol](https://github.com/sunnysab/kite-protocol) | 通信协议库  |
-| [kite-checking](https://github.com/snomiao/kite-checking) | 返校码管理后台 |
-| [kite-admin](https://github.com/Crystal-RainSlide/kite-admin) | 综合管理后台 |
+| [kite-agent](https://github.com/sunnysab/kite-agent) | 后端数据抓取工具 |
+| [kite-protocol](https://github.com/sunnysab/kite-protocol) | 通信协议库（已废弃）  |
+| [kite-checking](https://github.com/snomiao/kite-checking) | 返校码管理后台（暂不使用） |
+| [kite-admin](https://github.com/Crystal-RainSlide/kite-admin) | 综合管理后台（暂不更新） |
 
 
 ## 如何贡献
