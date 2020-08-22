@@ -9,17 +9,17 @@ readme = "README.md"
 
 [dependencies]
 
-# About actix.
-actix = "0.9"
+# About network.
 actix-http = "1"
 actix-web = { version = "2.0", features = ["rustls"] }
 actix-rt = "1"
 actix-service = "1.0.0"
 actix-multipart = "0.2.0"
 actix-files = "0.2"
-actix-web-actors = "2"
+tokio-tungstenite = { version = "0.11", features = ["tls"] } # Websocket library
 
 # About common tools.
+futures-util = "0.3"
 tokio = { version = "0.2", features = ["full"] }
 futures = "0.3"
 num-traits = "0.2"

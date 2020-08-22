@@ -8,7 +8,6 @@ use std::io::{BufReader, Read};
 use crate::config::CONFIG;
 use crate::services::handlers::{attachment, checking, edu, event, freshman, motto, status, user};
 use crate::services::middlewares::reject::Reject;
-use actix::Actor;
 use actix_files::Files;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
@@ -22,7 +21,6 @@ mod handlers;
 mod middlewares;
 pub(crate) mod response;
 
-#[actix_rt::main]
 pub async fn server_main() -> std::io::Result<()> {
     // load ssl keys
     let mut config = ServerConfig::new(NoClientAuth::new());
@@ -49,8 +47,6 @@ pub async fn server_main() -> std::io::Result<()> {
     let mut buffer = String::new();
     file.read_to_string(&mut buffer).unwrap();
     drop(file);
-
-    let host = crate::task::Host::default().start();
 
     // Run actix-web services.
     HttpServer::new(move || {
@@ -98,11 +94,6 @@ pub async fn server_main() -> std::io::Result<()> {
                     .service(status::get_system_status),
             )
             .service(Files::new("/static", &CONFIG.attachment_dir))
-            .service(
-                web::scope("/agent")
-                    .data(host.clone())
-                    .route("/", web::get().to(crate::task::agent_route)),
-            )
             .service(
                 Files::new("/console/", "console/")
                     .index_file("index.html")

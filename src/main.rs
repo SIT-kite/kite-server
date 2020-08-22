@@ -20,8 +20,16 @@ mod task;
 // Import main function.
 use crate::services::server_main;
 
-fn main() {
-    server_main().unwrap_or_else(|e| {
-        println!("Failed to run server_main(): {}", e);
-    });
+use crate::task::websocket_main;
+use futures::TryFutureExt;
+
+#[actix_rt::main]
+async fn main() {
+    tokio::spawn(websocket_main());
+
+    server_main()
+        .unwrap_or_else(|e| {
+            println!("Failed to run server_main(): {}", e);
+        })
+        .await;
 }
