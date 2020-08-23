@@ -73,6 +73,7 @@ impl From<WxErr> for ApiError {
     }
 }
 
+#[macro_export]
 macro_rules! convert_inner_errors {
     ($src_err_type: ident) => {
         impl From<$src_err_type> for ApiError {

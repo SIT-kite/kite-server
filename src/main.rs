@@ -20,12 +20,18 @@ mod task;
 // Import main function.
 use crate::services::server_main;
 
-use crate::task::websocket_main;
+use crate::task::Host;
 use futures::TryFutureExt;
+use std::sync::Arc;
 
 #[actix_rt::main]
 async fn main() {
-    tokio::spawn(websocket_main());
+    let host = Host {
+        agents: Arc::new(Default::default()),
+    };
+    tokio::spawn(async move {
+        host.websocket_main().await;
+    });
 
     server_main()
         .unwrap_or_else(|e| {
