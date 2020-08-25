@@ -30,7 +30,9 @@ async fn main() {
         agents: Arc::new(Default::default()),
     };
     tokio::spawn(async move {
-        host.websocket_main().await;
+        host.websocket_main().await.unwrap_or_else(|e| {
+            println!("Failed to run websocket host: {}", e);
+        });
     });
 
     server_main()

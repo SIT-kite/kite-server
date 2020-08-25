@@ -1,4 +1,5 @@
 use super::model::*;
+use super::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
@@ -9,6 +10,7 @@ lazy_static! {
 }
 
 /// Host request
+// Implement Debug for error handling.
 #[derive(Serialize)]
 pub struct Request {
     /// Request sequence
@@ -18,7 +20,7 @@ pub struct Request {
 }
 
 /// Agent response
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Response {
     /// Response sequence
     pub ack: usize,
@@ -59,5 +61,11 @@ impl Request {
 
     pub fn to_vec(&self) -> Vec<u8> {
         bincode::serialize(self).unwrap()
+    }
+}
+
+impl Response {
+    pub fn from(content: Vec<u8>) -> Result<Self> {
+        Ok(bincode::deserialize(&content)?)
     }
 }
