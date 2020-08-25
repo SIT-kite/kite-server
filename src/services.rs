@@ -18,6 +18,12 @@ mod handlers;
 mod middlewares;
 mod response;
 
+#[derive(Clone)]
+pub struct AppState {
+    pool: PgPool,
+    host: Host,
+}
+
 pub async fn server_main() -> std::io::Result<()> {
     let tls_config = get_tls_config();
 
@@ -39,7 +45,13 @@ pub async fn server_main() -> std::io::Result<()> {
 
     // Websocket server.
     let ws_host = Host::new();
-    tokio::spawn(async {
+
+    let app_state = AppState {
+        pool: pool,
+        host: ws_host.clone(),
+    };
+
+    tokio::spawn(async move {
         ws_host.websocket_main().await.unwrap_or_else(|e| {
             panic!("Failed to run websocket host: {}", e);
         });
@@ -52,7 +64,7 @@ pub async fn server_main() -> std::io::Result<()> {
             .wrap(middlewares::acl::Auth)
             .wrap(actix_web::middleware::Logger::new(log_string))
             .wrap(Reject::new(&buffer))
-            .data(pool.clone())
+            .data(app_state.clone())
             .configure(routes)
     })
     .bind_rustls(&CONFIG.bind_addr.as_str(), tls_config)?

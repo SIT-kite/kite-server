@@ -4,11 +4,10 @@ use crate::models::checking::{
     Administrator, AdministratorManager, CheckingError, StudentManager, StudentStatus,
 };
 use crate::models::{CommonError, PageView};
-use crate::services::{response::ApiResponse, JwtToken};
+use crate::services::{response::ApiResponse, AppState, JwtToken};
 use actix_web::{delete, get, patch, post, web, HttpResponse};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::PgPool;
 
 #[derive(Debug, Deserialize)]
 pub struct QueryString {
@@ -18,14 +17,15 @@ pub struct QueryString {
 #[get("/checking/student")]
 pub async fn list_student_status(
     token: Option<JwtToken>,
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     page: web::Query<PageView>,
     query: web::Query<QueryString>,
 ) -> Result<HttpResponse> {
     let query_string = query.into_inner().q;
+
     // To check whether query string is empty or not. If it's not empty...
-    let admin_manager = AdministratorManager::new(&pool);
-    let student_manager = StudentManager::new(&pool);
+    let admin_manager = AdministratorManager::new(&app.pool);
+    let student_manager = StudentManager::new(&app.pool);
 
     // Get role (as privilege) and college of current admin account.
     let current_admin = admin_manager.get_by_uid(token.unwrap().uid).await?;
@@ -68,14 +68,15 @@ pub struct StudentCredential {
 #[get("/checking/student/{student_id}")]
 pub async fn query_detail(
     token: Option<JwtToken>,
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     student_id: web::Path<String>,
     form: web::Form<StudentCredential>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
-    let admin_manager = AdministratorManager::new(&pool);
+
+    let admin_manager = AdministratorManager::new(&app.pool);
     let current_admin = admin_manager.get_by_uid(token.uid).await?;
-    let student_manager = StudentManager::new(&pool);
+    let student_manager = StudentManager::new(&app.pool);
 
     // Select student status.
     let student = student_manager.get(&student_id.into_inner()).await?;
@@ -109,12 +110,12 @@ pub struct ApprovalPost {
 #[post("/checking/student")]
 pub async fn add_approval(
     token: Option<JwtToken>,
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     data: web::Form<ApprovalPost>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
     let submitted = data.into_inner();
-    let admin_manager = AdministratorManager::new(&pool);
+    let admin_manager = AdministratorManager::new(&app.pool);
     let current_admin = admin_manager.get_by_uid(token.uid).await?;
 
     // Return forbidden if the user is not belong to administrators.
@@ -123,7 +124,7 @@ pub async fn add_approval(
         if !(admin.role == 3 || admin.department == submitted.college) {
             return Err(CheckingError::DismatchCollege.into());
         }
-        let student_manager = StudentManager::new(&pool);
+        let student_manager = StudentManager::new(&app.pool);
         if let Ok(_) = student_manager.get(&submitted.student_id).await {
             return Err(CheckingError::StudentExisted.into());
         }
@@ -154,17 +155,17 @@ pub struct UpdateStudent {
 #[patch("/checking/student/{student_id}")]
 pub async fn change_approval(
     token: Option<JwtToken>,
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     student_id: web::Path<String>,
     data: web::Form<UpdateStudent>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
     let submitted = data.into_inner();
-    let admin_manager = AdministratorManager::new(&pool);
+    let admin_manager = AdministratorManager::new(&app.pool);
     let current_admin = admin_manager.get_by_uid(token.uid).await?;
     // Return forbidden if the user is not belong to administrators.
     if let Some(admin) = current_admin {
-        let student_manager = StudentManager::new(&pool);
+        let student_manager = StudentManager::new(&app.pool);
 
         if let Ok(mut s) = student_manager.get(&student_id).await {
             // Check admin privilege.
@@ -195,11 +196,11 @@ pub async fn change_approval(
 #[delete("/checking/student/{student_id}")]
 pub async fn delete_approval(
     token: Option<JwtToken>,
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     student_id: web::Path<String>,
 ) -> Result<HttpResponse> {
-    let admin_manager = AdministratorManager::new(&pool);
-    let student_manager = StudentManager::new(&pool);
+    let admin_manager = AdministratorManager::new(&app.pool);
+    let student_manager = StudentManager::new(&app.pool);
 
     if admin_manager.get_by_uid(token.unwrap().uid).await?.is_none() {
         return Err(CommonError::Forbidden.into());
@@ -211,11 +212,11 @@ pub async fn delete_approval(
 #[get("/checking/admin")]
 pub async fn list_admin(
     token: Option<JwtToken>,
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
-    let admin_manager = AdministratorManager::new(&pool);
+    let admin_manager = AdministratorManager::new(&app.pool);
     let current_admin = admin_manager.get_by_uid(token.uid).await?;
 
     if let Some(admin) = current_admin {
@@ -233,11 +234,11 @@ pub async fn list_admin(
 #[delete("/checking/admin/{job_id}")]
 pub async fn delete_admin(
     token: Option<JwtToken>,
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     job_id: web::Path<String>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
-    let admin_manager = AdministratorManager::new(&pool);
+    let admin_manager = AdministratorManager::new(&app.pool);
 
     let current_admin = admin_manager
         .get_by_uid(token.uid)

@@ -2,9 +2,9 @@ use crate::error::Result;
 use crate::models::motto::Motto;
 use crate::models::motto::{MOTTO_MAX_SIZE, MOTTO_MIN_SIZE};
 use crate::services::response::ApiResponse;
+use crate::services::AppState;
 use actix_web::{get, web, HttpResponse};
 use serde::Deserialize;
-use sqlx::PgPool;
 
 #[derive(Deserialize)]
 pub struct MottoRequest {
@@ -16,12 +16,12 @@ pub struct MottoRequest {
 
 #[get("/motto")]
 pub async fn get_one_motto(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     form: web::Query<MottoRequest>,
 ) -> Result<HttpResponse> {
     let parameter = form.into_inner();
     let motto = Motto::random_choice(
-        &pool,
+        &app.pool,
         parameter.min_length.unwrap_or(MOTTO_MIN_SIZE),
         parameter.max_length.unwrap_or(MOTTO_MAX_SIZE),
     )

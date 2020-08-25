@@ -4,10 +4,10 @@ use crate::error::Result;
 use crate::models::edu::{self, CourseBase, CourseClass, Major, PlannedCourse};
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
+use crate::services::AppState;
 use actix_web::{get, web, HttpResponse};
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 
 #[derive(Debug, Deserialize)]
 pub struct ListMajor {
@@ -15,9 +15,12 @@ pub struct ListMajor {
 }
 
 #[get("/edu/major")]
-pub async fn query_major(pool: web::Data<PgPool>, query: web::Query<ListMajor>) -> Result<HttpResponse> {
+pub async fn query_major(
+    app: web::Data<AppState>,
+    query: web::Query<ListMajor>,
+) -> Result<HttpResponse> {
     let parameters: ListMajor = query.into_inner();
-    let results = Major::query(&pool, &parameters.q).await?;
+    let results = Major::query(&app.pool, &parameters.q).await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(results)))
 }
@@ -29,7 +32,7 @@ pub struct ListPlannedCourse {
 
 #[get("/edu/major/{major_code}")]
 pub async fn get_planned_course(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     major_code: web::Path<String>,
     query: web::Query<ListPlannedCourse>,
 ) -> Result<HttpResponse> {
@@ -44,7 +47,7 @@ pub async fn get_planned_course(
             year = input_year;
         }
     }
-    let results = PlannedCourse::query(&pool, &major_code, year).await?;
+    let results = PlannedCourse::query(&app.pool, &major_code, year).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(results)))
 }
 
@@ -55,7 +58,7 @@ pub struct ListClasses {
 
 #[get("/edu/course/{course_code}")]
 pub async fn list_course_classes(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     course_code: web::Path<String>,
     query: web::Query<ListClasses>,
 ) -> Result<HttpResponse> {
@@ -67,9 +70,9 @@ pub async fn list_course_classes(
         }
     }
     let term_string = term.unwrap_or(edu::get_current_term());
-    let course = CourseBase::get(&pool, &course_code, &term_string).await?;
+    let course = CourseBase::get(&app.pool, &course_code, &term_string).await?;
     if let Some(course) = course {
-        let classes = CourseClass::list(&pool, &course_code, &term_string).await?;
+        let classes = CourseClass::list(&app.pool, &course_code, &term_string).await?;
         #[derive(Serialize)]
         struct Response {
             pub course: CourseBase,
@@ -89,7 +92,7 @@ pub struct SearchCourse {
 
 #[get("/edu/course")]
 pub async fn query_course(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     query: web::Query<SearchCourse>,
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
@@ -105,6 +108,6 @@ pub async fn query_course(
         return Ok(HttpResponse::Ok().json(&ApiResponse::empty()));
     }
     let term_string = term.unwrap_or(edu::get_current_term());
-    let course = CourseBase::query(&pool, &parameters.q, &term_string, &page).await?;
+    let course = CourseBase::query(&app.pool, &parameters.q, &term_string, &page).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(course)))
 }

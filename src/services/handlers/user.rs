@@ -4,10 +4,9 @@ use crate::models::user::wechat::{get_session_by_code, WxSession};
 use crate::models::user::{get_default_avatar, Authentication, Identity, Person, UserError};
 use crate::models::user::{LOGIN_BY_CAMPUS_WEB, LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
 use crate::models::CommonError;
-use crate::services::{response::ApiResponse, JwtToken};
+use crate::services::{response::ApiResponse, AppState, JwtToken};
 use actix_web::{get, patch, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 
 #[derive(Debug, Deserialize)]
 pub struct AuthParameters {
@@ -24,7 +23,7 @@ pub struct AuthParameters {
 }
 
 #[post("/session")]
-pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> Result<HttpResponse> {
+pub async fn login(app: web::Data<AppState>, form: web::Form<AuthParameters>) -> Result<HttpResponse> {
     let parameters: AuthParameters = form.into_inner();
     let user: Person;
 
@@ -37,7 +36,7 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
             ..
         } => {
             let auth: Authentication = Authentication::from_password(username, password);
-            user = auth.password_login(&pool).await?;
+            user = auth.password_login(&app.pool).await?;
         }
         // Login by wechat.
         AuthParameters {
@@ -47,7 +46,7 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
         } => {
             let wechat_token: WxSession = get_session_by_code(wechat_code.as_str()).await?;
             let auth: Authentication = Authentication::from_wechat(&wechat_token.openid);
-            user = auth.wechat_login(&pool).await?;
+            user = auth.wechat_login(&app.pool).await?;
         }
         // Login by campus web (student id and password).
         AuthParameters {
@@ -57,7 +56,7 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
             ..
         } => {
             let mut auth = Authentication::from_campus_auth(account.clone(), password.clone());
-            let result = auth.campus_login(&pool).await;
+            let result = auth.campus_login(&app.pool).await;
 
             match result {
                 Ok(u) => user = u,
@@ -65,8 +64,8 @@ pub async fn login(pool: web::Data<PgPool>, form: web::Form<AuthParameters>) -> 
                     Identity::validate_oa_account(&account, &password).await?;
                     // If password failed, verify on auth-server to update.
                     if e == ApiError::new(UserError::LoginFailed) {
-                        auth.campus_update(&pool).await?;
-                        user = auth.campus_login(&pool).await?;
+                        auth.campus_update(&app.pool).await?;
+                        user = auth.campus_login(&app.pool).await?;
                     } else {
                         return Err(e);
                     }
@@ -102,10 +101,10 @@ pub struct ListUsers {
 }
 
 #[get("/user")]
-pub async fn list_users(pool: web::Data<PgPool>, form: web::Query<ListUsers>) -> Result<HttpResponse> {
+pub async fn list_users(app: web::Data<AppState>, form: web::Query<ListUsers>) -> Result<HttpResponse> {
     let parameter = form.into_inner();
     let userlist = Person::list(
-        &pool,
+        &app.pool,
         parameter.index.unwrap_or(1),
         parameter.page_size.unwrap_or(20),
     )
@@ -132,7 +131,7 @@ pub struct SubmittedPerson {
 
 #[post("/user")]
 pub async fn create_user(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     form: web::Form<SubmittedPerson>,
 ) -> Result<HttpResponse> {
     let parameters: SubmittedPerson = form.into_inner();
@@ -148,7 +147,7 @@ pub async fn create_user(
     user.city = parameters.city;
     user.language = parameters.language;
 
-    user.register(&pool).await?;
+    user.register(&app.pool).await?;
     #[derive(Serialize)]
     struct CreateResponse {
         uid: i32,
@@ -168,7 +167,7 @@ pub async fn create_user(
 #[patch("/user/{uid}")]
 pub async fn update_user_detail(
     token: Option<JwtToken>,
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     form: web::Form<SubmittedPerson>,
     uid: web::Path<i32>,
 ) -> Result<HttpResponse> {
@@ -178,7 +177,7 @@ pub async fn update_user_detail(
     if !token.is_admin && uid != token.uid {
         return Err(ApiError::new(CommonError::Forbidden));
     }
-    let mut person = Person::get(&pool, uid).await?;
+    let mut person = Person::get(&app.pool, uid).await?;
     let form = form.into_inner();
 
     if let Some(nick_name) = form.nick_name {
@@ -196,14 +195,14 @@ pub async fn update_user_detail(
     if let Some(avatar) = form.avatar {
         person.avatar = avatar;
     }
-    person.update(&pool).await?;
+    person.update(&app.pool).await?;
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(person)))
 }
 
 #[post("/user/{uid}/authentication")]
 pub async fn bind_authentication(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     form: web::Form<AuthParameters>,
     uid: web::Path<i32>,
@@ -215,7 +214,7 @@ pub async fn bind_authentication(
     if token.uid != uid && !token.is_admin {
         return Err(ApiError::new(CommonError::Parameter));
     }
-    let user = Person::get(&pool, uid).await?;
+    let user = Person::get(&app.pool, uid).await?;
 
     match parameters {
         AuthParameters {
@@ -225,7 +224,7 @@ pub async fn bind_authentication(
         } => {
             let wechat_token: WxSession = get_session_by_code(wechat_code.as_str()).await?;
             let auth: Authentication = Authentication::from_wechat(&wechat_token.openid);
-            user.update_authentication(&pool, &auth).await?;
+            user.update_authentication(&app.pool, &auth).await?;
         }
         AuthParameters {
             login_type: LOGIN_BY_PASSWORD,
@@ -239,7 +238,7 @@ pub async fn bind_authentication(
                 return Err(ApiError::new(UserError::AuthTypeNotAllowed));
             }
             let auth = Authentication::from_password(username, password);
-            user.update_authentication(&pool, &auth).await?;
+            user.update_authentication(&app.pool, &auth).await?;
         }
         AuthParameters {
             login_type: LOGIN_BY_CAMPUS_WEB,
@@ -250,7 +249,7 @@ pub async fn bind_authentication(
             let auth = Authentication::from_campus_auth(account.clone(), password.clone());
 
             Identity::validate_oa_account(&account, &password).await?;
-            user.update_authentication(&pool, &auth).await?;
+            user.update_authentication(&app.pool, &auth).await?;
         }
         _ => {
             return Err(ApiError::new(CommonError::Parameter));
@@ -261,7 +260,7 @@ pub async fn bind_authentication(
 
 #[get("/user/{uid}")]
 pub async fn get_user_detail(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     uid: web::Path<i32>,
 ) -> Result<HttpResponse> {
@@ -274,13 +273,13 @@ pub async fn get_user_detail(
     if uid != token.uid && !token.is_admin {
         return Err(ApiError::new(CommonError::Forbidden));
     }
-    let user = Person::get(&pool, uid).await?;
+    let user = Person::get(&app.pool, uid).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(&user)))
 }
 
 #[get("/user/{uid}/identity")]
 pub async fn get_user_identity(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     uid: web::Path<i32>,
 ) -> Result<HttpResponse> {
@@ -290,7 +289,7 @@ pub async fn get_user_identity(
     if token.uid != uid && !token.is_admin {
         return Err(ApiError::new(CommonError::Forbidden));
     }
-    let identity = Person::get_identity(&pool, uid).await?;
+    let identity = Person::get_identity(&app.pool, uid).await?;
     if let None = identity {
         return Err(ApiError::new(UserError::NoSuchUser));
     }
@@ -315,7 +314,7 @@ pub struct IdentityPost {
 
 #[post("/user/{uid}/identity")]
 pub async fn set_user_identity(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     uid: web::Path<i32>,
     data: web::Form<IdentityPost>,
@@ -335,8 +334,8 @@ pub async fn set_user_identity(
         oa_certified: false,
         identity_number: identity_post.identity_number,
     };
-    let person = Person::get(&pool, uid).await?;
-    person.set_identity(&pool, &mut identity).await?;
+    let person = Person::get(&app.pool, uid).await?;
+    person.set_identity(&app.pool, &mut identity).await?;
 
     if identity.oa_certified {
         let auth = Authentication::from_campus_auth(
@@ -344,7 +343,7 @@ pub async fn set_user_identity(
             identity.oa_secret.unwrap_or_default(),
         );
         // Update authentication approach so that students can log in by student-id and password in campus network.
-        person.update_authentication(&pool, &auth).await?;
+        person.update_authentication(&app.pool, &auth).await?;
     }
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }

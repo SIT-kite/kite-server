@@ -2,9 +2,9 @@
 use crate::error::Result;
 use crate::models::event;
 use crate::services::response::ApiResponse;
+use crate::services::AppState;
 use actix_web::{get, web, HttpResponse};
 use serde::Deserialize;
-use sqlx::PgPool;
 
 /**********************************************************************
     Interfaces in this module:
@@ -25,10 +25,10 @@ pub struct ListEvent {
 }
 
 #[get("/event")]
-pub async fn list_events(pool: web::Data<PgPool>, form: web::Query<ListEvent>) -> Result<HttpResponse> {
+pub async fn list_events(app: web::Data<AppState>, form: web::Query<ListEvent>) -> Result<HttpResponse> {
     let parameters: ListEvent = form.into_inner();
     let event_summaries = event::Event::list(
-        &pool,
+        &app.pool,
         parameters.page_index.unwrap_or(1),
         parameters.count.unwrap_or(10),
     )

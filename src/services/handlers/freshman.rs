@@ -2,10 +2,9 @@
 use crate::error::Result;
 use crate::models::freshman::{FreshmanAnalysis, FreshmanManager, NewMate, PeopleFamiliar};
 use crate::models::CommonError;
-use crate::services::{response::ApiResponse, JwtToken};
+use crate::services::{response::ApiResponse, AppState, JwtToken};
 use actix_web::{get, patch, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::PgPool;
 
 #[derive(Debug, Deserialize)]
 pub struct FreshmanReqSecret {
@@ -14,7 +13,7 @@ pub struct FreshmanReqSecret {
 
 #[get("/freshman/{account}")]
 pub async fn get_basic_info(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
     form: web::Form<FreshmanReqSecret>,
@@ -27,7 +26,7 @@ pub async fn get_basic_info(
     if account.is_empty() {
         return Err(CommonError::Parameter.into());
     }
-    let manager = FreshmanManager::new(&pool);
+    let manager = FreshmanManager::new(&app.pool);
     let freshman = manager.query(&account, secret.as_str()).await?;
     if freshman.uid.is_none() && !manager.is_bound(token.uid).await? {
         manager.bind(&freshman.student_id, Some(token.uid)).await?;
@@ -44,7 +43,7 @@ pub struct UpdateInfo {
 
 #[patch("/freshman/{account}")]
 pub async fn update_account(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
     form: web::Form<UpdateInfo>,
@@ -54,26 +53,26 @@ pub async fn update_account(
     let form = form.into_inner();
     let secret = form.secret;
 
-    let freshman_manager = FreshmanManager::new(&pool);
+    let freshman_manager = FreshmanManager::new(&app.pool);
     let student = freshman_manager.query(&account, &secret).await?;
 
     // Set visibility.
     if let Some(visible) = form.visible {
         if visible != student.visible {
-            student.set_visibility(&pool, visible).await?;
+            student.set_visibility(&app.pool, visible).await?;
         }
     }
     // Set contact information.
     if let Some(contact) = form.contact {
         let contact_json: serde_json::Value = serde_json::from_str(contact.as_str())?;
-        student.set_contact(&pool, contact_json).await?;
+        student.set_contact(&app.pool, contact_json).await?;
     }
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }
 
 #[get("/freshman/{account}/roommate")]
 pub async fn get_roommate(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
     secret: web::Form<FreshmanReqSecret>,
@@ -87,11 +86,11 @@ pub async fn get_roommate(
         pub roommates: Vec<NewMate>,
     }
 
-    let freshman_manager = FreshmanManager::new(&pool);
+    let freshman_manager = FreshmanManager::new(&app.pool);
     let roommates = freshman_manager
         .query(&account, &secret)
         .await?
-        .get_roommates(&pool)
+        .get_roommates(&app.pool)
         .await?;
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { roommates })))
@@ -99,7 +98,7 @@ pub async fn get_roommate(
 
 #[get("/freshman/{account}/familiar")]
 pub async fn get_people_familiar(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
     secret: web::Form<FreshmanReqSecret>,
@@ -113,11 +112,11 @@ pub async fn get_people_familiar(
         pub people_familiar: Vec<PeopleFamiliar>,
     }
 
-    let freshman_manager = FreshmanManager::new(&pool);
+    let freshman_manager = FreshmanManager::new(&app.pool);
     let people_familiar = freshman_manager
         .query(&account, &secret)
         .await?
-        .get_people_familiar(&pool)
+        .get_people_familiar(&app.pool)
         .await?;
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { people_familiar })))
@@ -125,7 +124,7 @@ pub async fn get_people_familiar(
 
 #[get("/freshman/{account}/classmate")]
 pub async fn get_classmate(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
     secret: web::Form<FreshmanReqSecret>,
@@ -138,11 +137,11 @@ pub async fn get_classmate(
     struct Resp {
         pub classmates: Vec<NewMate>,
     }
-    let freshman_manager = FreshmanManager::new(&pool);
+    let freshman_manager = FreshmanManager::new(&app.pool);
     let classmates = freshman_manager
         .query(&account, &secret)
         .await?
-        .get_classmates(&pool)
+        .get_classmates(&app.pool)
         .await?;
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { classmates })))
@@ -150,7 +149,7 @@ pub async fn get_classmate(
 
 #[get("/freshman/{account}/analysis")]
 pub async fn get_analysis_data(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
     secret: web::Form<FreshmanReqSecret>,
@@ -163,11 +162,11 @@ pub async fn get_analysis_data(
     struct Resp {
         pub freshman: FreshmanAnalysis,
     }
-    let freshman_manager = FreshmanManager::new(&pool);
+    let freshman_manager = FreshmanManager::new(&app.pool);
     let freshman = freshman_manager
         .query(&account, &secret)
         .await?
-        .get_analysis(&pool)
+        .get_analysis(&app.pool)
         .await?;
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { freshman })))
@@ -175,7 +174,7 @@ pub async fn get_analysis_data(
 
 #[post("/freshman/{account}/analysis/log")]
 pub async fn post_analysis_log(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     path: web::Path<String>,
     secret: web::Form<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
@@ -186,11 +185,11 @@ pub async fn post_analysis_log(
     struct Resp {
         pub freshman: FreshmanAnalysis,
     }
-    let freshman_manager = FreshmanManager::new(&pool);
+    let freshman_manager = FreshmanManager::new(&app.pool);
     let freshman = freshman_manager.query(&account, &secret).await?;
     sqlx::query("INSERT INTO freshman.share_log (student_id) VALUES ($1)")
         .bind(&freshman.student_id)
-        .execute(pool.get_ref())
+        .execute(&app.pool)
         .await?;
 
     Ok(HttpResponse::Ok().json(ApiResponse::empty()))

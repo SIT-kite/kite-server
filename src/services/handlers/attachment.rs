@@ -9,8 +9,7 @@ use tokio::io::AsyncWriteExt;
 use crate::config::CONFIG;
 use crate::error::{ApiError, Result};
 use crate::models::attachment::{self, AttachmentError, SingleAttachment};
-use crate::services::{response::ApiResponse, JwtToken};
-use sqlx::PgPool;
+use crate::services::{response::ApiResponse, AppState, JwtToken};
 use uuid::Uuid;
 
 const MAX_ATTACHMENT_SIZE: usize = 10 * 1024 * 1024;
@@ -22,7 +21,7 @@ const MAX_ATTACHMENT_SIZE: usize = 10 * 1024 * 1024;
 /// There is also a while loop and iteration for streams in each file.
 #[post("/attachment")]
 pub(crate) async fn upload_file(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     mut payload: Multipart,
 ) -> Result<HttpResponse> {
@@ -73,7 +72,7 @@ pub(crate) async fn upload_file(
         }
         if success_flag {
             let new_attachment =
-                attachment::create_attachment(&pool, &sanitized_filename, &filepath, uid, file_size)
+                attachment::create_attachment(&app.pool, &sanitized_filename, &filepath, uid, file_size)
                     .await?;
             successd_uploaded.push(new_attachment);
         }
@@ -92,7 +91,7 @@ pub struct PageOption {
 
 #[get("/attachment")]
 pub async fn get_attachment_list(
-    pool: web::Data<PgPool>,
+    app: web::Data<AppState>,
     token: Option<JwtToken>,
     form: web::Query<PageOption>,
 ) -> Result<HttpResponse> {
@@ -104,7 +103,7 @@ pub async fn get_attachment_list(
     }
 
     let attachs =
-        attachment::get_attachment_by_page(&pool, form.index.unwrap_or(1), form.count.unwrap_or(20))
+        attachment::get_attachment_by_page(&app.pool, form.index.unwrap_or(1), form.count.unwrap_or(20))
             .await?;
 
     let mut resp = HashMap::new();
@@ -113,8 +112,8 @@ pub async fn get_attachment_list(
 }
 
 #[get("/attachment/{attachment_id}")]
-pub async fn index(pool: web::Data<PgPool>, id: web::Path<(Uuid,)>) -> Result<HttpResponse> {
-    let url = attachment::get_attachment_url_by_id(&pool, id.into_inner().0).await?;
+pub async fn index(app: web::Data<AppState>, id: web::Path<(Uuid,)>) -> Result<HttpResponse> {
+    let url = attachment::get_attachment_url_by_id(&app.pool, id.into_inner().0).await?;
     if let None = url {
         return Ok(HttpResponse::NotFound().finish());
     }
