@@ -121,7 +121,8 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(edu::query_course)
             // System status routes
             .service(status::get_timestamp)
-            .service(status::get_system_status),
+            .service(status::get_system_status)
+            .service(status::get_agent_list),
     )
     // Static resources, attachments and user avatars
     .service(Files::new("/static", &CONFIG.attachment_dir))

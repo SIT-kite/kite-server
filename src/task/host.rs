@@ -1,6 +1,7 @@
 use super::model::{AgentInfo, AgentInfoRequest};
 use super::protocol::{Request, RequestPayload, Response, ResponsePayload};
 use super::{Agent, Host, HostError, RequestQueue, Result};
+use crate::task::AgentStatus;
 use futures_util::{SinkExt, StreamExt};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -127,6 +128,21 @@ impl Host {
             .map_err(|_| HostError::Timeout)?;
 
         Ok(response?)
+    }
+
+    /// Get agent list
+    pub async fn get_agent_list(&self) -> Vec<AgentStatus> {
+        let agents = self.agents.lock().await;
+
+        agents
+            .iter()
+            .map(|(_, agent)| AgentStatus {
+                name: agent.basic.name.clone(),
+                intranet_addr: "".to_string(),
+                external_addr: agent.addr.to_string(),
+                queue: 0u16,
+            })
+            .collect()
     }
 
     async fn handle_connection(self, agent_addr: SocketAddr, stream: TcpStream) -> Result<()> {

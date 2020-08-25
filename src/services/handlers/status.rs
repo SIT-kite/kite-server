@@ -1,6 +1,7 @@
 use crate::error::Result;
 use crate::services::response::ApiResponse;
-use actix_web::{get, HttpResponse};
+use crate::services::AppState;
+use actix_web::{get, web, HttpResponse};
 use chrono::Utc;
 use serde::Serialize;
 
@@ -45,4 +46,12 @@ pub async fn get_system_status() -> Result<HttpResponse> {
         .unwrap_or_default();
 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(SystemStatus { load_avg, memory })))
+}
+
+#[get("/status/agent")]
+pub async fn get_agent_list(app: web::Data<AppState>) -> Result<HttpResponse> {
+    let host = &app.host;
+    let agents = host.get_agent_list().await;
+
+    Ok(HttpResponse::Ok().json(agents))
 }

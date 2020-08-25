@@ -5,6 +5,7 @@ mod protocol;
 use model::AgentInfo;
 use protocol::{Request, Response};
 
+use serde::Serialize;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -46,8 +47,23 @@ pub struct Agent {
     // last_update
 }
 
+/// Agent state
+#[derive(Serialize)]
+pub struct AgentStatus {
+    /// Agent name
+    pub name: String,
+    /// Intranet network address
+    #[serde(rename = "intranetAddr")]
+    pub intranet_addr: String,
+    /// External network address
+    #[serde(rename = "externalAddr")]
+    pub external_addr: String,
+    /// Current queue length
+    pub queue: u16,
+}
+
 /// Local, host.
 #[derive(Clone)]
 pub struct Host {
-    pub agents: Arc<Mutex<AgentMap>>,
+    agents: Arc<Mutex<AgentMap>>,
 }
