@@ -2,35 +2,24 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
-use std::fs::File;
-use std::io::{BufReader, Read};
-
 use crate::config::CONFIG;
-use crate::services::handlers::{attachment, checking, edu, event, freshman, motto, status, user};
-use crate::services::middlewares::reject::Reject;
-use actix_files::Files;
+use crate::task::Host;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
+use middlewares::reject::Reject;
 use rustls::internal::pemfile::{certs, pkcs8_private_keys};
 use rustls::{NoClientAuth, ServerConfig};
-use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
+use std::fs::File;
+use std::io::{BufReader, Read};
 
 mod auth;
 mod handlers;
 mod middlewares;
-pub(crate) mod response;
+mod response;
 
 pub async fn server_main() -> std::io::Result<()> {
-    // load ssl keys
-    let mut config = ServerConfig::new(NoClientAuth::new());
-    // cert.pem is as same as fullchain.pem provided by let's encrypt.
-    // and key.pem is privkey.pem
-    let cert_file = &mut BufReader::new(File::open("cert.pem").unwrap());
-    let key_file = &mut BufReader::new(File::open("key.pem").unwrap());
-    let cert_chain = certs(cert_file).unwrap();
-    let mut keys = pkcs8_private_keys(key_file).unwrap();
-    config.set_single_cert(cert_chain, keys.remove(0)).unwrap();
+    let tls_config = get_tls_config();
 
     // Create database pool.
     let pool = PgPool::builder()
@@ -48,61 +37,103 @@ pub async fn server_main() -> std::io::Result<()> {
     file.read_to_string(&mut buffer).unwrap();
     drop(file);
 
+    // Websocket server.
+    let ws_host = Host::new();
+    tokio::spawn(async {
+        ws_host.websocket_main().await.unwrap_or_else(|e| {
+            panic!("Failed to run websocket host: {}", e);
+        });
+    });
+
     // Run actix-web services.
     HttpServer::new(move || {
         App::new()
             .wrap(actix_web::middleware::Compress::default())
             .wrap(middlewares::acl::Auth)
             .wrap(actix_web::middleware::Logger::new(log_string))
-            .wrap(Reject::new(buffer.as_str()))
-            .service(
-                web::scope("/api/v1")
-                    .data(pool.clone())
-                    .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
-                    .service(user::login)
-                    .service(user::bind_authentication)
-                    .service(user::list_users)
-                    .service(user::create_user)
-                    .service(user::get_user_detail)
-                    .service(user::update_user_detail)
-                    .service(user::get_user_identity)
-                    .service(user::set_user_identity)
-                    .service(freshman::get_basic_info)
-                    .service(freshman::update_account)
-                    .service(freshman::get_roommate)
-                    .service(freshman::get_classmate)
-                    .service(freshman::get_people_familiar)
-                    .service(freshman::get_analysis_data)
-                    .service(freshman::post_analysis_log)
-                    .service(attachment::index)
-                    .service(attachment::upload_file)
-                    .service(attachment::get_attachment_list)
-                    .service(motto::get_one_motto)
-                    .service(event::list_events)
-                    .service(checking::list_student_status)
-                    .service(checking::query_detail)
-                    .service(checking::add_approval)
-                    .service(checking::delete_approval)
-                    .service(checking::list_admin)
-                    .service(checking::delete_admin)
-                    .service(checking::change_approval)
-                    .service(edu::get_planned_course)
-                    .service(edu::query_major)
-                    .service(edu::list_course_classes)
-                    .service(edu::query_course)
-                    .service(status::get_timestamp)
-                    .service(status::get_system_status),
-            )
-            .service(Files::new("/static", &CONFIG.attachment_dir))
-            .service(
-                Files::new("/console/", "console/")
-                    .index_file("index.html")
-                    .use_etag(true),
-            )
+            .wrap(Reject::new(&buffer))
+            .data(pool.clone())
+            .configure(routes)
     })
-    .bind_rustls(&CONFIG.bind_addr.as_str(), config)?
+    .bind_rustls(&CONFIG.bind_addr.as_str(), tls_config)?
     .run()
     .await
+}
+
+fn routes(app: &mut web::ServiceConfig) {
+    use actix_files::Files;
+    use handlers::{attachment, checking, edu, event, freshman, motto, status, user};
+
+    app.service(
+        // API scope: version 1
+        web::scope("/api/v1")
+            // API index greet :D
+            .route("/", web::get().to(|| HttpResponse::Ok().body("Hello world")))
+            // User routes
+            .service(user::login)
+            .service(user::bind_authentication)
+            .service(user::list_users)
+            .service(user::create_user)
+            .service(user::get_user_detail)
+            .service(user::update_user_detail)
+            .service(user::get_user_identity)
+            .service(user::set_user_identity)
+            // Freshman routes
+            .service(freshman::get_basic_info)
+            .service(freshman::update_account)
+            .service(freshman::get_roommate)
+            .service(freshman::get_classmate)
+            .service(freshman::get_people_familiar)
+            .service(freshman::get_analysis_data)
+            .service(freshman::post_analysis_log)
+            // Attachment routes
+            .service(attachment::index)
+            .service(attachment::upload_file)
+            .service(attachment::get_attachment_list)
+            // Motto routes
+            .service(motto::get_one_motto)
+            // Event and activity routes
+            .service(event::list_events)
+            // Checking routes
+            .service(checking::list_student_status)
+            .service(checking::query_detail)
+            .service(checking::add_approval)
+            .service(checking::delete_approval)
+            .service(checking::list_admin)
+            .service(checking::delete_admin)
+            .service(checking::change_approval)
+            // Edu management and course-related routes
+            .service(edu::get_planned_course)
+            .service(edu::query_major)
+            .service(edu::list_course_classes)
+            .service(edu::query_course)
+            // System status routes
+            .service(status::get_timestamp)
+            .service(status::get_system_status),
+    )
+    // Static resources, attachments and user avatars
+    .service(Files::new("/static", &CONFIG.attachment_dir))
+    // Console route
+    .service(
+        Files::new("/console/", "console/")
+            .index_file("index.html")
+            .use_etag(true),
+    );
+}
+
+fn get_tls_config() -> ServerConfig {
+    // load ssl keys
+    let mut config = ServerConfig::new(NoClientAuth::new());
+
+    // For certificates provided by let's encrypt:
+    // fullchain.pem -> cert.pem, privkey.pem -> key.pem
+    let cert_file = &mut BufReader::new(File::open("cert.pem").unwrap());
+    let key_file = &mut BufReader::new(File::open("key.pem").unwrap());
+    let cert_chain = certs(cert_file).unwrap();
+    let mut keys = pkcs8_private_keys(key_file).unwrap();
+
+    config.set_single_cert(cert_chain, keys.remove(0)).unwrap();
+    config
 }
 
 fn set_logger(path: &str) {
@@ -115,6 +146,8 @@ fn set_logger(path: &str) {
         .apply()
         .expect("Failed to set logger.");
 }
+
+use serde::{Deserialize, Serialize};
 
 /// User Jwt token carried in each request.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

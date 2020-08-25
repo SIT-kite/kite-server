@@ -88,6 +88,13 @@ impl Agent {
 }
 
 impl Host {
+    /// Create a new host instance.
+    pub fn new() -> Self {
+        Self {
+            agents: Arc::new(Default::default()),
+        }
+    }
+
     /// Select an agent randomly and send request packet.
     async fn send(&self, request: Request, callback: oneshot::Sender<Response>) -> Result<()> {
         use rand::prelude::IteratorRandom;

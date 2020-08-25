@@ -46,8 +46,8 @@ pub struct Agent {
     // last_update
 }
 
-#[derive(Clone)]
 /// Local, host.
+#[derive(Clone)]
 pub struct Host {
     pub agents: Arc<Mutex<AgentMap>>,
 }
