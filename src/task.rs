@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio_tungstenite::tungstenite::Message;
 
 pub type Result<T> = anyhow::Result<T>;
 
@@ -43,7 +44,7 @@ pub struct Agent {
     /// Request queue, used to callback when the response is received.
     queue: Arc<Mutex<RequestQueue>>,
     /// Request channel to sender loop.
-    channel: Option<mpsc::UnboundedSender<Request>>,
+    channel: Option<mpsc::UnboundedSender<Message>>,
     // last_update
 }
 
@@ -64,6 +65,6 @@ pub struct AgentStatus {
 
 /// Local, host.
 #[derive(Clone)]
-pub struct Host {
+pub struct AgentManager {
     agents: Arc<Mutex<AgentMap>>,
 }

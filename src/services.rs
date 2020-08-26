@@ -3,7 +3,7 @@
 //! some permission check in acl_middleware
 
 use crate::config::CONFIG;
-use crate::task::Host;
+use crate::task::AgentManager;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use middlewares::reject::Reject;
@@ -21,7 +21,7 @@ mod response;
 #[derive(Clone)]
 pub struct AppState {
     pool: PgPool,
-    host: Host,
+    host: AgentManager,
 }
 
 pub async fn server_main() -> std::io::Result<()> {
@@ -44,7 +44,7 @@ pub async fn server_main() -> std::io::Result<()> {
     drop(file);
 
     // Websocket server.
-    let ws_host = Host::new();
+    let ws_host = AgentManager::new();
 
     let app_state = AppState {
         pool: pool,

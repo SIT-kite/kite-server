@@ -1,6 +1,6 @@
 use super::model::{AgentInfo, AgentInfoRequest};
 use super::protocol::{Request, RequestPayload, Response, ResponsePayload};
-use super::{Agent, Host, HostError, RequestQueue, Result};
+use super::{Agent, AgentManager, HostError, RequestQueue, Result};
 use crate::task::AgentStatus;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info, warn};
@@ -23,9 +23,9 @@ impl Agent {
     }
 
     /// Send a request to the agent.
-    pub async fn send(&mut self, request: Request) -> Result<()> {
+    pub async fn send(&mut self, message: Message) -> Result<()> {
         if let Some(channel) = &self.channel {
-            channel.send(request);
+            channel.send(message);
             Ok(())
         } else {
             Err(HostError::AgentUnavailable.into())
@@ -44,19 +44,17 @@ impl Agent {
     }
 
     /// Sender loop: send requests to agent over ws.
-    async fn sender_loop<T, Item>(mut socket_tx: T, mut message_rx: mpsc::UnboundedReceiver<Request>)
+    async fn sender_loop<T, Item>(mut socket_tx: T, mut message_rx: mpsc::UnboundedReceiver<Message>)
     where
         T: SinkExt<Item> + std::marker::Unpin,
         T::Error: std::error::Error,
         Item: From<Message>,
     {
         info!("Sender loop started");
-        while let Some(request) = message_rx.recv().await {
-            if let Ok(request) = bincode::serialize(&request) {
-                if let Err(e) = socket_tx.send(Message::Binary(request).into()).await {
-                    warn!("Failed to send a request to agent: {:?}", e);
-                    break;
-                }
+        while let Some(message) = message_rx.recv().await {
+            if let Err(e) = socket_tx.send(message.into()).await {
+                warn!("Failed to send a request to agent: {:?}", e);
+                break;
             }
         }
         info!("Sender loop exited.");
@@ -100,7 +98,7 @@ impl Agent {
     }
 }
 
-impl Host {
+impl AgentManager {
     /// Create a new host instance.
     pub fn new() -> Self {
         info!("A Host instance created.");
@@ -120,7 +118,9 @@ impl Host {
         // Send to an agent and record this request.
         if let Some((_, agent)) = agent {
             let seq = request.seq;
-            agent.send(request).await?;
+            let request = bincode::serialize(&request)?;
+
+            agent.send(Message::binary(request)).await?;
 
             let mut queue = agent.queue.lock().await;
             queue.insert(seq, callback);
