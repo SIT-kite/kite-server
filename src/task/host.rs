@@ -3,6 +3,7 @@ use super::protocol::{Request, RequestPayload, Response, ResponsePayload};
 use super::{Agent, Host, HostError, RequestQueue, Result};
 use crate::task::AgentStatus;
 use futures_util::{SinkExt, StreamExt};
+use log::{error, info, warn};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
@@ -37,6 +38,8 @@ impl Agent {
 
         if let Some(sender) = queue.remove(&response.ack) {
             sender.send(response);
+        } else {
+            warn!("Received a response message without corresponding request.");
         }
     }
 
@@ -44,15 +47,19 @@ impl Agent {
     async fn sender_loop<T, Item>(mut socket_tx: T, mut message_rx: mpsc::UnboundedReceiver<Request>)
     where
         T: SinkExt<Item> + std::marker::Unpin,
+        T::Error: std::error::Error,
         Item: From<Message>,
     {
+        info!("Sender loop started");
         while let Some(request) = message_rx.recv().await {
             if let Ok(request) = bincode::serialize(&request) {
-                if let Err(_) = socket_tx.send(Message::Binary(request).into()).await {
-                    ()
+                if let Err(e) = socket_tx.send(Message::Binary(request).into()).await {
+                    warn!("Failed to send a request to agent: {:?}", e);
+                    break;
                 }
             }
         }
+        info!("Sender loop exited.");
     }
 
     /// Receiver loop: receive responses from the agent and transfer it to the requester.
@@ -61,19 +68,24 @@ impl Agent {
         T: StreamExt + std::marker::Unpin,
         T::Item: Into<std::result::Result<Message, tokio_tungstenite::tungstenite::Error>>,
     {
+        info!("Receiver loop started");
         while let Some(msg_result) = socket_rx.next().await {
             match msg_result.into() {
                 Ok(Message::Binary(content)) => {
                     if let Ok(resp) = bincode::deserialize::<Response>(&content) {
+                        info!("New valid response received.");
                         Self::dispatch_response(queue.clone(), resp).await;
                     }
                 }
                 Ok(Message::Pong(_)) => (),
-                _ => {
-                    // socket_rx.close(None).await;
+                Err(e) => {
+                    error!("Error {:?}", e);
+                    break;
                 }
+                _ => {}
             }
         }
+        info!("Receiver loop exited.");
     }
 
     /// Start listening response from the agent and request from web.
@@ -91,6 +103,7 @@ impl Agent {
 impl Host {
     /// Create a new host instance.
     pub fn new() -> Self {
+        info!("A Host instance created.");
         Self {
             agents: Arc::new(Default::default()),
         }
@@ -167,13 +180,21 @@ impl Host {
         let mut listener = TcpListener::bind("0.0.0.0:8444").await?;
 
         while let Ok((stream, _)) = listener.accept().await {
-            let peer = stream.peer_addr()?;
+            match stream.peer_addr() {
+                Ok(peer) => {
+                    info!("New WS connection established, with {}", peer);
 
-            let new_handler = self.clone();
-            tokio::spawn(async move {
-                let r = new_handler.handle_connection(peer, stream).await;
-                println!("{:?}", r);
-            });
+                    let new_handler = self.clone();
+                    tokio::spawn(async move {
+                        let exit_result = new_handler.handle_connection(peer, stream).await;
+                        info!("One websocket task initialized with {:?}", exit_result);
+                    });
+                }
+                Err(e) => warn!(
+                    "New WS connection established, but the peer address is not clear: {}",
+                    e
+                ),
+            }
         }
         Ok(())
     }
