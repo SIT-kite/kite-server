@@ -3,13 +3,15 @@ mod model;
 mod protocol;
 
 use model::AgentInfo;
-use protocol::{Request, Response};
+use protocol::Response;
 
 use serde::Serialize;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::sync::{mpsc, oneshot, Mutex};
+use std::time::Instant;
+use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
+use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::Message;
 
 pub type Result<T> = anyhow::Result<T>;
@@ -35,6 +37,11 @@ type RequestQueue = HashMap<usize, oneshot::Sender<Response>>;
 /// Agents
 type AgentMap = HashMap<SocketAddr, Agent>;
 
+struct AgentTask {
+    pub receiver_loop: JoinHandle<()>,
+    pub sender_loop: JoinHandle<()>,
+}
+
 /// Agent structure, for each client node.
 pub struct Agent {
     /// Agent info reported by agent.
@@ -45,7 +52,8 @@ pub struct Agent {
     queue: Arc<Mutex<RequestQueue>>,
     /// Request channel to sender loop.
     channel: Option<mpsc::UnboundedSender<Message>>,
-    // last_update
+    /// Agent last update time.
+    last_update: Arc<RwLock<Instant>>,
 }
 
 /// Agent state

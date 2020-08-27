@@ -6,8 +6,10 @@ use futures_util::{SinkExt, StreamExt};
 use log::{error, info, warn};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Instant;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
 use tokio::time::Duration;
 use tokio_tungstenite::{accept_async, tungstenite::Message, WebSocketStream};
 
@@ -19,6 +21,7 @@ impl Agent {
             addr,
             queue: Default::default(),
             channel: None,
+            last_update: Arc::new(RwLock::new(Instant::now())),
         }
     }
 
@@ -55,14 +58,19 @@ impl Agent {
             if let Err(e) = socket_tx.send(message.into()).await {
                 warn!("Failed to send a request to agent: {:?}", e);
                 break;
+            } else {
+                println!("发送成功");
             }
         }
         info!("Sender loop exited.");
     }
 
     /// Receiver loop: receive responses from the agent and transfer it to the requester.
-    async fn receiver_loop<T>(mut socket_rx: T, queue: Arc<Mutex<RequestQueue>>)
-    where
+    async fn receiver_loop<T>(
+        mut socket_rx: T,
+        queue: Arc<Mutex<RequestQueue>>,
+        last_update: Arc<RwLock<Instant>>,
+    ) where
         T: StreamExt + std::marker::Unpin,
         T::Item: Into<std::result::Result<Message, tokio_tungstenite::tungstenite::Error>>,
     {
@@ -75,15 +83,42 @@ impl Agent {
                         Self::dispatch_response(queue.clone(), resp).await;
                     }
                 }
-                Ok(Message::Pong(_)) => (),
+                Ok(Message::Pong(_)) => {
+                    let mut last_update = last_update.write().await;
+                    *last_update = Instant::now();
+                }
                 Err(e) => {
                     error!("Error {:?}", e);
                     break;
                 }
-                _ => {}
+                _ => {
+                    break;
+                }
             }
         }
         info!("Receiver loop exited.");
+    }
+
+    async fn heartbeat_loop(last_update: Arc<RwLock<Instant>>, tx: UnboundedSender<Message>) {
+        let timeout = Duration::from_secs(5);
+
+        loop {
+            {
+                if last_update.read().await.elapsed() > timeout {
+                    info!("Ping");
+                    tx.send(Message::Ping(Vec::new()));
+                }
+            }
+            tokio::time::delay_for(Duration::from_secs(2)).await;
+
+            {
+                if last_update.read().await.elapsed() > timeout {
+                    break;
+                }
+            }
+            tokio::time::delay_for(timeout).await;
+        }
+        info!("Heartbeat loop exited.");
     }
 
     /// Start listening response from the agent and request from web.
@@ -91,10 +126,14 @@ impl Agent {
         let (send_half, recv_half) = ws_stream.split();
         let (tx, rx) = mpsc::unbounded_channel();
 
-        // TODO: Close all channels and destroy Agent instance.
-        self.channel = Some(tx);
-        tokio::spawn(Self::receiver_loop(recv_half, self.queue.clone()));
+        tokio::spawn(Self::receiver_loop(
+            recv_half,
+            self.queue.clone(),
+            self.last_update.clone(),
+        ));
         tokio::spawn(Self::sender_loop(send_half, rx));
+        tokio::spawn(Self::heartbeat_loop(self.last_update.clone(), tx.clone()));
+        self.channel = Some(tx);
     }
 }
 
