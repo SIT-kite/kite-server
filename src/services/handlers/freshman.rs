@@ -16,7 +16,7 @@ pub async fn get_basic_info(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
-    form: web::Form<FreshmanReqSecret>,
+    form: web::Query<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
     let token = token.unwrap();
     let parameters: FreshmanReqSecret = form.into_inner();
@@ -75,7 +75,7 @@ pub async fn get_roommate(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
-    secret: web::Form<FreshmanReqSecret>,
+    secret: web::Query<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
     let _ = token.unwrap();
     let account = path.into_inner();
@@ -101,7 +101,7 @@ pub async fn get_people_familiar(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
-    secret: web::Form<FreshmanReqSecret>,
+    secret: web::Query<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
     let _ = token.unwrap();
     let account = path.into_inner();
@@ -127,7 +127,7 @@ pub async fn get_classmate(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
-    secret: web::Form<FreshmanReqSecret>,
+    secret: web::Query<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
     let _ = token.unwrap();
     let account = path.into_inner();
@@ -152,7 +152,7 @@ pub async fn get_analysis_data(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
     path: web::Path<String>,
-    secret: web::Form<FreshmanReqSecret>,
+    secret: web::Query<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
     let _ = token.unwrap();
     let account = path.into_inner();
@@ -176,7 +176,7 @@ pub async fn get_analysis_data(
 pub async fn post_analysis_log(
     app: web::Data<AppState>,
     path: web::Path<String>,
-    secret: web::Form<FreshmanReqSecret>,
+    secret: web::Query<FreshmanReqSecret>,
 ) -> Result<HttpResponse> {
     let account = path.into_inner();
     let secret = secret.into_inner().secret;
