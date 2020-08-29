@@ -30,7 +30,7 @@ impl FreshmanBasic {
 
     pub async fn get_roommates(&self, client: &PgPool) -> Result<Vec<NewMate>> {
         let roommates: Vec<NewMate> = sqlx::query_as(
-            "SELECT college, major, name, stu.province, stu.building, stu.room, bed, last_seen, avatar, contact
+            "SELECT college, major, name, stu.province, stu.building, stu.room, bed, stu.gender, last_seen, avatar, contact
             FROM freshman.students AS stu
             LEFT JOIN public.person AS person
             ON stu.uid = person.uid
