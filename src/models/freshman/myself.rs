@@ -57,7 +57,7 @@ impl<'a> FreshmanManager<'a> {
     pub async fn query(&self, query_string: &str, secret: &str) -> Result<FreshmanBasic> {
         let student_basic: Option<FreshmanBasic> = sqlx::query_as(
             "SELECT
-                    uid, student_id, college, major, campus, building, room, bed, secret,
+                    name, uid, student_id, college, major, campus, building, room, bed, secret,
                     counselor_name, counselor_tel, visible
                 FROM freshman.students
                 WHERE (name = $1 OR student_id = $1 OR ticket = $1) AND secret = $2",

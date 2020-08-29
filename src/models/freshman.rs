@@ -33,6 +33,7 @@ pub enum FreshmanError {
 /// Note: This structure is used to query only.
 #[derive(sqlx::FromRow, Serialize)]
 pub struct FreshmanBasic {
+    pub name: String,
     pub uid: Option<i32>,
     /// student id.
     #[serde(rename(serialize = "studentId"))]
@@ -80,6 +81,8 @@ pub struct NewMate {
     pub room: i32,
     /// Bed number, like "202-1"
     pub bed: String,
+    /// Gender. 'M' for boys and 'F' for girls.
+    pub gender: String,
     /// last time the user access freshman system.
     #[serde(rename(serialize = "lastSeen"))]
     pub last_seen: Option<NaiveDateTime>,
@@ -98,6 +101,8 @@ pub struct PeopleFamiliar {
     pub college: String,
     /// City where the people in
     pub city: Option<String>,
+    /// Gender. 'M' for boys and 'F' for girls.
+    pub gender: String,
     /// last time the user access freshman system.
     #[serde(rename(serialize = "lastSeen"))]
     pub last_seen: Option<NaiveDateTime>,

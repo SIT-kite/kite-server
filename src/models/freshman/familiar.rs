@@ -9,7 +9,7 @@ impl FreshmanBasic {
     /// Get classmate.
     pub async fn get_classmates(&self, client: &PgPool) -> Result<Vec<NewMate>> {
         let classmates: Vec<NewMate> = sqlx::query_as(
-            "SELECT college, major, name, stu.province, building, room, bed, last_seen, avatar, contact
+            "SELECT college, major, name, stu.province, building, room, bed, stu.gender, last_seen, avatar, contact
             FROM freshman.students AS stu
             LEFT JOIN public.person AS person
             ON stu.uid = person.uid
@@ -51,7 +51,7 @@ impl FreshmanBasic {
 
     pub async fn get_people_familiar(&self, client: &PgPool) -> Result<Vec<PeopleFamiliar>> {
         let people_familiar: Vec<PeopleFamiliar> = sqlx::query_as(
-            "SELECT DISTINCT name, college, stu.city, last_seen, avatar, contact
+            "SELECT DISTINCT name, college, stu.city, stu.gender, last_seen, avatar, contact
             FROM freshman.students AS stu
             LEFT JOIN public.person AS person
             ON stu.uid = person.uid
