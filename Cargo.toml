@@ -20,7 +20,6 @@ actix-rt = "1"
 actix-service = "1.0.0"
 actix-multipart = "0.2.0"
 actix-files = "0.2"
-tokio-tungstenite = { version = "0.11", features = ["tls"] } # Websocket library
 
 # About common tools.
 
@@ -28,6 +27,7 @@ futures-util = "0.3"
 tokio = { version = "0.2", features = ["full"] }
 futures = "0.3"
 
+bytes = "0.5"
 rand = "0.7"
 num-traits = "0.2"
 num-derive = "0.3"

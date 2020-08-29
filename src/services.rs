@@ -52,7 +52,7 @@ pub async fn server_main() -> std::io::Result<()> {
     };
 
     tokio::spawn(async move {
-        ws_host.websocket_main().await.unwrap_or_else(|e| {
+        ws_host.agent_main().await.unwrap_or_else(|e| {
             panic!("Failed to run websocket host: {}", e);
         });
     });
@@ -154,7 +154,7 @@ fn set_logger(path: &str) {
         // Perform allocation-free log formatting
         .format(|out, message, _| out.finish(format_args!("{}", message)))
         .level(log::LevelFilter::Info)
-        // .chain(std::io::stdout())
+        .chain(std::io::stdout())
         .chain(fern::log_file(path).expect("Could not open log file."))
         .apply()
         .expect("Failed to set logger.");
