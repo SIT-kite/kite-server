@@ -1,10 +1,7 @@
 use super::model::{AgentInfo, AgentInfoRequest};
-use super::protocol::{Request, RequestPayload, ResponsePayload};
-use super::{Agent, AgentManager, HostError, RequestQueue, Result};
-use crate::task::protocol::Response;
-use crate::task::AgentStatus;
+use super::protocol::{Request, RequestPayload, Response, ResponsePayload};
+use super::{Agent, AgentManager, AgentStatus, HostError, RequestQueue};
 use bytes::BytesMut;
-use log::{info, warn};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
@@ -13,6 +10,9 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
 use tokio::time::Duration;
+
+use super::Result;
+use log::{info, warn};
 
 impl Agent {
     /// An agent instance.
@@ -27,15 +27,43 @@ impl Agent {
     }
 
     /// Send request to the agent
-    pub async fn send(&mut self, request: Request) -> Result<()> {
+    async fn send(&mut self, request: Request) -> Result<()> {
         let mut channel = self.channel.clone().ok_or(HostError::AgentUnavailable)?;
 
+        // Send request packet to the sender loop to post, if the process failed, set channel to None
+        // so that the next try could return immediately.
         channel.send(request).await.or_else(move |_| {
             self.channel = None;
             Err(HostError::AgentUnavailable)
         });
-
         Ok(())
+    }
+
+    /// Request to agent, and add an oneshot sender and it can be used when the response received.
+    /// Return HostError timeout if the agent doesn't respond in a reasonal time.
+    pub async fn request(&mut self, request: RequestPayload) -> Result<Response> {
+        let request = Request::new(request);
+        let seq = request.seq;
+
+        // Send the request to the sender loop
+        self.send(request).await?;
+
+        // Result channel, return rx to the caller and save the tx to the queue.
+        let (tx, rx) = oneshot::channel();
+        // Use a pair of big parentheses, to drop queue automatically.
+        {
+            let mut queue = self.queue.lock().await;
+            queue.insert(seq, tx);
+        }
+        match tokio::time::timeout(Duration::from_millis(5000), rx).await {
+            Ok(result) => Ok(result?),
+            Err(_) => {
+                let mut queue = self.queue.lock().await;
+                queue.remove(&seq);
+
+                Err(HostError::Timeout.into())
+            }
+        }
     }
 
     /// Select requester and post the response.
@@ -76,9 +104,22 @@ impl Agent {
         loop {
             let response = Response::from_stream(&mut socket_rx, &mut buffer).await?;
             Self::dispatch_response(queue.clone(), response).await;
+
+            let mut last_update = last_update.write().await;
+            *last_update = Instant::now();
         }
         info!("Receiver loop exited.");
         Ok(())
+    }
+
+    async fn heartbeat_loop(last_update: Arc<RwLock<Instant>>, tx: mpsc::Sender<Request>) {
+        let timeout = Duration::from_secs(5);
+
+        loop {
+            let last_update = last_update.read().await;
+            if last_update.elapsed().as_secs() > 10 {}
+        }
+        info!("Heartbeat loop exited.");
     }
 
     /// Start listening response from the agent and request from web.
@@ -107,7 +148,7 @@ impl AgentManager {
     }
 
     /// Select an agent randomly and send request packet.
-    async fn send(&self, request: Request, callback: oneshot::Sender<Response>) -> Result<()> {
+    async fn request(&self, request: RequestPayload) -> Result<Response> {
         use rand::prelude::IteratorRandom;
 
         let mut rng = rand::thread_rng();
@@ -116,28 +157,10 @@ impl AgentManager {
         let agent = agents.iter_mut().choose(&mut rng);
         // Send to an agent and record this request.
         if let Some((_, agent)) = agent {
-            let seq = request.seq;
-            agent.send(request).await?;
-
-            let mut queue = agent.queue.lock().await;
-            queue.insert(seq, callback);
-
-            Ok(())
+            agent.request(request).await
         } else {
             Err(HostError::NoAgentAvailable.into())
         }
-    }
-
-    /// Send request to a agent.
-    pub async fn request(&self, request: RequestPayload) -> Result<Response> {
-        let (tx, rx) = oneshot::channel();
-
-        self.send(Request::new(request), tx).await?;
-        let response = tokio::time::timeout(Duration::from_millis(5000), rx)
-            .await
-            .map_err(|_| HostError::Timeout)?;
-
-        Ok(response?)
     }
 
     /// Get agent list
