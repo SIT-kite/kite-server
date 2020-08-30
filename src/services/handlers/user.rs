@@ -5,7 +5,7 @@ use crate::models::user::{get_default_avatar, Authentication, Identity, Person, 
 use crate::models::user::{LOGIN_BY_CAMPUS_WEB, LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
 use crate::models::CommonError;
 use crate::services::{response::ApiResponse, AppState, JwtToken};
-use actix_web::{get, patch, post, web, HttpResponse};
+use actix_web::{get, post, put, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -164,7 +164,7 @@ pub async fn create_user(
     Ok(HttpResponse::Ok().body(ApiResponse::normal(resp).to_string()))
 }
 
-#[patch("/user/{uid}")]
+#[put("/user/{uid}")]
 pub async fn update_user_detail(
     token: Option<JwtToken>,
     app: web::Data<AppState>,

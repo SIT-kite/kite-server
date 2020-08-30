@@ -3,7 +3,7 @@ use crate::error::Result;
 use crate::models::freshman::{FreshmanAnalysis, FreshmanManager, NewMate, PeopleFamiliar};
 use crate::models::CommonError;
 use crate::services::{response::ApiResponse, AppState, JwtToken};
-use actix_web::{get, patch, post, web, HttpResponse};
+use actix_web::{get, post, put, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -41,7 +41,7 @@ pub struct UpdateInfo {
     pub secret: String,
 }
 
-#[patch("/freshman/{account}")]
+#[put("/freshman/{account}")]
 pub async fn update_account(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
