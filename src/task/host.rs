@@ -1,6 +1,7 @@
 use super::model::{AgentInfo, AgentInfoRequest};
 use super::protocol::{Request, RequestPayload, Response, ResponsePayload};
 use super::{Agent, AgentManager, AgentStatus, HostError, RequestQueue};
+use crate::config::CONFIG;
 use bytes::BytesMut;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -141,7 +142,6 @@ impl Agent {
             } else {
                 f = false;
             }
-
             tokio::time::delay_for(timeout).await;
         }
         info!("Heartbeat loop exited.");
@@ -216,7 +216,7 @@ impl AgentManager {
     }
 
     pub async fn agent_main(self) -> Result<()> {
-        let mut listener = TcpListener::bind("0.0.0.0:1900").await?;
+        let mut listener = TcpListener::bind(&CONFIG.host.bind).await?;
 
         while let Ok((stream, _)) = listener.accept().await {
             match stream.peer_addr() {

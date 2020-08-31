@@ -94,8 +94,8 @@ pub struct WxSession {
 pub async fn get_session_by_code(wechat_code: &str) -> Result<WxSession, ApiError> {
     let resp: SessionResponse = _get_session_key(
         make_parameter!(
-            "appid" => &CONFIG.wechat_appid,
-            "secret" => &CONFIG.wechat_secret,
+            "appid" => &CONFIG.wechat.appid,
+            "secret" => &CONFIG.wechat.secret,
             "js_code" => wechat_code,
             "grant_type" => "authorization_code"
         )
@@ -134,8 +134,8 @@ pub struct WxAccessToken {
 pub async fn get_access_token() -> Result<WxAccessToken, ApiError> {
     let resp: AccessTokenResponse = _get_access_token(
         make_parameter!(
-            "appid" => &CONFIG.wechat_appid,
-            "secret" => &CONFIG.wechat_secret,
+            "appid" => &CONFIG.wechat.appid,
+            "secret" => &CONFIG.wechat.secret,
             "grant_type" => "client_credential"
         )
         .as_str(),

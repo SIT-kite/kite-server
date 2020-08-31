@@ -29,7 +29,7 @@ pub async fn server_main() -> std::io::Result<()> {
 
     // Create database pool.
     let pool = PgPool::builder()
-        .build(&CONFIG.db_string.as_ref())
+        .build(&CONFIG.server.db.as_ref())
         .await
         .expect("Could not create database pool");
 
@@ -67,7 +67,7 @@ pub async fn server_main() -> std::io::Result<()> {
             .data(app_state.clone())
             .configure(routes)
     })
-    .bind_rustls(&CONFIG.bind_addr.as_str(), tls_config)?
+    .bind_rustls(&CONFIG.server.bind.as_str(), tls_config)?
     .run()
     .await
 }
@@ -125,7 +125,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(status::get_agent_list),
     )
     // Static resources, attachments and user avatars
-    .service(Files::new("/static", &CONFIG.attachment_dir))
+    .service(Files::new("/static", &CONFIG.server.attachment))
     // Console route
     .service(
         Files::new("/console/", "console/")

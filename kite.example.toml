@@ -1,0 +1,25 @@
+# Server config
+[server]
+# HTTPS API service address.
+bind = "0.0.0.0:443"
+# Postgresql connection string.
+db = "postgresql://user:password@address:port/database"
+# Token secret for API.
+secret = "secret"
+# Directory path should be end with "\"
+attachment = "D:\\tmp\\"
+
+# Wechat platform config. Access https://mp.weixin.qq.com for details
+[wechat]
+# Miniprogram appid
+appid = "111"
+# Secret
+secret = "111"
+
+[host]
+# Bind address, for accepting connections from agents
+bind = "0.0.0.0:1040"
+# Max agent connections
+max = 32
+
+

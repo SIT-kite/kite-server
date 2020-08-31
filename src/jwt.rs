@@ -6,7 +6,7 @@ use crate::config::CONFIG;
 use crate::error::Result;
 
 pub fn encode_jwt<T: Serialize>(claims: &T) -> Result<String> {
-    let key = &CONFIG.jwt_secret.as_ref();
+    let key = &CONFIG.server.secret.as_ref();
     let encoding_key = jsonwebtoken::EncodingKey::from_secret(key);
 
     Ok(jsonwebtoken::encode(
@@ -17,7 +17,7 @@ pub fn encode_jwt<T: Serialize>(claims: &T) -> Result<String> {
 }
 
 pub fn decode_jwt<'a, T: DeserializeOwned>(token: &str) -> Option<T> {
-    let key = &CONFIG.jwt_secret.as_ref();
+    let key = &CONFIG.server.secret.as_ref();
     let decoding_key = jsonwebtoken::DecodingKey::from_secret(key);
     let option = jsonwebtoken::Validation {
         validate_exp: false,

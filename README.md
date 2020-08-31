@@ -35,16 +35,32 @@ cd kite-server
 cargo build
 ```
 
-同时修改根目录下 `kite.toml.example` 文件。默认如下：
+同时修改根目录下 `kite.example.toml` 文件。默认如下：
 
 ```toml
-bind_addr = "0.0.0.0:80"
-db_string = "postgresql://user:password@address:port/database"
-jwt_string = "secret"
-wechat_appid = "111"
-wechat_secret = "111"
+# Server config
+[server]
+# HTTPS API service address.
+bind = "0.0.0.0:443"
+# Postgresql connection string.
+db = "postgresql://user:password@address:port/database"
+# Token secret for API.
+secret = "secret"
 # Directory path should be end with "\"
-attachment_dir = "D:\\tmp\\"
+attachment = "D:\\tmp\\"
+
+# Wechat platform config. Access https://mp.weixin.qq.com for details
+[wechat]
+# Miniprogram appid
+appid = "111"
+# Secret
+secret = "111"
+
+[host]
+# Bind address, for accepting connections from agents
+bind = "0.0.0.0:1040"
+# Max agent connections
+max = 32
 ```
 
 微信相关接口（微信登录）需要填写 `appid` 和 `secret` 后才能使用。

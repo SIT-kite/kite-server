@@ -49,7 +49,7 @@ pub(crate) async fn upload_file(
 
         let mut success_flag: bool = true;
         let mut file_size = 0;
-        let filepath = format!("{}{}", CONFIG.attachment_dir, &sanitized_filename);
+        let filepath = format!("{}{}", CONFIG.server.attachment, &sanitized_filename);
 
         let file = tokio::fs::File::create(&filepath)
             .await

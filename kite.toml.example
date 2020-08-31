@@ -1,7 +1,0 @@
-bind_addr = "0.0.0.0:80"
-db_string = "postgresql://user:password@address:port/database"
-jwt_string = "secret"
-wechat_appid = "111"
-wechat_secret = "111"
-# Directory path should be end with "\"
-attachment_dir = "D:\\tmp\\"
