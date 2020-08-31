@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ master ]
   pull_request:
-    branches: [ develop, master ]
+    branches: [ master ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -17,9 +17,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: cargo build --verbose --release
+      run: cargo build --release
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test
       
     - name: Copy file via ssh password
       uses: appleboy/scp-action@master
