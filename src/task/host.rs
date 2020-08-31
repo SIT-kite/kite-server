@@ -5,7 +5,7 @@ use bytes::BytesMut;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncWriteExt, BufWriter};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
@@ -83,10 +83,15 @@ impl Agent {
         mut request_rx: mpsc::Receiver<Request>,
     ) -> Result<()> {
         info!("Sender loop started");
+        let mut buffer = BufWriter::new(socket_tx);
+
         while let Some(request) = request_rx.recv().await {
-            socket_tx.write_u64(request.seq).await?;
-            socket_tx.write_u32(request.size).await?;
-            socket_tx.write_all(&request.payload).await?;
+            buffer.write_u64(request.seq).await?;
+            buffer.write_u32(request.size).await?;
+            buffer.write_all(&request.payload).await?;
+            buffer.flush().await?;
+
+            info!("Send packet");
         }
         info!("Sender loop exited.");
         Ok(())
@@ -102,22 +107,42 @@ impl Agent {
         let mut buffer = BytesMut::with_capacity(1024 * 1024); // Default 1MB buffer
 
         loop {
-            let response = Response::from_stream(&mut socket_rx, &mut buffer).await?;
-            Self::dispatch_response(queue.clone(), response).await;
+            match Response::from_stream(&mut socket_rx, &mut buffer).await {
+                Ok(response) => {
+                    info!("Packet received: {:?}", response);
+                    Self::dispatch_response(queue.clone(), response).await;
 
-            let mut last_update = last_update.write().await;
-            *last_update = Instant::now();
+                    let mut last_update = last_update.write().await;
+                    *last_update = Instant::now();
+                }
+                Err(e) => {
+                    warn!("Connection lost: {:?}", e);
+                    break;
+                }
+            }
         }
         info!("Receiver loop exited.");
         Ok(())
     }
 
-    async fn heartbeat_loop(last_update: Arc<RwLock<Instant>>, tx: mpsc::Sender<Request>) {
-        let timeout = Duration::from_secs(5);
+    async fn heartbeat_loop(last_update: Arc<RwLock<Instant>>, mut tx: mpsc::Sender<Request>) {
+        let timeout = Duration::from_secs(20);
+        let mut f = false;
 
         loop {
             let last_update = last_update.read().await;
-            if last_update.elapsed().as_secs() > 10 {}
+            if last_update.elapsed().as_secs() > 30 {
+                if !f {
+                    tx.send(Request::default()).await;
+                    f = true;
+                } else {
+                    break;
+                }
+            } else {
+                f = false;
+            }
+
+            tokio::time::delay_for(timeout).await;
         }
         info!("Heartbeat loop exited.");
     }
@@ -133,7 +158,7 @@ impl Agent {
             self.last_update.clone(),
         ));
         tokio::spawn(Self::sender_loop(send_half, rx));
-        // tokio::spawn(Self::heartbeat_loop(self.last_update.clone(), tx.clone()));
+        tokio::spawn(Self::heartbeat_loop(self.last_update.clone(), tx.clone()));
         self.channel = Some(tx);
     }
 }
@@ -191,7 +216,7 @@ impl AgentManager {
     }
 
     pub async fn agent_main(self) -> Result<()> {
-        let mut listener = TcpListener::bind("0.0.0.0:8444").await?;
+        let mut listener = TcpListener::bind("0.0.0.0:1900").await?;
 
         while let Ok((stream, _)) = listener.accept().await {
             match stream.peer_addr() {

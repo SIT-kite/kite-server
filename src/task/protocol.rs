@@ -4,7 +4,7 @@ use bytes::{Buf, BytesMut};
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, BufReader};
 
 lazy_static! {
     /// Last seq of request packet
@@ -13,7 +13,7 @@ lazy_static! {
 
 /// Host request
 // Implement Debug for error handling.
-#[derive(Serialize)]
+#[derive(Default, Serialize)]
 pub struct Request {
     /// Request sequence
     pub seq: u64,
@@ -24,7 +24,7 @@ pub struct Request {
 }
 
 /// Agent response
-#[derive(Default, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Response {
     /// Response sequence
     pub ack: u64,
@@ -66,24 +66,18 @@ impl Request {
             payload,
         }
     }
-
-    pub fn to_vec(&self) -> Vec<u8> {
-        bincode::serialize(self).unwrap()
-    }
 }
 
 impl Response {
     async fn read_header(stream: &mut (impl AsyncReadExt + Unpin)) -> Result<Self> {
-        let mut response = Self::default();
-        let mut buffer = BytesMut::with_capacity(14); // Default header size is 14 bytes.
-
-        // Read response header from steam
-        stream.read_exact(&mut buffer).await?;
+        // Default response header is 14 bytes.
+        let mut buffer = BufReader::with_capacity(14, stream);
+        let mut response = Response::default();
 
         // Read the control fields
-        response.ack = buffer.get_u64();
-        response.size = buffer.get_u32();
-        response.code = buffer.get_u16();
+        response.ack = buffer.read_u64().await?;
+        response.size = buffer.read_u32().await?;
+        response.code = buffer.read_u16().await?;
 
         Ok(response)
     }
@@ -94,6 +88,12 @@ impl Response {
     ) -> Result<Self> {
         let mut response = Self::read_header(stream).await?;
 
+        if response.size == 0 {
+            return Ok(response);
+        }
+        if buffer.capacity() < response.size as usize {
+            buffer.resize(response.size as usize, 0u8);
+        }
         // Read body
         let mut p = 0usize; // read len
         while p < response.size as usize {
