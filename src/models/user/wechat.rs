@@ -1,5 +1,4 @@
 use actix_web::client::Client;
-use failure::Fail;
 use serde::Deserialize;
 use serde_json;
 
@@ -79,8 +78,8 @@ wx_function!(
     "https://api.weixin.qq.com/cgi-bin/token"
 );
 
-#[derive(Debug, Fail)]
-#[fail(display = "Wechat interface error {}: {}.", errcode, errmsg)]
+#[derive(Debug, thiserror::Error)]
+#[error("Wechat interface error {}: {}.", errcode, errmsg)]
 pub struct WxErr {
     pub errcode: u16,
     pub errmsg: String,

@@ -1169,7 +1169,6 @@ dependencies = [
  "block-modes",
  "bytes",
  "chrono",
- "failure",
  "fern",
  "futures",
  "futures-util",

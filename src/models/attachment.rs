@@ -16,13 +16,13 @@ pub fn get_attachment_url_prefix() -> &'static str {
     URL_PREFIX
 }
 
-#[derive(Debug, Fail, Serialize, ToPrimitive)]
+#[derive(Debug, thiserror::Error, Serialize, ToPrimitive)]
 pub enum AttachmentError {
-    #[fail(display = "需要登录或管理员权限才能继续")]
+    #[error("需要登录或管理员权限才能继续")]
     Forbidden = 24,
-    #[fail(display = "文件名不正确")]
+    #[error("文件名不正确")]
     FilenameRefused = 25,
-    #[fail(display = "文件写入失败")]
+    #[error("文件写入失败")]
     FileCreationFailed = 26,
 }
 

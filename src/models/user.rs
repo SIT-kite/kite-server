@@ -17,21 +17,21 @@ pub const LOGIN_BY_WECHAT: i32 = 0;
 pub const LOGIN_BY_PASSWORD: i32 = 1;
 pub const LOGIN_BY_CAMPUS_WEB: i32 = 2;
 
-#[derive(Fail, Debug, ToPrimitive)]
+#[derive(thiserror::Error, Debug, ToPrimitive)]
 pub enum UserError {
-    #[fail(display = "账户已禁用")]
+    #[error("账户已禁用")]
     Disabled = 50,
-    #[fail(display = "找不到用户")]
+    #[error("找不到用户")]
     NoSuchUser = 51,
-    #[fail(display = "无法连接校园网完成认证")]
+    #[error("无法连接校园网完成认证")]
     OaNetworkFailed = 52,
-    #[fail(display = "OA密码认证失败")]
+    #[error("OA密码认证失败")]
     OaSecretFailed = 53,
-    #[fail(display = "错误的身份证号码")]
+    #[error("错误的身份证号码")]
     InvalidIdNumber = 54,
-    #[fail(display = "普通用户不允许使用用户名密码登录")]
+    #[error("普通用户不允许使用用户名密码登录")]
     AuthTypeNotAllowed = 55,
-    #[fail(display = "凭据无效")]
+    #[error("凭据无效")]
     LoginFailed = 56,
 }
 

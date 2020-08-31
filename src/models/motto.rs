@@ -9,9 +9,9 @@ pub const MOTTO_MIN_SIZE: u8 = 5;
 pub const MOTTO_MAX_SIZE: u8 = 255;
 
 /// Error handled in motto module.
-#[derive(Fail, Debug, ToPrimitive)]
+#[derive(thiserror::Error, Debug, ToPrimitive)]
 pub enum MottoError {
-    #[fail(display = "无数据")]
+    #[error("无数据")]
     NoMoreItem = 100,
 }
 

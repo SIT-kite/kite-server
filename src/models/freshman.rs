@@ -14,15 +14,15 @@ use serde::Serialize;
 pub use familiar::*;
 pub use myself::*;
 
-#[derive(Debug, Fail, ToPrimitive)]
+#[derive(Debug, thiserror::Error, ToPrimitive)]
 pub enum FreshmanError {
-    #[fail(display = "无匹配的新生数据")]
+    #[error("无匹配的新生数据")]
     NoSuchAccount = 120,
-    #[fail(display = "账户不匹配")]
+    #[error("账户不匹配")]
     DismatchAccount = 121,
-    #[fail(display = "已绑定")]
+    #[error("已绑定")]
     BoundAlready = 122,
-    #[fail(display = "需要凭据")]
+    #[error("需要凭据")]
     SecretNeeded = 123,
 }
 

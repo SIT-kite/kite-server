@@ -64,5 +64,4 @@ urlencoding = "1.0"
 
 # Error handle
 thiserror = "1"
-failure = "0.1"
 anyhow = "1.0"

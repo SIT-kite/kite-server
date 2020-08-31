@@ -2,7 +2,6 @@ use crate::models::user::wechat::WxErr;
 use actix_http::error::PayloadError;
 use actix_http::{http::StatusCode, ResponseBuilder};
 use actix_web::{error::ResponseError, HttpResponse};
-use failure::Fail;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
 use serde::export::Formatter;
@@ -54,7 +53,7 @@ impl ResponseError for ApiError {
 }
 
 impl ApiError {
-    pub fn new<T: ToPrimitive + Fail>(sub_err: T) -> Self {
+    pub fn new<T: ToPrimitive + std::error::Error>(sub_err: T) -> Self {
         Self {
             code: sub_err.to_u16().unwrap(),
             inner_msg: None,
