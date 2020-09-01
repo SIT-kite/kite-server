@@ -1167,7 +1167,6 @@ dependencies = [
  "base64 0.12.2",
  "bincode",
  "block-modes",
- "bytes",
  "chrono",
  "fern",
  "futures",
