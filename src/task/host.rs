@@ -2,18 +2,17 @@ use super::model::{AgentInfo, AgentInfoRequest};
 use super::protocol::{Request, RequestPayload, Response, ResponsePayload};
 use super::{Agent, AgentManager, AgentStatus, HostError, RequestQueue};
 use crate::config::CONFIG;
-use bytes::BytesMut;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
-use tokio::io::{AsyncWriteExt, BufWriter};
+use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
 use tokio::time::Duration;
 
 use super::Result;
-use log::{info, warn};
+use log::{error, info, warn};
 
 impl Agent {
     /// An agent instance.
@@ -80,7 +79,7 @@ impl Agent {
 
     /// Sender loop: send requests to agent over ws.
     async fn sender_loop(
-        mut socket_tx: OwnedWriteHalf,
+        socket_tx: OwnedWriteHalf,
         mut request_rx: mpsc::Receiver<Request>,
     ) -> Result<()> {
         info!("Sender loop started");
@@ -100,15 +99,15 @@ impl Agent {
 
     /// Receiver loop: receive responses from the agent and transfer it to the requester.
     async fn receiver_loop(
-        mut socket_rx: OwnedReadHalf,
+        socket_rx: OwnedReadHalf,
         queue: Arc<Mutex<RequestQueue>>,
         last_update: Arc<RwLock<Instant>>,
     ) -> Result<()> {
         info!("Receiver loop started");
-        let mut buffer = BytesMut::with_capacity(1024 * 1024); // Default 1MB buffer
+        let mut buffer = BufReader::new(socket_rx);
 
         loop {
-            match Response::from_stream(&mut socket_rx, &mut buffer).await {
+            match Response::from_stream(&mut buffer).await {
                 Ok(response) => {
                     info!("Packet received: {:?}", response);
                     Self::dispatch_response(queue.clone(), response).await;
@@ -161,6 +160,17 @@ impl Agent {
         tokio::spawn(Self::heartbeat_loop(self.last_update.clone(), tx.clone()));
         self.channel = Some(tx);
     }
+
+    pub async fn wait(&self) {
+        loop {
+            let last_update = self.last_update.read().await;
+
+            if last_update.elapsed().as_secs() > 30 {
+                return;
+            }
+            tokio::time::delay_for(Duration::from_secs(30)).await;
+        }
+    }
 }
 
 impl AgentManager {
@@ -203,37 +213,63 @@ impl AgentManager {
             .collect()
     }
 
-    async fn handle_connection(self, stream: TcpStream, peer: SocketAddr) -> Result<()> {
+    async fn start(&self, stream: TcpStream, peer: SocketAddr) -> Result<()> {
         info!("New agent connection established: {}", peer.to_string());
-
         let mut agent = Agent::new(AgentInfo { name: "".to_string() }, peer);
-        let mut agents = self.agents.lock().await;
 
         agent.start(stream).await;
-        agents.insert(peer, agent);
-
-        Ok(())
+        let response = agent
+            .request(RequestPayload::AgentInfo(AgentInfoRequest))
+            .await
+            .map_err(|_| HostError::AgentUnavailable)?;
+        if let ResponsePayload::AgentInfo(base_info) = response.payload()? {
+            agent.basic = base_info;
+            {
+                let mut agents = self.agents.lock().await;
+                agents.insert(peer, agent);
+            }
+            Ok(())
+        } else {
+            Err(HostError::AgentUnavailable.into())
+        }
     }
 
-    pub async fn agent_main(self) -> Result<()> {
+    pub async fn wait(self, peer: SocketAddr) {
+        let agent = {
+            let agents = self.agents.lock().await;
+            agents.get(&peer).map(Clone::clone)
+        };
+
+        match agent {
+            Some(agent) => {
+                // Wait for agent breaks
+                agent.wait().await;
+                // Clear agent in agent list and return
+                let mut agents = self.agents.lock().await;
+                agents.remove(&peer);
+            }
+            None => (),
+        }
+    }
+
+    pub async fn agent_main(&self) -> Result<()> {
         let mut listener = TcpListener::bind(&CONFIG.host.bind).await?;
 
-        while let Ok((stream, _)) = listener.accept().await {
-            match stream.peer_addr() {
-                Ok(peer) => {
-                    info!("New agent connection established, with {}", peer);
+        while let Ok((stream, peer)) = listener.accept().await {
+            info!("New agent connection established, with {}", peer);
 
-                    let new_handler = self.clone();
-                    tokio::spawn(async move {
-                        let exit_result = new_handler.handle_connection(stream, peer).await;
-                        info!("One agent task initialized with {:?}", exit_result);
-                    });
+            let new_handler = self.clone();
+            tokio::spawn(async move {
+                let addr = peer;
+                match new_handler.start(stream, addr.clone()).await {
+                    Ok(_) => {
+                        info!("One agent task started.");
+                        new_handler.wait(addr).await;
+                        info!("Agent exited.");
+                    }
+                    Err(e) => error!("One agent task started failed with {:?}", e),
                 }
-                Err(e) => warn!(
-                    "New connection established, but the peer address is not clear: {}",
-                    e
-                ),
-            }
+            });
         }
         Ok(())
     }

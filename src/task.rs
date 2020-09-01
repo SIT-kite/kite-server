@@ -4,7 +4,7 @@ mod protocol;
 
 use model::AgentInfo;
 
-use crate::task::protocol::{Request, Response, ResponsePayload};
+use protocol::{Request, Response};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -36,6 +36,7 @@ type RequestQueue = HashMap<u64, oneshot::Sender<Response>>;
 type AgentMap = HashMap<SocketAddr, Agent>;
 
 /// Agent structure, for each client node.
+#[derive(Clone)]
 pub struct Agent {
     /// Agent info reported by agent.
     basic: AgentInfo,

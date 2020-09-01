@@ -1,10 +1,10 @@
 use super::model::*;
 use super::Result;
-use bytes::{Buf, BytesMut};
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 use tokio::io::{AsyncReadExt, BufReader};
+use tokio::net::tcp::OwnedReadHalf;
 
 lazy_static! {
     /// Last seq of request packet
@@ -69,9 +69,8 @@ impl Request {
 }
 
 impl Response {
-    async fn read_header(stream: &mut (impl AsyncReadExt + Unpin)) -> Result<Self> {
+    async fn read_header(buffer: &mut BufReader<OwnedReadHalf>) -> Result<Self> {
         // Default response header is 14 bytes.
-        let mut buffer = BufReader::with_capacity(14, stream);
         let mut response = Response::default();
 
         // Read the control fields
@@ -82,18 +81,13 @@ impl Response {
         Ok(response)
     }
 
-    pub async fn from_stream(
-        stream: &mut (impl AsyncReadExt + Unpin),
-        buffer: &mut BytesMut,
-    ) -> Result<Self> {
-        let mut response = Self::read_header(stream).await?;
+    pub async fn from_stream(buffer: &mut BufReader<OwnedReadHalf>) -> Result<Self> {
+        let mut response = Self::read_header(buffer).await?;
 
         if response.size == 0 {
             return Ok(response);
         }
-        if buffer.capacity() < response.size as usize {
-            buffer.resize(response.size as usize, 0u8);
-        }
+        response.payload = vec![0u8; response.size as usize];
         // Read body
         let mut p = 0usize; // read len
         while p < response.size as usize {
@@ -101,9 +95,18 @@ impl Response {
             if read_currently > 2048 {
                 read_currently = 2048usize;
             }
-            p += stream.read_exact(&mut buffer[p..(p + read_currently)]).await?;
+            p += buffer
+                .read_exact(&mut response.payload[p..(p + read_currently)])
+                .await?;
         }
-        response.payload = buffer.to_vec();
         Ok(response)
+    }
+
+    pub async fn is_ok(&self) -> bool {
+        self.code == 0
+    }
+
+    pub fn payload(self) -> Result<ResponsePayload> {
+        Ok(bincode::deserialize(&self.payload)?)
     }
 }

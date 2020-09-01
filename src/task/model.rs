@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize)]
 pub struct AgentInfoRequest;
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct AgentInfo {
     pub name: String,
 }
