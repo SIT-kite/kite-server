@@ -14,19 +14,21 @@ use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
 
 pub type Result<T> = anyhow::Result<T>;
 
-#[derive(Debug, thiserror::Error)]
+pub use protocol::{RequestPayload, ResponsePayload};
+
+#[derive(Debug, ToPrimitive, thiserror::Error)]
 /// Business error of web socket host
 pub enum HostError {
-    #[error("无可用的校内节点")]
-    NoAgentAvailable,
+    #[error("无可用的代理节点，无法连接到校园网")]
+    NoAgentAvailable = 120,
     #[error("请求超时")]
-    Timeout,
+    Timeout = 121,
     #[error("连接已关闭")]
-    Disconnected,
-    #[error("当前节点不可用")]
-    AgentUnavailable,
-    #[error("无效客户端")]
-    InvalidAgent,
+    Disconnected = 122,
+    #[error("当前代理节点不可用")]
+    AgentUnavailable = 123,
+    #[error("返回的响应与请求类型不一致")]
+    BadResponse = 124,
 }
 
 /// Request queue in agent cache. When response received, use this queue to found the requester.

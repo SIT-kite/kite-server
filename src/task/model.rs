@@ -9,20 +9,6 @@ pub struct AgentInfo {
 }
 
 #[derive(Serialize)]
-pub struct ElectricityBillRequest {
-    pub room: String,
-}
-
-#[derive(Debug, Deserialize, PartialEq, Default)]
-pub struct ElectricityBill {
-    pub room_id: String,
-    pub deposit_balance: f32,
-    pub subsidized_balance: f32,
-    pub total_balance: f32,
-    pub available_power: f32,
-}
-
-#[derive(Serialize)]
 pub struct ActivityListRequest {
     /// Count of activities per page.
     pub count: u16,

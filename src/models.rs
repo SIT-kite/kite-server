@@ -12,6 +12,8 @@ pub mod event;
 pub mod freshman;
 /// Show some mottos.
 pub mod motto;
+/// Querying electricity bill and expenses record.
+pub mod pay;
 /// User management.
 pub mod user;
 

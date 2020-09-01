@@ -183,7 +183,7 @@ impl AgentManager {
     }
 
     /// Select an agent randomly and send request packet.
-    async fn request(&self, request: RequestPayload) -> Result<Response> {
+    pub async fn request(&self, request: RequestPayload) -> Result<Response> {
         use rand::prelude::IteratorRandom;
 
         let mut rng = rand::thread_rng();

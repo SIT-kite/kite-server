@@ -35,6 +35,7 @@ pub struct Response {
     /// Payload
     pub payload: Vec<u8>,
 }
+use crate::models::pay::{ElectricityBill, ElectricityBillRequest};
 
 /// Response payload
 #[derive(Serialize)]

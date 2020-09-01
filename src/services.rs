@@ -74,7 +74,7 @@ pub async fn server_main() -> std::io::Result<()> {
 
 fn routes(app: &mut web::ServiceConfig) {
     use actix_files::Files;
-    use handlers::{attachment, checking, edu, event, freshman, motto, status, user};
+    use handlers::{attachment, checking, edu, event, freshman, motto, pay, status, user};
 
     app.service(
         // API scope: version 1
@@ -122,7 +122,9 @@ fn routes(app: &mut web::ServiceConfig) {
             // System status routes
             .service(status::get_timestamp)
             .service(status::get_system_status)
-            .service(status::get_agent_list),
+            .service(status::get_agent_list)
+            // Pay and room balance
+            .service(pay::query_room_balance),
     )
     // Static resources, attachments and user avatars
     .service(Files::new("/static", &CONFIG.server.attachment))
