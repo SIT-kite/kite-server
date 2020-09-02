@@ -16,7 +16,7 @@ pub struct ElectricityBill {
     /// Remaining paid amount
     pub balance: f32,
     /// Remaining subsidy amount
-    pub subsidized: f32,
+    pub subsidy: f32,
     /// Total available amount
     pub total: f32,
     /// Available power
@@ -34,7 +34,7 @@ impl ElectricityBillRequest {
         let q = RequestPayload::ElectricityBill(self);
         let r = host.request(q).await?;
 
-        if let ResponsePayload::ElectricityBill(e) = r.payload()? {
+        if let ResponsePayload::ElectricityBill(e) = r.payload()?? {
             Ok(e)
         } else {
             Err(ApiError::new(HostError::BadResponse))

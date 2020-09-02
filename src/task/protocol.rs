@@ -11,6 +11,9 @@ lazy_static! {
     static ref LAST_SEQ: AtomicU64 = AtomicU64::new(1u64);
 }
 
+// Result has two sides, Ok(ResponsePayload) and Err(ResponseError)
+pub type ResponseResult = std::result::Result<ResponsePayload, ErrorResponse>;
+
 /// Host request
 // Implement Debug for error handling.
 #[derive(Default, Serialize)]
@@ -35,6 +38,16 @@ pub struct Response {
     /// Payload
     pub payload: Vec<u8>,
 }
+
+/// Error code and message from response
+#[derive(Debug, thiserror::Error)]
+#[error("{} ({})", msg, code)]
+pub struct ErrorResponse {
+    pub code: u16,
+    pub msg: String,
+}
+
+use crate::error::ApiError;
 use crate::models::pay::{ElectricityBill, ElectricityBillRequest};
 
 /// Response payload
@@ -107,7 +120,25 @@ impl Response {
         self.code == 0
     }
 
-    pub fn payload(self) -> Result<ResponsePayload> {
-        Ok(bincode::deserialize(&self.payload)?)
+    pub fn payload(self) -> Result<ResponseResult> {
+        if self.code == 0 {
+            Ok(Ok(bincode::deserialize(&self.payload)?))
+        } else {
+            let err_string = std::str::from_utf8(&self.payload)?;
+            Ok(Err(ErrorResponse {
+                code: self.code,
+                msg: String::from(err_string),
+            }))
+        }
+    }
+}
+
+impl From<ErrorResponse> for ApiError {
+    fn from(resp: ErrorResponse) -> Self {
+        ApiError {
+            code: resp.code,
+            inner_msg: None,
+            error_msg: Some(resp.msg),
+        }
     }
 }
