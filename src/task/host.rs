@@ -130,8 +130,8 @@ impl Agent {
         let mut f = false;
 
         loop {
-            let last_update = last_update.read().await;
-            if last_update.elapsed().as_secs() > 30 {
+            let elapsed = { last_update.read().await.elapsed().as_secs() };
+            if elapsed > 30 {
                 if !f {
                     tx.send(Request::default()).await;
                     f = true;
@@ -163,9 +163,8 @@ impl Agent {
 
     pub async fn wait(&self) {
         loop {
-            let last_update = self.last_update.read().await;
-
-            if last_update.elapsed().as_secs() > 30 {
+            let last_update_elapsed = { self.last_update.read().await.elapsed().as_secs() };
+            if last_update_elapsed > 30 {
                 return;
             }
             tokio::time::delay_for(Duration::from_secs(30)).await;
@@ -222,7 +221,7 @@ impl AgentManager {
             .request(RequestPayload::AgentInfo(AgentInfoRequest))
             .await
             .map_err(|_| HostError::AgentUnavailable)?;
-        if let ResponsePayload::AgentInfo(base_info) = response.payload()? {
+        if let ResponsePayload::AgentInfo(base_info) = response.payload()?? {
             agent.basic = base_info;
             {
                 let mut agents = self.agents.lock().await;
