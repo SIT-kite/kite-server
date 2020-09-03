@@ -89,7 +89,7 @@ pub struct NewMate {
     /// Avatar of the user
     pub avatar: Option<String>,
     /// Contact detail like wechat, qq, telephone...
-    pub contact: Option<String>,
+    pub contact: Option<serde_json::Value>,
 }
 
 /// Information about people you might know
@@ -109,7 +109,7 @@ pub struct PeopleFamiliar {
     /// Avatar
     pub avatar: Option<String>,
     /// Contact details.
-    pub contact: Option<String>,
+    pub contact: Option<serde_json::Value>,
 }
 
 #[derive(Serialize)]
