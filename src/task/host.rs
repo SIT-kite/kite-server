@@ -8,11 +8,21 @@ use std::time::Instant;
 use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
+use tokio::sync::{broadcast, mpsc, oneshot, Mutex, RwLock};
 use tokio::time::Duration;
 
 use super::Result;
+use crate::task::HaltChannel;
 use log::{error, info, warn};
+
+impl Clone for HaltChannel {
+    fn clone(&self) -> Self {
+        Self {
+            sender: self.sender.clone(),
+            receiver: self.sender.subscribe(),
+        }
+    }
+}
 
 impl Agent {
     /// An agent instance.
@@ -22,7 +32,7 @@ impl Agent {
             addr,
             queue: Default::default(),
             channel: None,
-            last_update: Arc::new(RwLock::new(Instant::now())),
+            halt: None,
         }
     }
 
@@ -81,17 +91,25 @@ impl Agent {
     async fn sender_loop(
         socket_tx: OwnedWriteHalf,
         mut request_rx: mpsc::Receiver<Request>,
+        mut halt: HaltChannel,
     ) -> Result<()> {
         info!("Sender loop started");
         let mut buffer = BufWriter::new(socket_tx);
 
-        while let Some(request) = request_rx.recv().await {
-            buffer.write_u64(request.seq).await?;
-            buffer.write_u32(request.size).await?;
-            buffer.write_all(&request.payload).await?;
-            buffer.flush().await?;
+        loop {
+            tokio::select! {
+                Some(request) = request_rx.recv() => {
+                    buffer.write_u64(request.seq).await?;
+                    buffer.write_u32(request.size).await?;
+                    buffer.write_all(&request.payload).await?;
+                    buffer.flush().await?;
 
-            info!("Send packet");
+                    info!("Send packet");
+                }
+                _ = halt.receiver.recv() => {
+                    break;
+                }
+            }
         }
         info!("Sender loop exited.");
         Ok(())
@@ -101,22 +119,27 @@ impl Agent {
     async fn receiver_loop(
         socket_rx: OwnedReadHalf,
         queue: Arc<Mutex<RequestQueue>>,
-        last_update: Arc<RwLock<Instant>>,
+        mut halt: HaltChannel,
     ) -> Result<()> {
         info!("Receiver loop started");
         let mut buffer = BufReader::new(socket_rx);
 
         loop {
-            match Response::from_stream(&mut buffer).await {
-                Ok(response) => {
-                    info!("Packet received: {:?}", response);
-                    Self::dispatch_response(queue.clone(), response).await;
-
-                    let mut last_update = last_update.write().await;
-                    *last_update = Instant::now();
+            tokio::select! {
+                result = Response::from_stream(&mut buffer) => {
+                    match result {
+                        Ok(response) => {
+                            info!("Packet received: {:?}", response);
+                            Self::dispatch_response(queue.clone(), response).await;
+                        }
+                        Err(e) => {
+                            warn!("Connection lost: {:?}", e);
+                            halt.sender.send(());
+                            break;
+                        }
+                    }
                 }
-                Err(e) => {
-                    warn!("Connection lost: {:?}", e);
+                _ = halt.receiver.recv() => {
                     break;
                 }
             }
@@ -150,24 +173,52 @@ impl Agent {
     pub async fn start(&mut self, stream: TcpStream) {
         let (recv_half, send_half) = stream.into_split();
         let (tx, rx) = mpsc::channel(128);
+        let (halt_tx, halt_rx) = broadcast::channel(1);
 
         tokio::spawn(Self::receiver_loop(
             recv_half,
             self.queue.clone(),
-            self.last_update.clone(),
+            HaltChannel {
+                sender: halt_tx.clone(),
+                receiver: halt_tx.subscribe(),
+            },
         ));
-        tokio::spawn(Self::sender_loop(send_half, rx));
-        tokio::spawn(Self::heartbeat_loop(self.last_update.clone(), tx.clone()));
+        tokio::spawn(Self::sender_loop(
+            send_half,
+            rx,
+            HaltChannel {
+                sender: halt_tx.clone(),
+                receiver: halt_tx.subscribe(),
+            },
+        ));
+        // tokio::spawn(Self::heartbeat_loop(self.last_update.clone(), tx.clone()));
         self.channel = Some(tx);
+        self.halt = Some(HaltChannel {
+            sender: halt_tx,
+            receiver: halt_rx,
+        });
     }
 
-    pub async fn wait(&self) {
-        loop {
-            let last_update_elapsed = { self.last_update.read().await.elapsed().as_secs() };
-            if last_update_elapsed > 30 {
-                return;
-            }
-            tokio::time::delay_for(Duration::from_secs(30)).await;
+    pub fn available(&self) -> bool {
+        self.halt.is_some()
+    }
+
+    pub async fn join(&mut self) {
+        if let Some(channel) = self.halt.clone() {
+            let mut rx = channel.receiver;
+
+            rx.recv().await;
+            tokio::time::delay_for(Duration::from_secs(1)).await;
+            self.halt = None;
+
+            return;
+        }
+    }
+
+    /// Halt the agent client
+    pub fn stop(&mut self) {
+        if let Some(halt_channel) = self.halt.take() {
+            halt_channel.sender.send(());
         }
     }
 }
@@ -240,9 +291,9 @@ impl AgentManager {
         };
 
         match agent {
-            Some(agent) => {
+            Some(mut agent) => {
                 // Wait for agent breaks
-                agent.wait().await;
+                agent.join().await;
                 // Clear agent in agent list and return
                 let mut agents = self.agents.lock().await;
                 agents.remove(&peer);

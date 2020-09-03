@@ -9,8 +9,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Instant;
-use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
+use tokio::sync::{broadcast, mpsc, oneshot, Mutex};
 
 pub type Result<T> = anyhow::Result<T>;
 
@@ -37,6 +36,11 @@ type RequestQueue = HashMap<u64, oneshot::Sender<Response>>;
 /// Agents
 type AgentMap = HashMap<SocketAddr, Agent>;
 
+struct HaltChannel {
+    sender: broadcast::Sender<()>,
+    receiver: broadcast::Receiver<()>,
+}
+
 /// Agent structure, for each client node.
 #[derive(Clone)]
 pub struct Agent {
@@ -48,8 +52,8 @@ pub struct Agent {
     queue: Arc<Mutex<RequestQueue>>,
     /// Request channel to sender loop.
     channel: Option<mpsc::Sender<Request>>,
-    /// Agent last update time.
-    last_update: Arc<RwLock<Instant>>,
+    /// Halt channel
+    halt: Option<HaltChannel>,
 }
 
 /// Agent state
