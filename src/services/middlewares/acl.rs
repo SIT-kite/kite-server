@@ -9,6 +9,7 @@ use actix_web::{
     Error, HttpResponse,
 };
 use futures::future::{ok, Either, Ready};
+use std::result::Result;
 use std::task::{Context, Poll};
 
 pub struct Auth;
@@ -67,7 +68,7 @@ where
             }
         }
         return Either::Right(ok(req.into_response(
-            HttpResponse::Forbidden()
+            HttpResponse::Ok()
                 .json(ApiError::new(CommonError::LoginNeeded))
                 .into_body(),
         )));
