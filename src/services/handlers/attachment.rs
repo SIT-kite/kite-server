@@ -1,16 +1,13 @@
-use actix_multipart::Multipart;
-use actix_web::{get, post, web, HttpResponse};
-use chrono::Utc;
-use futures::{StreamExt, TryStreamExt};
-use serde::Deserialize;
-use std::collections::HashMap;
-use tokio::io::AsyncWriteExt;
-
 use crate::config::CONFIG;
 use crate::error::{ApiError, Result};
-use crate::models::attachment::{self, AttachmentError, SingleAttachment};
+use crate::models::attachment::get_file_extension;
+use crate::models::attachment::{Attachment, AttachmentBasic, AttachmentError, AttachmentManager};
+use crate::models::{CommonError, PageView};
 use crate::services::{response::ApiResponse, AppState, JwtToken};
-use uuid::Uuid;
+use actix_web::{get, post, web, HttpResponse};
+use futures::TryStreamExt;
+use std::collections::HashMap;
+use tokio::io::AsyncWriteExt;
 
 const MAX_ATTACHMENT_SIZE: usize = 10 * 1024 * 1024;
 
@@ -23,101 +20,92 @@ const MAX_ATTACHMENT_SIZE: usize = 10 * 1024 * 1024;
 pub(crate) async fn upload_file(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
-    mut payload: Multipart,
+    mut payload: actix_multipart::Multipart,
 ) -> Result<HttpResponse> {
-    if token.is_none() {
-        return Err(ApiError::new(AttachmentError::Forbidden));
-    }
+    let uid = token.ok_or(ApiError::new(CommonError::Forbidden))?.uid;
     // Vector of uploaded file.
-    let mut successd_uploaded: Vec<SingleAttachment> = Vec::new();
-    let token = token.unwrap();
-    let uid = token.uid;
+    let mut uploaded: Vec<Attachment> = vec![];
 
-    // iterate over multipart stream
-    while let Ok(Some(mut field)) = payload.try_next().await {
+    // Iterate files over multipart stream
+    while let Some(mut field) = payload
+        .try_next()
+        .await
+        .map_err(|_| ApiError::new(AttachmentError::NoData))?
+    {
         // Get filename and sanitize it.
         // See also:
         // https://docs.rs/actix-http/1.0.1/actix_http/http/header/struct.ContentDisposition.html
         let content_type = field.content_disposition().unwrap();
-        let filename = content_type.get_filename().unwrap();
-        let timestamp = format!("{}", Utc::now().timestamp());
-        let sanitized_filename = format!(
-            "{}-{}",
-            timestamp,
-            sanitize_filename::sanitize(filename.to_string())
-        );
+        let file_ext = get_file_extension(content_type.get_filename().unwrap_or_default());
+
+        // New random uuid for this new file.
+        let uuid = uuid::Uuid::new_v4();
+        let path = format!("{}/{}.{}", &CONFIG.server.attachment, uuid, file_ext);
+        let file = tokio::fs::File::create(&path)
+            .await
+            .map_err(|_| ApiError::new(AttachmentError::FailedToCreate))?;
+        let mut writer = tokio::io::BufWriter::new(file);
 
         let mut success_flag: bool = true;
         let mut file_size = 0;
-        let filepath = format!("{}{}", CONFIG.server.attachment, &sanitized_filename);
-
-        let file = tokio::fs::File::create(&filepath)
+        while let Some(chunk) = field
+            .try_next()
             .await
-            .map_err(|_| ApiError::new(AttachmentError::FileCreationFailed))?;
-        let mut writer = tokio::io::BufWriter::new(file);
-
-        // What about user canceling uploading?
-        while let Some(chunk) = field.next().await {
-            let data = chunk.unwrap();
-            file_size += data.len();
-
+            .map_err(|_| ApiError::new(AttachmentError::Interrupted))?
+        {
+            file_size += chunk.len();
             if file_size > MAX_ATTACHMENT_SIZE {
                 success_flag = false;
                 break;
             }
-            if let Err(_) = writer.write(&data).await {
+            if let Err(_) = writer.write_all(&chunk).await {
                 success_flag = false;
                 break;
             }
         }
+
         if success_flag {
-            let new_attachment =
-                attachment::create_attachment(&app.pool, &sanitized_filename, &filepath, uid, file_size)
-                    .await?;
-            successd_uploaded.push(new_attachment);
+            let attachment = Attachment::with_id(uuid)
+                .set_uploader(uid)
+                .set_file(path, file_size as i32);
+            let manager = AttachmentManager::new(&app.pool);
+            manager.create(&attachment).await?;
+
+            uploaded.push(attachment);
         }
     }
 
     let mut resp = HashMap::new();
-    resp.insert("uploaded", successd_uploaded);
+    resp.insert("uploaded", uploaded);
     Ok(HttpResponse::Ok().json(ApiResponse::normal(resp)))
 }
 
-#[derive(Deserialize)]
-pub struct PageOption {
-    pub index: Option<u32>,
-    pub count: Option<u32>,
-}
-
 #[get("/attachment")]
-pub async fn get_attachment_list(
+pub async fn list_attachments(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
-    form: web::Query<PageOption>,
+    page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
-    if token.is_none() {
-        return Err(ApiError::new(AttachmentError::Forbidden));
-    }
-    if !token.unwrap().is_admin {
-        return Err(ApiError::new(AttachmentError::Forbidden));
-    }
-
-    let attachs =
-        attachment::get_attachment_by_page(&app.pool, form.index.unwrap_or(1), form.count.unwrap_or(20))
-            .await?;
-
-    let mut resp = HashMap::new();
-    resp.insert("attachments", attachs);
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(resp)))
+    // let token = token.ok_or(ApiError::new(CommonError::Forbidden))?;
+    // if !token.is_admin {
+    //     return Err(ApiError::new(CommonError::Forbidden));
+    // }
+    let attachments = AttachmentManager::new(&app.pool).list(page.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(attachments)))
 }
 
 #[get("/attachment/{attachment_id}")]
-pub async fn index(app: web::Data<AppState>, id: web::Path<(Uuid,)>) -> Result<HttpResponse> {
-    let url = attachment::get_attachment_url_by_id(&app.pool, id.into_inner().0).await?;
-    if let None = url {
-        return Ok(HttpResponse::NotFound().finish());
+pub async fn query_attachment(
+    app: web::Data<AppState>,
+    token: Option<JwtToken>,
+    id: web::Path<(uuid::Uuid,)>,
+) -> Result<HttpResponse> {
+    let attachment = AttachmentManager::new(&app.pool).query(id.into_inner().0).await?;
+    if let Some(token) = token {
+        if token.is_admin {
+            return Ok(HttpResponse::Ok().json(&ApiResponse::normal(attachment)));
+        }
     }
-    Ok(HttpResponse::PermanentRedirect()
-        .set_header("Location", url.unwrap())
-        .finish())
+    let result: AttachmentBasic = attachment.into();
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
 }
