@@ -119,6 +119,7 @@ pub struct SubmittedPerson {
     #[serde(rename = "nickName")]
     pub nick_name: Option<String>,
     /// User avatar url.
+    #[serde(rename = "avatarUrl")]
     pub avatar: Option<String>,
     /// Country from wechat
     pub country: Option<String>,
