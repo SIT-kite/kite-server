@@ -63,7 +63,8 @@ impl FreshmanBasic {
                 OR stu.city = self.city
                 OR stu.postcode / 1000 = self.postcode / 1000)
                 AND stu.visible = true
-                AND stu.student_id <> $1",
+                AND stu.student_id <> $1    
+            ORDER BY random() LIMIT 20;",
         )
             .bind(&self.student_id)
             .fetch_all(client)
