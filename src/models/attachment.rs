@@ -30,11 +30,13 @@ pub enum AttachmentError {
     #[error("文件不存在")]
     NotFound = 171,
     #[error("文件写入失败")]
-    FailedToCreate = 172,
-    #[error("无法获取上传的文件")]
-    NoData = 173,
+    FailedToWrite = 172,
     #[error("文件上传中断")]
-    Interrupted,
+    Interrupted = 173,
+    #[error("没有发现要上传的文件")]
+    NoPayload = 174,
+    #[error("文件大小超过限制")]
+    TooLarge = 175,
 }
 
 /// Attachment struct for the public.

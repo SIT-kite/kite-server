@@ -99,9 +99,9 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(freshman::get_analysis_data)
             .service(freshman::post_analysis_log)
             // Attachment routes
-            .service(attachment::index)
+            .service(attachment::query_attachment)
             .service(attachment::upload_file)
-            .service(attachment::get_attachment_list)
+            .service(attachment::list_attachments)
             // Motto routes
             .service(motto::get_one_motto)
             // Event and activity routes
