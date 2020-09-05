@@ -51,7 +51,8 @@ impl FreshmanBasic {
 
     pub async fn get_people_familiar(&self, client: &PgPool) -> Result<Vec<PeopleFamiliar>> {
         let people_familiar: Vec<PeopleFamiliar> = sqlx::query_as(
-            "SELECT DISTINCT name, college, stu.city, stu.gender, last_seen, avatar, contact
+            "WITH origin AS (
+            SELECT DISTINCT ON(student_id) name, college, stu.city, stu.gender, last_seen, avatar, contact
             FROM freshman.students AS stu
             LEFT JOIN public.person AS person
             ON stu.uid = person.uid
@@ -63,8 +64,10 @@ impl FreshmanBasic {
                 OR stu.city = self.city
                 OR stu.postcode / 1000 = self.postcode / 1000)
                 AND stu.visible = true
-                AND stu.student_id <> $1    
-            ORDER BY random() LIMIT 20;",
+                AND stu.student_id <> $1
+            LIMIT 20)
+            SELECT * FROM origin 
+            ORDER BY random();",
         )
             .bind(&self.student_id)
             .fetch_all(client)
