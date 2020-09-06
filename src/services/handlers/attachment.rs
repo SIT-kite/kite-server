@@ -1,7 +1,7 @@
 use crate::config::CONFIG;
 use crate::error::{ApiError, Result};
-use crate::models::attachment::get_file_extension;
-use crate::models::attachment::{Attachment, AttachmentBasic, AttachmentError, AttachmentManager};
+use crate::models::file::{get_attachment_url_prefix, get_file_extension};
+use crate::models::file::{Attachment, AttachmentBasic, AttachmentError, AttachmentManager};
 use crate::models::{CommonError, PageView};
 use crate::services::{response::ApiResponse, AppState, JwtToken};
 use actix_web::{get, post, web, HttpResponse};
@@ -74,9 +74,11 @@ pub async fn upload_file(
             }
         }
 
-        let attachment = Attachment::with_id(uuid)
-            .set_uploader(uid)
-            .set_file(path, file_size as i32);
+        let attachment = Attachment::with_id(uuid).set_uploader(uid).set_file(
+            get_attachment_url_prefix(),
+            path,
+            file_size as i32,
+        );
         let manager = AttachmentManager::new(&app.pool);
         manager.create(&attachment).await?;
         return Ok(HttpResponse::Ok().json(ApiResponse::normal(attachment)));

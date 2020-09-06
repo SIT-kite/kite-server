@@ -1,13 +1,13 @@
 //! This module contains all the abstract models required by the business.
 
-/// Attachment upload, download and management.
-pub mod attachment;
 /// Back to school audit
 pub mod checking;
 /// Course and score management.
 pub mod edu;
 /// Event display, sign-in and statistics
 pub mod event;
+/// Attachment upload, download and management.
+pub mod file;
 /// Freshman query.
 pub mod freshman;
 /// Show some mottos.
