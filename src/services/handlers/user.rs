@@ -1,5 +1,6 @@
 use crate::error::{ApiError, Result};
 use crate::jwt::encode_jwt;
+use crate::models::file::AvatarManager;
 use crate::models::user::wechat::{get_session_by_code, WxSession};
 use crate::models::user::{get_default_avatar, Authentication, Identity, Person, UserError};
 use crate::models::user::{LOGIN_BY_CAMPUS_WEB, LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
@@ -142,13 +143,19 @@ pub async fn create_user(
         return Err(ApiError::new(CommonError::Parameter));
     }
     user.nick_name = parameters.nick_name.unwrap();
-    user.avatar = parameters.avatar.unwrap_or(get_default_avatar().to_string());
     user.country = parameters.country;
     user.province = parameters.province;
     user.city = parameters.city;
     user.language = parameters.language;
 
+    if let Some(avatar_url) = parameters.avatar {
+        let avatar_storage = AvatarManager::new(&app.pool);
+        let stored_url = avatar_storage.save(0, &avatar_url).await?.url;
+
+        user.avatar = stored_url.unwrap_or(get_default_avatar().to_string());
+    }
     user.register(&app.pool).await?;
+
     #[derive(Serialize)]
     struct CreateResponse {
         uid: i32,
@@ -193,8 +200,16 @@ pub async fn update_user_detail(
     if let Some(country) = form.country {
         person.country = Some(country);
     }
-    if let Some(avatar) = form.avatar {
-        person.avatar = avatar;
+    if let Some(avatar_url) = form.avatar {
+        let avatar_storage = AvatarManager::new(&app.pool);
+        let stored_avatar = avatar_storage.query(&avatar_url).await;
+        let final_url = match stored_avatar {
+            // Use stored avatar
+            Ok(a) => a.url,
+            // Download and save avatar if not stored.
+            Err(_) => avatar_storage.save(0, &avatar_url).await?.url,
+        };
+        person.avatar = final_url.unwrap_or(get_default_avatar().to_string());
     }
     person.update(&app.pool).await?;
 
