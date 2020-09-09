@@ -49,6 +49,7 @@ pub struct ErrorResponse {
 
 use crate::error::ApiError;
 use crate::models::pay::{ElectricityBill, ElectricityBillRequest};
+use crate::task::HostError;
 
 /// Response payload
 #[derive(Serialize)]
@@ -100,6 +101,9 @@ impl Response {
 
         if response.size == 0 {
             return Ok(response);
+        }
+        if response.size > 10 * 1024 * 1024 {
+            return Err(HostError::TooLargePayload.into());
         }
         response.payload = vec![0u8; response.size as usize];
         // Read body

@@ -28,6 +28,10 @@ pub enum HostError {
     AgentUnavailable = 123,
     #[error("返回的响应与请求类型不一致")]
     BadResponse = 124,
+    #[error("非法 Agent")]
+    InvalidAgent = 125,
+    #[error("Payload 过大")]
+    TooLargePayload = 126,
 }
 
 /// Request queue in agent cache. When response received, use this queue to found the requester.
