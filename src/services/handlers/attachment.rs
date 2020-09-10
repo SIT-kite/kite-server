@@ -54,7 +54,7 @@ pub async fn upload_file(
 
         // New random uuid for this new file.
         let uuid = uuid::Uuid::new_v4();
-        let path = format!("{}{}.{}", &CONFIG.server.attachment, uuid, file_ext);
+        let path = format!("{}/upload/{}.{}", &CONFIG.server.attachment, uuid, file_ext);
         let file = tokio::fs::File::create(&path)
             .await
             .map_err(|_| ApiError::new(AttachmentError::FailedToWrite))?;
