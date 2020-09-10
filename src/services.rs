@@ -29,6 +29,7 @@ pub async fn server_main() -> std::io::Result<()> {
 
     // Create database pool.
     let pool = PgPool::builder()
+        .max_size(100)
         .build(&CONFIG.server.db.as_ref())
         .await
         .expect("Could not create database pool");
@@ -68,6 +69,7 @@ pub async fn server_main() -> std::io::Result<()> {
             .configure(routes)
     })
     .bind_rustls(&CONFIG.server.bind.as_str(), tls_config)?
+    .maxconn(65535)
     .run()
     .await
 }
