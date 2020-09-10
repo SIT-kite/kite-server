@@ -73,6 +73,7 @@ pub async fn upload_file(
                 return Err(ApiError::new(AttachmentError::FailedToWrite));
             }
         }
+        writer.flush().await;
 
         let attachment = Attachment::with_id(uuid).set_uploader(uid).set_file(
             get_attachment_url_prefix(),
