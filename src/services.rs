@@ -69,7 +69,7 @@ pub async fn server_main() -> std::io::Result<()> {
             .configure(routes)
     })
     .bind_rustls(&CONFIG.server.bind.as_str(), tls_config)?
-    .maxconn(65535)
+    .max_connections(65535)
     .run()
     .await
 }

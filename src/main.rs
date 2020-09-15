@@ -19,7 +19,7 @@ mod task;
 use crate::services::server_main;
 use futures::TryFutureExt;
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() {
     server_main()
         .unwrap_or_else(|e| {
