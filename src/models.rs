@@ -12,6 +12,8 @@ pub mod file;
 pub mod freshman;
 /// Show some mottos.
 pub mod motto;
+/// Miniprogram index notice;
+pub mod notice;
 /// Querying electricity bill and expenses record.
 pub mod pay;
 /// User management.
