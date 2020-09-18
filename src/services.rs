@@ -130,7 +130,7 @@ fn set_logger(path: &str) {
         // Perform allocation-free log formatting
         .format(|out, message, _| out.finish(format_args!("{}", message)))
         .level(log::LevelFilter::Info)
-        .chain(std::io::stdout())
+        // .chain(std::io::stdout())
         .chain(fern::log_file(path).expect("Could not open log file."))
         .apply()
         .expect("Failed to set logger.");
