@@ -85,6 +85,7 @@ fn check_anonymous_list(method: &Method, path: &str) -> bool {
         "/api/v1/event" => method == Method::GET,
         "/api/v1/motto" => method == Method::GET,
         "/agent/" => true,
+        "/api/v1/notice" => true,
         _ => {
             path.starts_with("/static/")
                 || path.starts_with("/console/")

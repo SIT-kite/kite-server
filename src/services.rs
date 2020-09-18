@@ -69,14 +69,14 @@ pub async fn server_main() -> std::io::Result<()> {
             .configure(routes)
     })
     .bind_rustls(&CONFIG.server.bind.as_str(), tls_config)?
-    .maxconn(65535)
+    .max_connections(65535)
     .run()
     .await
 }
 
 fn routes(app: &mut web::ServiceConfig) {
     use actix_files::Files;
-    use handlers::{attachment, checking, edu, event, freshman, motto, pay, status, user};
+    use handlers::{attachment, checking, edu, event, freshman, motto, notice, pay, status, user};
 
     app.service(
         // API scope: version 1
@@ -126,7 +126,9 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(status::get_system_status)
             .service(status::get_agent_list)
             // Pay and room balance
-            .service(pay::query_room_balance),
+            .service(pay::query_room_balance)
+            // Get Notices
+            .service(notice::get_notices),
     )
     // Static resources, attachments and user avatars
     .service(Files::new("/static", &CONFIG.server.attachment))
