@@ -15,7 +15,7 @@ overflow-checks = false
 [dependencies]
 # About network.
 actix-http = "2.0"
-actix-web = { version = "3.0" }
+actix-web = { version = "3.0", features = ["rustls"] }
 actix-service = "1.0"
 actix-multipart = "0.3.0"
 

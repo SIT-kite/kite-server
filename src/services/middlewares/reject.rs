@@ -5,7 +5,7 @@ use actix_service::{Service, Transform};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::{Error, HttpResponse};
 use futures::future::{ok, Either, Ready};
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::Ipv4Addr;
 use std::str::FromStr;
 use std::task::{Context, Poll};
 
