@@ -69,7 +69,7 @@ pub async fn server_main() -> std::io::Result<()> {
 }
 
 fn routes(app: &mut web::ServiceConfig) {
-    use handlers::{attachment, checking, edu, event, freshman, motto, notice, pay, status, user};
+    use handlers::{attachment, edu, event, freshman, motto, notice, pay, status, user};
 
     app.service(
         // API scope: version 1
@@ -101,14 +101,6 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(motto::get_one_motto)
             // Event and activity routes
             .service(event::list_events)
-            // Checking routes
-            .service(checking::list_student_status)
-            .service(checking::query_detail)
-            .service(checking::add_approval)
-            .service(checking::delete_approval)
-            .service(checking::list_admin)
-            .service(checking::delete_admin)
-            .service(checking::change_approval)
             // Edu management and course-related routes
             .service(edu::get_planned_course)
             .service(edu::query_major)

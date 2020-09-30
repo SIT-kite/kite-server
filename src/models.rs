@@ -1,7 +1,5 @@
 //! This module contains all the abstract models required by the business.
 
-/// Back to school audit
-pub mod checking;
 /// Course and score management.
 pub mod edu;
 /// Event display, sign-in and statistics

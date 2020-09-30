@@ -1,5 +1,4 @@
 pub mod attachment;
-pub mod checking;
 pub mod edu;
 pub mod event;
 pub mod freshman;
