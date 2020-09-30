@@ -1,7 +1,7 @@
 # Server config
 [server]
-# HTTPS API service address.
-bind = "0.0.0.0:443"
+# HTTP API service address.
+bind = "0.0.0.0:80"
 # Postgresql connection string.
 db = "postgresql://user:password@address:port/database"
 # Token secret for API.

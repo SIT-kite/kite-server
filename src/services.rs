@@ -7,11 +7,8 @@ use crate::task::AgentManager;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use middlewares::reject::Reject;
-use rustls::internal::pemfile::{certs, pkcs8_private_keys};
-use rustls::{NoClientAuth, ServerConfig};
 use sqlx::postgres::PgPool;
-use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::Read;
 
 mod auth;
 mod handlers;
@@ -25,8 +22,6 @@ pub struct AppState {
 }
 
 pub async fn server_main() -> std::io::Result<()> {
-    let tls_config = get_tls_config();
-
     // Create database pool.
     let pool = PgPool::builder()
         .max_size(100)
@@ -68,14 +63,12 @@ pub async fn server_main() -> std::io::Result<()> {
             .data(app_state.clone())
             .configure(routes)
     })
-    .bind_rustls(&CONFIG.server.bind.as_str(), tls_config)?
-    .max_connections(65535)
+    .bind(&CONFIG.server.bind.as_str())?
     .run()
     .await
 }
 
 fn routes(app: &mut web::ServiceConfig) {
-    use actix_files::Files;
     use handlers::{attachment, checking, edu, event, freshman, motto, notice, pay, status, user};
 
     app.service(
@@ -129,30 +122,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(pay::query_room_balance)
             // Get Notices
             .service(notice::get_notices),
-    )
-    // Static resources, attachments and user avatars
-    .service(Files::new("/static", &CONFIG.server.attachment))
-    // Console route
-    .service(
-        Files::new("/console/", "console/")
-            .index_file("index.html")
-            .use_etag(true),
     );
-}
-
-fn get_tls_config() -> ServerConfig {
-    // load ssl keys
-    let mut config = ServerConfig::new(NoClientAuth::new());
-
-    // For certificates provided by let's encrypt:
-    // fullchain.pem -> cert.pem, privkey.pem -> key.pem
-    let cert_file = &mut BufReader::new(File::open("cert.pem").unwrap());
-    let key_file = &mut BufReader::new(File::open("key.pem").unwrap());
-    let cert_chain = certs(cert_file).unwrap();
-    let mut keys = pkcs8_private_keys(key_file).unwrap();
-
-    config.set_single_cert(cert_chain, keys.remove(0)).unwrap();
-    config
 }
 
 fn set_logger(path: &str) {
@@ -160,7 +130,7 @@ fn set_logger(path: &str) {
         // Perform allocation-free log formatting
         .format(|out, message, _| out.finish(format_args!("{}", message)))
         .level(log::LevelFilter::Info)
-        .chain(std::io::stdout())
+        // .chain(std::io::stdout())
         .chain(fern::log_file(path).expect("Could not open log file."))
         .apply()
         .expect("Failed to set logger.");
