@@ -2,8 +2,8 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
+use crate::bridge::AgentManager;
 use crate::config::CONFIG;
-use crate::task::AgentManager;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use middlewares::reject::Reject;

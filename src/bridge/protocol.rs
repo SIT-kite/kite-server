@@ -47,9 +47,9 @@ pub struct ErrorResponse {
     pub msg: String,
 }
 
+use crate::bridge::HostError;
 use crate::error::ApiError;
 use crate::models::pay::{ElectricityBill, ElectricityBillRequest};
-use crate::task::HostError;
 
 /// Response payload
 #[derive(Serialize)]

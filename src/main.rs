@@ -7,13 +7,13 @@ extern crate lazy_static;
 extern crate num_derive;
 extern crate log;
 
+mod bridge;
 mod config;
 mod error;
 mod ipset;
 mod jwt;
 mod models;
 mod services;
-mod task;
 
 // Import main function.
 use crate::services::server_main;

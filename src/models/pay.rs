@@ -1,5 +1,5 @@
+use crate::bridge::{AgentManager, HostError, RequestPayload, ResponsePayload};
 use crate::error::{ApiError, Result};
-use crate::task::{AgentManager, HostError, RequestPayload, ResponsePayload};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]

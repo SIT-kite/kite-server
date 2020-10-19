@@ -12,7 +12,7 @@ use tokio::sync::{broadcast, mpsc, oneshot, Mutex, RwLock};
 use tokio::time::Duration;
 
 use super::Result;
-use crate::task::HaltChannel;
+use crate::bridge::HaltChannel;
 use log::{error, info, warn};
 
 impl Clone for HaltChannel {
