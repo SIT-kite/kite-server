@@ -7,7 +7,7 @@ use crate::config::CONFIG;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use middlewares::reject::Reject;
-use sqlx::postgres::PgPool;
+use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::io::Read;
 
 mod auth;
@@ -23,9 +23,9 @@ pub struct AppState {
 
 pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
-    let pool = PgPool::builder()
-        .max_size(100)
-        .build(&CONFIG.server.db.as_ref())
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&CONFIG.server.db.as_ref())
         .await
         .expect("Could not create database pool");
 

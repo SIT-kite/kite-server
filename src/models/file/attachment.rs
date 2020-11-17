@@ -2,7 +2,6 @@ use super::{Attachment, AttachmentBasic, AttachmentError, AttachmentManager};
 use crate::error::{ApiError, Result};
 use crate::models::PageView;
 use chrono::Utc;
-use sqlx::postgres::PgQueryAs;
 use sqlx::PgPool;
 use uuid::Uuid;
 

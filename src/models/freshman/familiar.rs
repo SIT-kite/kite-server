@@ -1,7 +1,7 @@
 use super::{FreshmanBasic, NewMate, PeopleFamiliar};
 use crate::error::Result;
 use crate::models::freshman::{FreshmanAnalysis, MapDefaultAvatar};
-use sqlx::{postgres::PgQueryAs, PgPool};
+use sqlx::PgPool;
 
 impl FreshmanBasic {
     /* Classmates, roommates, and familiar people */

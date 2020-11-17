@@ -50,7 +50,7 @@ sanitize-filename = "0.2"
 jsonwebtoken = "7"
 
 # Database
-sqlx = { version = "0.3", default-features = false, features = ["uuid", "chrono", "json", "postgres", "runtime-tokio", "macros"]}
+sqlx = { version = "0.4", default-features = false, features = ["runtime-tokio-rustls", "uuid", "chrono", "json", "postgres", "macros"]}
 
 # Encryption and code
 aes = "0.4"

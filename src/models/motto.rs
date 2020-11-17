@@ -1,6 +1,6 @@
 use crate::error::{ApiError, Result};
 use serde::Serialize;
-use sqlx::{postgres::PgQueryAs, PgPool};
+use sqlx::PgPool;
 
 /* Constants. */
 // Actually, the two constants are suggested min and max length, because of mottos in our DB.

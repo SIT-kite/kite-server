@@ -2,7 +2,7 @@ use crate::error::Result;
 use crate::models::PageView;
 use chrono::Datelike;
 use serde::Serialize;
-use sqlx::{postgres::PgQueryAs, PgPool};
+use sqlx::PgPool;
 
 // Unused.
 // #[derive(Debug, Serialize, Deserialize)]

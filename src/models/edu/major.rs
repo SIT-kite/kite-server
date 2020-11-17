@@ -1,7 +1,7 @@
 use crate::error::Result;
 use chrono::NaiveDateTime;
 use serde::Serialize;
-use sqlx::{postgres::PgQueryAs, PgPool};
+use sqlx::PgPool;
 
 /// Correspondence between the school's professional codes and names
 #[derive(Debug, Serialize, sqlx::FromRow)]

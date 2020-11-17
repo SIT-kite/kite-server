@@ -2,7 +2,7 @@
 use crate::error::Result;
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgQueryAs, PgPool};
+use sqlx::PgPool;
 
 /// Event that imported from OA.
 const EVENT_TYPE_OA: i32 = 0;

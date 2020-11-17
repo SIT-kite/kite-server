@@ -4,7 +4,7 @@ use crate::error::ApiError;
 use crate::error::Result;
 use crate::models::user::LOGIN_BY_CAMPUS_WEB;
 use chrono::Utc;
-use sqlx::{postgres::PgQueryAs, PgPool};
+use sqlx::PgPool;
 
 impl Authentication {
     pub fn from_password(username: String, password: String) -> Self {

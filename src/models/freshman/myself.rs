@@ -1,6 +1,6 @@
 use super::{FreshmanBasic, FreshmanError};
 use crate::error::{ApiError, Result};
-use sqlx::postgres::{PgPool, PgQueryAs};
+use sqlx::postgres::PgPool;
 
 impl FreshmanBasic {
     pub async fn update_last_seen(self, pool: &PgPool) -> Result<Self> {
