@@ -1,6 +1,7 @@
 //! This module includes interfaces for querying electricity bill and expenses record.
-use crate::error::Result;
-use crate::models::pay::ElectricityBillRequest;
+use crate::error::{ApiError, Result};
+use crate::models::pay::BalanceManager;
+use crate::models::CommonError;
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
 use actix_web::{get, web, HttpResponse};
@@ -16,8 +17,13 @@ pub async fn query_room_balance(
     app: web::Data<AppState>,
     form: web::Path<String>,
 ) -> Result<HttpResponse> {
-    let req_balance = ElectricityBillRequest::new(form.into_inner());
-    let balance = req_balance.query(&app.host).await?;
+    let room = form.into_inner();
+    let manager = BalanceManager::new(&app.pool);
+    let pattern = regex::Regex::new(r"^10\d{4,6}$").unwrap();
 
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(balance)))
+    if !pattern.is_match(&room) {
+        return Err(ApiError::new(CommonError::Parameter));
+    }
+    let result = manager.query_last_balance(room).await?;
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
 }

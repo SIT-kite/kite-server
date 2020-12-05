@@ -49,13 +49,11 @@ pub struct ErrorResponse {
 
 use crate::bridge::HostError;
 use crate::error::ApiError;
-use crate::models::pay::{ElectricityBill, ElectricityBillRequest};
 
 /// Response payload
 #[derive(Serialize)]
 pub enum RequestPayload {
     AgentInfo(AgentInfoRequest),
-    ElectricityBill(ElectricityBillRequest),
     ActivityList(ActivityListRequest),
     ScoreList(CourseScoreRequest),
 }
@@ -64,7 +62,6 @@ pub enum RequestPayload {
 #[derive(Deserialize)]
 pub enum ResponsePayload {
     AgentInfo(AgentInfo),
-    ElectricityBill(ElectricityBill),
     ActivityList(Vec<Activity>),
     ScoreList(Vec<CourseScore>),
 }
