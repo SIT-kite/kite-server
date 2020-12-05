@@ -13,17 +13,10 @@ use actix_web::{get, web, HttpResponse};
 *********************************************************************/
 
 #[get("/pay/room/{room}")]
-pub async fn query_room_balance(
-    app: web::Data<AppState>,
-    form: web::Path<String>,
-) -> Result<HttpResponse> {
+pub async fn query_room_balance(app: web::Data<AppState>, form: web::Path<i32>) -> Result<HttpResponse> {
     let room = form.into_inner();
     let manager = BalanceManager::new(&app.pool);
-    let pattern = regex::Regex::new(r"^10\d{4,6}$").unwrap();
-
-    if !pattern.is_match(&room) {
-        return Err(ApiError::new(CommonError::Parameter));
-    }
     let result = manager.query_last_balance(room).await?;
+
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
 }

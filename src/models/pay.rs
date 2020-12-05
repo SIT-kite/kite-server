@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// Electricity Balance for FengXian dormitory.
 pub struct ElectricityBalance {
     /// Room id in the format described in the doc.
-    pub room: String,
+    pub room: i32,
     /// Total available amount
     pub balance: f32,
     /// Available power
@@ -55,7 +55,7 @@ impl<'a> BalanceManager<'a> {
         Self { db }
     }
 
-    pub async fn query_last_balance(self, room: String) -> Result<ElectricityBalance> {
+    pub async fn query_last_balance(self, room: i32) -> Result<ElectricityBalance> {
         let balance: Option<ElectricityBalance> = sqlx::query_as(
             "SELECT room, total_balance AS balance, CAST(total_balance / 0.6 AS real) AS power, ts
                 FROM dormitory.balance WHERE room = $1 ORDER BY ts DESC LIMIT 1",
