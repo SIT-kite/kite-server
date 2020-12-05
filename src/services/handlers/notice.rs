@@ -1,6 +1,5 @@
 use crate::error::Result;
 use crate::models::notice::Notice;
-use crate::services::response::ApiResponse;
 use crate::services::AppState;
 use actix_web::{get, web, HttpResponse};
 

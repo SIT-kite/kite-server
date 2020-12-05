@@ -164,7 +164,7 @@ impl Agent {
             } else {
                 f = false;
             }
-            tokio::time::delay_for(timeout).await;
+            tokio::time::sleep(timeout).await;
         }
         info!("Heartbeat loop exited.");
     }
@@ -208,7 +208,7 @@ impl Agent {
             let mut rx = channel.receiver;
 
             rx.recv().await;
-            tokio::time::delay_for(Duration::from_secs(1)).await;
+            tokio::time::sleep(Duration::from_secs(1)).await;
             self.halt = None;
 
             return;

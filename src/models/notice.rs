@@ -1,4 +1,4 @@
-use crate::error::{ApiError, Result};
+use crate::error::Result;
 use chrono::NaiveDateTime;
 use serde::Serialize;
 use sqlx::PgPool;
