@@ -28,8 +28,8 @@ pub struct DateRange {
     end: Option<String>,
 }
 
-#[get("/pay/room/{room}/bill")]
-pub async fn query_room_bills(
+#[get("/pay/room/{room}/bill/days")]
+pub async fn query_room_bills_by_day(
     app: web::Data<AppState>,
     form: web::Path<i32>,
     parameters: web::Query<DateRange>,
@@ -50,6 +50,24 @@ pub async fn query_room_bills(
     let result = manager
         .query_statistics_by_day(room, start_date, end_date)
         .await?;
+
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
+}
+
+#[get("/pay/room/{room}/bill/hours")]
+pub async fn query_room_bills_by_hour(
+    app: web::Data<AppState>,
+    form: web::Path<i32>,
+) -> Result<HttpResponse> {
+    let room = form.into_inner();
+    let manager = BalanceManager::new(&app.pool);
+
+    let start_time = chrono::Local::now()
+        .sub(Duration::hours(24))
+        .format("%Y-%m-%d %H:%M")
+        .to_string();
+    let end_time = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+    let result = manager.query_balance_by_hour(room, start_time, end_time).await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
 }

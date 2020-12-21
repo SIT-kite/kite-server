@@ -1,8 +1,7 @@
 use crate::error::{ApiError, Result};
 use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, sqlx::FromRow)]
+#[derive(serde::Serialize, sqlx::FromRow)]
 /// Electricity Balance for FengXian dormitory.
 pub struct ElectricityBalance {
     /// Room id in the format described in the doc.
@@ -15,11 +14,22 @@ pub struct ElectricityBalance {
     pub ts: NaiveDateTime,
 }
 
-#[derive(Serialize, Deserialize, sqlx::FromRow)]
-/// Electricity usage statistics
-pub struct ElectricityBill {
-    /// Room Id
+/// Electricity usage statistics by day
+#[derive(serde::Serialize, sqlx::FromRow)]
+pub struct DailyElectricityBill {
+    /// Date string in 'yyyy-mm-dd'
     pub date: String,
+    /// Charge amount in estimation.
+    pub charge: f32,
+    /// Consumption amount in estimation.
+    pub consumption: f32,
+}
+
+/// Electricity usage statistics by hour
+#[derive(serde::Serialize, sqlx::FromRow)]
+pub struct HourlyElectricityBill {
+    /// Hour string in 'yyyy-mm-dd HH24:00'
+    pub time: String,
     /// Charge amount in estimation.
     pub charge: f32,
     /// Consumption amount in estimation.
@@ -66,7 +76,7 @@ impl<'a> BalanceManager<'a> {
         room: i32,
         start_date: String,
         end_date: String,
-    ) -> Result<Vec<ElectricityBill>> {
+    ) -> Result<Vec<DailyElectricityBill>> {
         let bills = sqlx::query_as(
             "SELECT d.day AS date, COALESCE(records.charged_amount, 0.00) AS charge, ABS(COALESCE(records.used_amount, 0.00)) AS consumption
                 FROM
@@ -84,5 +94,29 @@ impl<'a> BalanceManager<'a> {
         Ok(bills)
     }
 
-    // pub fn query_balance_statistics(self, room: String, level: AggregationLevel) {}
+    pub async fn query_balance_by_hour(
+        self,
+        room: i32,
+        start_ts: String,
+        end_ts: String,
+    ) -> Result<Vec<HourlyElectricityBill>> {
+        let bills = sqlx::query_as(
+            "SELECT h.hour AS time, COALESCE(records.charged_amount, 0.00) AS charge, ABS(COALESCE(records.used_amount, 0.00)) AS consumption
+                FROM
+                    (
+                        SELECT to_char(hour_range, 'yyyy-MM-dd HH24:00') AS hour
+                        FROM generate_series($1::timestamp, $2::timestamp, '1 hour') AS hour_range
+                    ) h
+                LEFT JOIN (
+                    SELECT * FROM dormitory.get_consumption_report_by_hour($1::timestamp, $2::timestamp, $3)
+                ) AS records
+                ON h.hour = records.hour;"
+        )
+            .bind(start_ts)
+            .bind(end_ts)
+            .bind(room)
+            .fetch_all(self.db)
+            .await?;
+        Ok(bills)
+    }
 }
