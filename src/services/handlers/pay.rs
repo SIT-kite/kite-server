@@ -1,10 +1,11 @@
 //! This module includes interfaces for querying electricity bill and expenses record.
-use crate::error::{ApiError, Result};
+use crate::error::Result;
 use crate::models::pay::BalanceManager;
-use crate::models::CommonError;
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
 use actix_web::{get, web, HttpResponse};
+use chrono::Duration;
+use std::ops::Sub;
 
 /**********************************************************************
     Interfaces in this module:
@@ -17,6 +18,38 @@ pub async fn query_room_balance(app: web::Data<AppState>, form: web::Path<i32>) 
     let room = form.into_inner();
     let manager = BalanceManager::new(&app.pool);
     let result = manager.query_last_balance(room).await?;
+
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
+}
+
+#[derive(serde::Deserialize)]
+pub struct DateRange {
+    start: Option<String>,
+    end: Option<String>,
+}
+
+#[get("/pay/room/{room}/bill")]
+pub async fn query_room_bills(
+    app: web::Data<AppState>,
+    form: web::Path<i32>,
+    parameters: web::Query<DateRange>,
+) -> Result<HttpResponse> {
+    let room = form.into_inner();
+    let parameters = parameters.into_inner();
+    let start_date = parameters.start.unwrap_or_else(|| {
+        chrono::Local::today()
+            .sub(Duration::days(7))
+            .format("%Y-%m-%d")
+            .to_string()
+    });
+    let end_date = parameters
+        .end
+        .unwrap_or_else(|| chrono::Local::today().format("%Y-%m-%d").to_string());
+
+    let manager = BalanceManager::new(&app.pool);
+    let result = manager
+        .query_statistics_by_day(room, start_date, end_date)
+        .await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
 }

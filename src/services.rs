@@ -112,6 +112,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(status::get_agent_list)
             // Pay and room balance
             .service(pay::query_room_balance)
+            .service(pay::query_room_bills)
             // Get Notices
             .service(notice::get_notices),
     );
