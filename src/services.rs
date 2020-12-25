@@ -114,6 +114,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(pay::query_room_balance)
             .service(pay::query_room_bills_by_day)
             .service(pay::query_room_bills_by_hour)
+            .service(pay::query_room_consumption_rank)
             // Get Notices
             .service(notice::get_notices),
     );

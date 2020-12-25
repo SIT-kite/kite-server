@@ -22,6 +22,18 @@ pub async fn query_room_balance(app: web::Data<AppState>, form: web::Path<i32>) 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
 }
 
+#[get("/pay/room/{room}/rank")]
+pub async fn query_room_consumption_rank(
+    app: web::Data<AppState>,
+    form: web::Path<i32>,
+) -> Result<HttpResponse> {
+    let room = form.into_inner();
+    let manager = BalanceManager::new(&app.pool);
+    let result = manager.query_recent_consumption_rank(room).await?;
+
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
+}
+
 #[derive(serde::Deserialize)]
 pub struct DateRange {
     start: Option<String>,

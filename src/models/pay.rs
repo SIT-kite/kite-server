@@ -36,12 +36,15 @@ pub struct HourlyElectricityBill {
     pub consumption: f32,
 }
 
-pub enum AggregationLevel {
-    Time,
-    Hour,
-    Day,
-    Week,
-    Month,
+/// Rank of recent-24hour consumption
+#[derive(serde::Serialize, sqlx::FromRow)]
+pub struct RecentConsumptionRank {
+    /// Consumption in last 24 hours.
+    pub consumption: f32,
+    /// Rank
+    pub rank: i32,
+    /// Total room count
+    pub room_count: i32,
 }
 
 pub struct BalanceManager<'a> {
@@ -118,5 +121,17 @@ impl<'a> BalanceManager<'a> {
             .fetch_all(self.db)
             .await?;
         Ok(bills)
+    }
+
+    pub async fn query_recent_consumption_rank(self, room: i32) -> Result<RecentConsumptionRank> {
+        let rank = sqlx::query_as(
+            "SELECT room, consumption, rank, (SELECT CAST(COUNT(*) AS integer) FROM dormitory.rooms) AS room_count
+                FROM dormitory.rank_last_24hour_consumption()
+                WHERE room = $1 LIMIT 1",
+        )
+        .bind(room)
+        .fetch_optional(self.db)
+        .await?;
+        rank.ok_or(ApiError::new(BalanceError::NoSuchRoom))
     }
 }
