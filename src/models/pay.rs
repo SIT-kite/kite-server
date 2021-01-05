@@ -1,5 +1,5 @@
 use crate::error::{ApiError, Result};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Local, NaiveDateTime};
 
 #[derive(serde::Serialize, sqlx::FromRow)]
 /// Electricity Balance for FengXian dormitory.
@@ -11,7 +11,7 @@ pub struct ElectricityBalance {
     /// Available power
     pub power: f32,
     /// Last update time
-    pub ts: NaiveDateTime,
+    pub ts: DateTime<Local>,
 }
 
 /// Electricity usage statistics by day

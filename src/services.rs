@@ -29,6 +29,16 @@ pub async fn server_main() -> std::io::Result<()> {
         .await
         .expect("Could not create database pool");
 
+    sqlx::query("SET TIME ZONE 'Asia/Shanghai';")
+        .execute(&pool)
+        .await
+        .map_err(|e| {
+            println!(
+                "Could not set time zone in the postgres, please check it.\n{:?}",
+                e
+            )
+        });
+
     // Logger
     set_logger("kite.log");
     let log_string = "%a - - [%t] \"%r\" %s %b %D \"%{User-Agent}i\"";
