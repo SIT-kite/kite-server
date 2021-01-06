@@ -4,7 +4,7 @@ use crate::models::pay::BalanceManager;
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
 use actix_web::{get, web, HttpResponse};
-use chrono::Duration;
+use chrono::{Duration, Local};
 use std::ops::Sub;
 
 /**********************************************************************
@@ -74,11 +74,8 @@ pub async fn query_room_bills_by_hour(
     let room = form.into_inner();
     let manager = BalanceManager::new(&app.pool);
 
-    let start_time = chrono::Local::now()
-        .sub(Duration::hours(24))
-        .format("%Y-%m-%d %H:%M")
-        .to_string();
-    let end_time = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+    let start_time = chrono::offset::Local::now().sub(Duration::days(1));
+    let end_time = chrono::Local::now();
     let result = manager.query_balance_by_hour(room, start_time, end_time).await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))

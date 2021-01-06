@@ -25,19 +25,15 @@ pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
     let pool = PgPoolOptions::new()
         .max_connections(10)
+        .after_connect(|conn| {
+            Box::pin(async move {
+                conn.execute("SET TIME ZONE 'Asia/Shanghai';").await?;
+                Ok(())
+            })
+        })
         .connect(&CONFIG.server.db.as_ref())
         .await
         .expect("Could not create database pool");
-
-    sqlx::query("SET TIME ZONE 'Asia/Shanghai';")
-        .execute(&pool)
-        .await
-        .map_err(|e| {
-            println!(
-                "Could not set time zone in the postgres, please check it.\n{:?}",
-                e
-            )
-        });
 
     // Logger
     set_logger("kite.log");
@@ -67,9 +63,9 @@ pub async fn server_main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(actix_web::middleware::Compress::default())
-            .wrap(middlewares::acl::Auth)
+            // .wrap(middlewares::acl::Auth)
             .wrap(actix_web::middleware::Logger::new(log_string))
-            .wrap(Reject::new(&buffer))
+            // .wrap(Reject::new(&buffer))
             .data(app_state.clone())
             .configure(routes)
     })
@@ -142,6 +138,7 @@ fn set_logger(path: &str) {
 }
 
 use serde::{Deserialize, Serialize};
+use sqlx::Executor;
 
 /// User Jwt token carried in each request.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

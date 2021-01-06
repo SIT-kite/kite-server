@@ -100,18 +100,18 @@ impl<'a> BalanceManager<'a> {
     pub async fn query_balance_by_hour(
         self,
         room: i32,
-        start_ts: String,
-        end_ts: String,
+        start_ts: DateTime<Local>,
+        end_ts: DateTime<Local>,
     ) -> Result<Vec<HourlyElectricityBill>> {
         let bills = sqlx::query_as(
             "SELECT h.hour AS time, COALESCE(records.charged_amount, 0.00) AS charge, ABS(COALESCE(records.used_amount, 0.00)) AS consumption
                 FROM
                     (
                         SELECT to_char(hour_range, 'yyyy-MM-dd HH24:00') AS hour
-                        FROM generate_series($1::timestamp, $2::timestamp, '1 hour') AS hour_range
+                        FROM generate_series($1::timestamptz, $2::timestamptz, '1 hour') AS hour_range
                     ) h
                 LEFT JOIN (
-                    SELECT * FROM dormitory.get_consumption_report_by_hour($1::timestamp, $2::timestamp, $3)
+                    SELECT * FROM dormitory.get_consumption_report_by_hour($1::timestamptz, $2::timestamptz, $3)
                 ) AS records
                 ON h.hour = records.hour;"
         )
