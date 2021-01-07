@@ -8,6 +8,8 @@ pub mod event;
 pub mod file;
 /// Freshman query.
 pub mod freshman;
+/// Second-hand market
+pub mod mall;
 /// Show some mottos.
 pub mod motto;
 /// Miniprogram index notice;

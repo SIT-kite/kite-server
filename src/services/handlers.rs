@@ -2,6 +2,7 @@ pub mod attachment;
 pub mod edu;
 pub mod event;
 pub mod freshman;
+pub mod mall;
 pub mod motto;
 pub mod notice;
 pub mod pay;

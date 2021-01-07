@@ -75,7 +75,7 @@ pub async fn server_main() -> std::io::Result<()> {
 }
 
 fn routes(app: &mut web::ServiceConfig) {
-    use handlers::{attachment, edu, event, freshman, motto, notice, pay, status, user};
+    use handlers::{attachment, edu, event, freshman, mall, motto, notice, pay, status, user};
 
     app.service(
         // API scope: version 1
@@ -122,7 +122,9 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(pay::query_room_bills_by_hour)
             .service(pay::query_room_consumption_rank)
             // Get Notices
-            .service(notice::get_notices),
+            .service(notice::get_notices)
+            // Mall module
+            .service(mall::query_textbook_by_isbn),
     );
 }
 
@@ -137,6 +139,7 @@ fn set_logger(path: &str) {
         .expect("Failed to set logger.");
 }
 
+use crate::services::handlers::mall;
 use serde::{Deserialize, Serialize};
 use sqlx::Executor;
 
