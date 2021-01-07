@@ -1,6 +1,6 @@
 [package]
 name = "kite-server"
-version = "0.1.0"
+version = "0.8.0"
 authors = ["sunnysab <sunnysab@yeah.net>"]
 edition = "2018"
 readme = "README.md"
