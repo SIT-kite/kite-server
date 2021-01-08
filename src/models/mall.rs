@@ -1,8 +1,11 @@
 mod comments;
+mod favorite;
 mod goods;
 mod textbook;
+mod views;
+mod wish;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local, Utc};
 use serde::Serialize;
 
 pub use textbook::query_textbook_by_isbn;
@@ -102,6 +105,7 @@ pub struct GoodsDetail {
     pub sort: i32,
 }
 
+/* Comments */
 #[derive(Serialize, sqlx::FromRow)]
 pub struct GoodsComment {
     pub id: i32,
@@ -114,4 +118,46 @@ pub struct GoodsComment {
     pub publisher_avatar: String,
     /// Comment content
     pub content: String,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct NewComment {
+    #[serde(rename = "goodsId")]
+    pub goods_id: i32,
+    /// Publisher's uid
+    pub publisher: i32,
+    /// Comment content
+    pub content: String,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct Favorites {
+    /// Goods id
+    pub goods: i32,
+    /// Goods title
+    pub title: String,
+    /// Goods image
+    pub image: String,
+    /// Favorite timestamp
+    pub ts: DateTime<Utc>,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct Views {
+    /// Person uid
+    pub person: i32,
+    /// Goods id
+    pub goods: i32,
+    /// Favorite timestamp
+    pub ts: DateTime<Utc>,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct Wishes {
+    /// Person uid
+    pub person: i32,
+    /// Goods id
+    pub goods: i32,
+    /// Favorite timestamp
+    pub ts: DateTime<Utc>,
 }

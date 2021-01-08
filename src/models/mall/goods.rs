@@ -75,3 +75,27 @@ pub async fn delete_goods(db: &PgPool, goods_id: i32) -> Result<()> {
         .await?;
     result.map(|_| ()).ok_or(ApiError::new(MallError::NoSuchGoods))
 }
+
+pub async fn publish_goods(db: &PgPool, new: &GoodsDetail) -> Result<i32> {
+    let returning = sqlx::query!(
+        "INSERT INTO mall.goods
+            (title, description, status, cover_image, campus, images, tags, price,
+            publisher, sort, features)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING id;",
+        new.title,
+        new.description,
+        new.status,
+        new.cover_image,
+        new.campus,
+        &new.images,
+        &new.tags,
+        new.price,
+        new.publisher,
+        new.sort,
+        &new.features
+    )
+    .fetch_one(db)
+    .await?;
+    Ok(returning.id)
+}
