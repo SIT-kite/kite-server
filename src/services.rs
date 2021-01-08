@@ -7,7 +7,9 @@ use crate::config::CONFIG;
 use actix_http::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use middlewares::reject::Reject;
+use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::Executor;
 use std::io::Read;
 
 mod auth;
@@ -124,7 +126,7 @@ fn routes(app: &mut web::ServiceConfig) {
             // Get Notices
             .service(notice::get_notices)
             // Mall module
-            .service(mall::query_textbook_by_isbn),
+            .service(mall::query_textbook),
     );
 }
 
@@ -138,10 +140,6 @@ fn set_logger(path: &str) {
         .apply()
         .expect("Failed to set logger.");
 }
-
-use crate::services::handlers::mall;
-use serde::{Deserialize, Serialize};
-use sqlx::Executor;
 
 /// User Jwt token carried in each request.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

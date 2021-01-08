@@ -1,7 +1,11 @@
-use crate::error::{ApiError, Result};
+mod comments;
+mod goods;
+mod textbook;
+
+use chrono::{DateTime, Utc};
 use serde::Serialize;
-use sqlx::PgPool;
-use std::borrow::Borrow;
+
+pub use textbook::query_textbook_by_isbn;
 
 /// Error handled in motto module.
 #[derive(thiserror::Error, Debug, ToPrimitive)]
@@ -10,55 +14,104 @@ pub enum MallError {
     NoSuchTextBook = 220,
     #[error("ISBN 格式错误")]
     InvalidISBN = 221,
+    #[error("找不到该商品")]
+    NoSuchGoods = 222,
+    #[error("商品已删除")]
+    DeletedGoods = 223,
 }
 
 /* Model */
 /// Each predefined textbook
-#[derive(Default, Serialize, sqlx::FromRow)]
+#[derive(Serialize, sqlx::FromRow)]
 pub struct TextBook {
     /// ISBN of the textbook
-    isbn: Option<String>,
+    pub isbn: Option<String>,
     /// Title
-    title: String,
+    pub title: String,
     /// Sub-title
     #[serde(rename = "subTitle")]
-    sub_title: Option<String>,
+    pub sub_title: Option<String>,
     /// Publisher's full name
-    press: String,
+    pub press: String,
     /// Author
-    author: Option<String>,
+    pub author: Option<String>,
     /// Translator (if it is a translated book)
-    translator: Option<String>,
+    pub translator: Option<String>,
     /// Official price
-    price: Option<f32>,
+    pub price: Option<f32>,
     /// Edition
-    edition: Option<String>,
+    pub edition: Option<String>,
     /// Publication year and month
     #[serde(rename = "editionDate")]
-    edition_date: Option<String>,
+    pub edition_date: Option<String>,
     /// Page count
-    page: Option<i32>,
+    pub page: Option<i32>,
     /// The major of the book itself
-    tag: Option<String>,
-    // A flag which indicates whether the book written by our school teacher
-    // #[serde(rename = "selfEdited")]
-    // self_edited: bool,
+    pub tag: Option<String>,
 }
 
-impl TextBook {
-    /// Query book by isbn
-    pub async fn query_by_isbn(client: &PgPool, isbn: &String) -> Result<Self> {
-        let textbook = sqlx::query_as(
-            "SELECT
-                    isbn, title, sub_title, press, author, translator, price, edition, edition_date, page, tag
-                FROM 
-                    mall.textbooks
-                WHERE 
-                    isbn = $1
-                LIMIT 1")
-            .bind(isbn)
-            .fetch_optional(client)
-            .await?;
-        textbook.ok_or(ApiError::new(MallError::NoSuchTextBook))
-    }
+#[derive(Serialize, sqlx::FromRow)]
+pub struct SimpleGoods {
+    pub id: i32,
+    /// Product name
+    pub title: String,
+    /// Cover image, used to show the whole picture
+    #[serde(rename = "coverImage")]
+    pub cover_image: String,
+    /// Tags, like '全新', '可议价'
+    pub tags: Vec<String>,
+    /// Price for selling
+    pub price: f32,
+    /// Status
+    pub status: i16,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct GoodsDetail {
+    pub id: i32,
+    /// Product name
+    pub title: String,
+    /// Product description and transaction requirements
+    pub description: Option<String>,
+    /// Goods status:
+    /// Normal, Sold or disabled.
+    pub status: i16,
+    /// Cover image, used to show the whole picture
+    #[serde(rename = "coverImage")]
+    pub cover_image: String,
+    /// Campus name.
+    pub campus: String,
+    /// Product detailed picture introduction
+    pub images: Vec<String>,
+    /// Tags, like '全新', '可议价'
+    pub tags: Vec<String>,
+    /// Features
+    pub features: serde_json::Value,
+    /// Price for selling
+    pub price: f32,
+    /// Uid of the Publisher
+    pub publisher: i32,
+    /// Submit and publish time
+    #[serde(rename = "publishTime")]
+    pub publish_time: DateTime<Utc>,
+    /// The count of person who want to buy and have gotten the contact of seller.
+    pub wish: i16,
+    /// Total views
+    pub views: i32,
+    /// Sort id
+    pub sort: i32,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct GoodsComment {
+    pub id: i32,
+    #[serde(rename = "goodsId")]
+    pub goods_id: i32,
+    /// Publisher's nick name
+    #[serde(rename = "publisherName")]
+    pub publisher: String,
+    /// A url to publisher avatar
+    pub publisher_avatar: String,
+    /// Comment content
+    pub content: String,
 }
