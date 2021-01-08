@@ -1207,7 +1207,6 @@ dependencies = [
  "num-traits",
  "rand",
  "regex",
- "sanitize-filename",
  "serde",
  "serde_json",
  "sqlx",
@@ -1810,16 +1809,6 @@ name = "ryu"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71d301d4193d031abdd79ff7e3dd721168a9572ef3fe51a1517aba235bd8f86e"
-
-[[package]]
-name = "sanitize-filename"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23fd0fec94ec480abfd86bb8f4f6c57e0efb36dac5c852add176ea7b04c74801"
-dependencies = [
- "lazy_static",
- "regex",
-]
 
 [[package]]
 name = "scopeguard"
