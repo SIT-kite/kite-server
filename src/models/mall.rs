@@ -7,9 +7,9 @@ use std::borrow::Borrow;
 #[derive(thiserror::Error, Debug, ToPrimitive)]
 pub enum MallError {
     #[error("教材信息库中无对应教材")]
-    NoSuchTextBook = 1,
+    NoSuchTextBook = 220,
     #[error("ISBN 格式错误")]
-    InvalidISBN = 2,
+    InvalidISBN = 221,
 }
 
 /* Model */
