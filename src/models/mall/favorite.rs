@@ -1,5 +1,5 @@
 use super::Favorites;
-use crate::error::{ApiError, Result};
+use crate::error::Result;
 use sqlx::PgPool;
 
 pub async fn get_favorites(db: &PgPool, person: i32) -> Result<Vec<Favorites>> {

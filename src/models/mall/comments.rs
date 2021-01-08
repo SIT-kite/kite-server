@@ -1,6 +1,5 @@
-use super::{GoodsDetail, SimpleGoods};
-use crate::error::{ApiError, Result};
-use crate::models::mall::{GoodsComment, MallError, NewComment};
+use crate::error::Result;
+use crate::models::mall::{GoodsComment, NewComment};
 use sqlx::PgPool;
 
 pub async fn get_comments(db: &PgPool, goods_id: i32) -> Result<Vec<GoodsComment>> {

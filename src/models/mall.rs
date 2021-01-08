@@ -1,14 +1,21 @@
 mod comments;
 mod favorite;
 mod goods;
+mod sort;
 mod textbook;
 mod views;
 mod wish;
 
 use chrono::{DateTime, Local, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-pub use textbook::query_textbook_by_isbn;
+pub use comments::*;
+pub use favorite::*;
+pub use goods::*;
+pub use sort::*;
+pub use textbook::*;
+pub use views::*;
+pub use wish::*;
 
 /// Error handled in motto module.
 #[derive(thiserror::Error, Debug, ToPrimitive)]
@@ -19,8 +26,6 @@ pub enum MallError {
     InvalidISBN = 221,
     #[error("找不到该商品")]
     NoSuchGoods = 222,
-    #[error("商品已删除")]
-    DeletedGoods = 223,
 }
 
 /* Model */
@@ -51,6 +56,14 @@ pub struct TextBook {
     pub page: Option<i32>,
     /// The major of the book itself
     pub tag: Option<String>,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct Sorts {
+    /// Sort id
+    pub id: i32,
+    /// Sort name
+    pub title: String,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -101,6 +114,29 @@ pub struct GoodsDetail {
     pub wish: i16,
     /// Total views
     pub views: i32,
+    /// Sort id
+    pub sort: i32,
+}
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+pub struct NewGoods {
+    /// Product name
+    pub title: String,
+    /// Product description and transaction requirements
+    pub description: Option<String>,
+    /// Cover image, used to show the whole picture
+    #[serde(rename = "coverImage")]
+    pub cover_image: String,
+    /// Campus name.
+    pub campus: String,
+    /// Product detailed picture introduction
+    pub images: Vec<String>,
+    /// Tags, like '全新', '可议价'
+    pub tags: Vec<String>,
+    /// Features
+    pub features: serde_json::Value,
+    /// Price for selling
+    pub price: f32,
     /// Sort id
     pub sort: i32,
 }

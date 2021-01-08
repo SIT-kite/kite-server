@@ -51,7 +51,7 @@ pub async fn server_main() -> std::io::Result<()> {
     let ws_host = AgentManager::new();
 
     let app_state = AppState {
-        pool: pool,
+        pool,
         host: ws_host.clone(),
     };
 
@@ -126,7 +126,9 @@ fn routes(app: &mut web::ServiceConfig) {
             // Get Notices
             .service(notice::get_notices)
             // Mall module
-            .service(mall::query_textbook),
+            .service(mall::query_textbook)
+            .service(mall::get_goods_sorts)
+            .service(mall::get_goods_list),
     );
 }
 

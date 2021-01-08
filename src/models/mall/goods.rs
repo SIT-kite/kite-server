@@ -1,33 +1,28 @@
 use super::{GoodsDetail, SimpleGoods};
 use crate::error::{ApiError, Result};
-use crate::models::mall::MallError;
+use crate::models::mall::{MallError, NewGoods};
 use crate::models::PageView;
 use sqlx::PgPool;
 
-pub async fn get_full_goods_list(db: &PgPool, page: PageView) -> Result<Vec<SimpleGoods>> {
-    let goods = sqlx::query_as!(
-        SimpleGoods,
-        "SELECT id, title, cover_image, tags, price, status
-        FROM mall.goods
-        ORDER BY publish_time DESC
-        LIMIT $1 OFFSET $2;",
-        page.count(10) as i16,
-        page.offset(10) as i64
-    )
-    .fetch_all(db)
-    .await?;
-    Ok(goods)
-}
+pub async fn get_full_goods_list(
+    db: &PgPool,
+    sort: i32,
+    q: &Option<String>,
+    page: PageView,
+) -> Result<Vec<SimpleGoods>> {
+    let mut where_clause = format!("sort = {} ", if sort != 0 { sort } else { "sort" });
+    if let Some(q) = q {
+        where_clause.push_str(&format!("AND title LIKE '%{}%' ", q));
+    }
 
-pub async fn get_goods_list(db: &PgPool, sort: i32, page: PageView) -> Result<Vec<SimpleGoods>> {
     let goods = sqlx::query_as!(
         SimpleGoods,
         "SELECT id, title, cover_image, tags, price, status
         FROM mall.goods
-        WHERE sort = $1
         ORDER BY publish_time DESC
+        WHERE $1 
         LIMIT $2 OFFSET $3;",
-        sort,
+        where_clause,
         page.count(10) as i16,
         page.offset(10) as i64
     )
@@ -76,7 +71,7 @@ pub async fn delete_goods(db: &PgPool, goods_id: i32) -> Result<()> {
     result.map(|_| ()).ok_or(ApiError::new(MallError::NoSuchGoods))
 }
 
-pub async fn publish_goods(db: &PgPool, new: &GoodsDetail) -> Result<i32> {
+pub async fn publish_goods(db: &PgPool, uid: i32, new: &NewGoods) -> Result<i32> {
     let returning = sqlx::query!(
         "INSERT INTO mall.goods
             (title, description, status, cover_image, campus, images, tags, price,
@@ -85,13 +80,13 @@ pub async fn publish_goods(db: &PgPool, new: &GoodsDetail) -> Result<i32> {
         RETURNING id;",
         new.title,
         new.description,
-        new.status,
+        1,
         new.cover_image,
         new.campus,
         &new.images,
         &new.tags,
         new.price,
-        new.publisher,
+        uid,
         new.sort,
         &new.features
     )
