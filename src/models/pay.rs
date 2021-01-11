@@ -125,9 +125,7 @@ impl<'a> BalanceManager<'a> {
 
     pub async fn query_recent_consumption_rank(self, room: i32) -> Result<RecentConsumptionRank> {
         let rank = sqlx::query_as(
-            "SELECT room, consumption, rank, (SELECT CAST(COUNT(*) AS integer) FROM dormitory.rooms) AS room_count
-                FROM dormitory.rank_last_24hour_consumption()
-                WHERE room = $1 LIMIT 1",
+            "SELECT room, consumption, rank, room_count FROM dormitory.get_room_24hour_rank($1);",
         )
         .bind(room)
         .fetch_optional(self.db)
