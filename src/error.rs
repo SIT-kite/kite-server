@@ -5,11 +5,11 @@ use actix_web::{error::ResponseError, HttpResponse};
 use anyhow::Error as AnyError;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
-use serde::export::Formatter;
 use serde::Serialize;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlError;
 use std::fmt;
+use std::fmt::Formatter;
 use std::io::Error as StdIoError;
 
 pub type Result<T> = std::result::Result<T, ApiError>;
