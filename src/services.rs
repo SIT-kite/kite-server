@@ -2,16 +2,11 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
-use std::io::Read;
-
-use actix_web::http::HeaderValue;
-use actix_web::{web, App, HttpResponse, HttpServer};
-use serde::{Deserialize, Serialize};
-use sqlx::postgres::{PgPool, PgPoolOptions};
-use sqlx::Executor;
-
 use crate::bridge::AgentManager;
 use crate::config::CONFIG;
+use actix_web::{web, App, HttpResponse, HttpServer};
+use sqlx::postgres::{PgPool, PgPoolOptions};
+use std::io::Read;
 
 mod auth;
 mod handlers;
@@ -78,7 +73,7 @@ pub async fn server_main() -> std::io::Result<()> {
 }
 
 fn routes(app: &mut web::ServiceConfig) {
-    use handlers::{attachment, edu, event, freshman, mall, motto, notice, pay, status, user};
+    use handlers::{attachment, edu, event, freshman, mall, motto, notice, pay, search, status, user};
 
     app.service(
         // API scope: version 1
@@ -126,6 +121,8 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(pay::query_room_consumption_rank)
             // Get Notices
             .service(notice::get_notices)
+            // Search module
+            .service(search::search)
             // Mall module
             .service(mall::query_textbook)
             .service(mall::get_goods_sorts)
@@ -143,6 +140,10 @@ fn set_logger(path: &str) {
         .apply()
         .expect("Failed to set logger.");
 }
+
+use actix_web::http::HeaderValue;
+use serde::{Deserialize, Serialize};
+use sqlx::Executor;
 
 /// User Jwt token carried in each request.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
