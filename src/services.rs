@@ -75,7 +75,7 @@ pub async fn server_main() -> std::io::Result<()> {
 }
 
 fn routes(app: &mut web::ServiceConfig) {
-    use handlers::{attachment, edu, event, freshman, motto, notice, pay, status, user};
+    use handlers::{attachment, edu, event, freshman, motto, notice, pay, search, status, user};
 
     app.service(
         // API scope: version 1
@@ -122,7 +122,9 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(pay::query_room_bills_by_hour)
             .service(pay::query_room_consumption_rank)
             // Get Notices
-            .service(notice::get_notices),
+            .service(notice::get_notices)
+            // Search module
+            .service(search::search),
     );
 }
 

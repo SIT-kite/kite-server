@@ -14,6 +14,8 @@ pub mod motto;
 pub mod notice;
 /// Querying electricity bill and expenses record.
 pub mod pay;
+/// Search mod
+pub mod search;
 /// User management.
 pub mod user;
 
