@@ -2,10 +2,10 @@ use crate::error::ApiError;
 use crate::jwt::*;
 use crate::models::CommonError;
 use crate::services::{get_auth_bearer_value, JwtToken};
-use actix_http::http::Method;
 use actix_service::{Service, Transform};
 use actix_web::{
     dev::{ServiceRequest, ServiceResponse},
+    http::Method,
     Error, HttpResponse,
 };
 use futures::future::{ok, Either, Ready};

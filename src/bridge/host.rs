@@ -38,7 +38,7 @@ impl Agent {
 
     /// Send request to the agent
     async fn send(&mut self, request: Request) -> Result<()> {
-        let mut channel = self.channel.clone().ok_or(HostError::AgentUnavailable)?;
+        let channel = self.channel.clone().ok_or(HostError::AgentUnavailable)?;
 
         // Send request packet to the sender loop to post, if the process failed, set channel to None
         // so that the next try could return immediately.
@@ -148,7 +148,7 @@ impl Agent {
         Ok(())
     }
 
-    async fn heartbeat_loop(last_update: Arc<RwLock<Instant>>, mut tx: mpsc::Sender<Request>) {
+    async fn heartbeat_loop(last_update: Arc<RwLock<Instant>>, tx: mpsc::Sender<Request>) {
         let timeout = Duration::from_secs(20);
         let mut f = false;
 
@@ -164,7 +164,7 @@ impl Agent {
             } else {
                 f = false;
             }
-            tokio::time::delay_for(timeout).await;
+            tokio::time::sleep(timeout).await;
         }
         info!("Heartbeat loop exited.");
     }
@@ -208,7 +208,7 @@ impl Agent {
             let mut rx = channel.receiver;
 
             rx.recv().await;
-            tokio::time::delay_for(Duration::from_secs(1)).await;
+            tokio::time::sleep(Duration::from_secs(1)).await;
             self.halt = None;
 
             return;
@@ -303,7 +303,7 @@ impl AgentManager {
     }
 
     pub async fn agent_main(&self) -> Result<()> {
-        let mut listener = TcpListener::bind(&CONFIG.host.bind).await?;
+        let listener = TcpListener::bind(&CONFIG.host.bind).await?;
 
         while let Ok((stream, peer)) = listener.accept().await {
             info!("New agent connection established, with {}", peer);

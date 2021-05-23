@@ -1,15 +1,12 @@
 use crate::models::user::wechat::WxErr;
-use actix_http::error::PayloadError;
-use actix_http::{http::StatusCode, ResponseBuilder};
-use actix_web::{error::ResponseError, HttpResponse};
+use actix_web::dev::BaseHttpResponseBuilder;
+use actix_web::{error::PayloadError, http::StatusCode, BaseHttpResponse, ResponseError};
 use anyhow::Error as AnyError;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
-use serde::export::Formatter;
 use serde::Serialize;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlError;
-use std::fmt;
 use std::io::Error as StdIoError;
 
 pub type Result<T> = std::result::Result<T, ApiError>;
@@ -31,8 +28,8 @@ pub struct ApiError {
     pub error_msg: Option<String>,
 }
 
-impl fmt::Display for ApiError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for ApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "ServerError {{code: {}, msg: {}}} ",
@@ -48,8 +45,11 @@ impl ResponseError for ApiError {
         StatusCode::OK
     }
     // Make json response body for error.
-    fn error_response(&self) -> HttpResponse {
-        ResponseBuilder::new(self.status_code()).json(self)
+    fn error_response(&self) -> BaseHttpResponse<actix_web::dev::Body> {
+        let body = serde_json::to_string(&self).unwrap_or(String::from("Internal Server Error"));
+        BaseHttpResponseBuilder::new(StatusCode::OK)
+            .content_type("application/json")
+            .body(body)
     }
 }
 

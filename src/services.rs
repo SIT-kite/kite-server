@@ -4,9 +4,8 @@
 
 use crate::bridge::AgentManager;
 use crate::config::CONFIG;
-use actix_http::http::HeaderValue;
+use actix_web::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
-use middlewares::reject::Reject;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;

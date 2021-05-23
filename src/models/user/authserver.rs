@@ -1,8 +1,7 @@
 use super::UserError;
 use crate::error::{ApiError, Result};
-use actix_http::http::StatusCode;
-use actix_http::httpmessage::HttpMessage;
-use actix_web::client::Client;
+use actix_web::http::StatusCode;
+use awc::Client;
 
 /// Login page.
 const LOGIN_URL: &str = "https://authserver.sit.edu.cn/authserver/login";
@@ -53,9 +52,9 @@ pub async fn portal_login(user_name: &str, password: &str) -> Result<String> {
     // Submit user, password, and get final token in cookies.
     let response = client
         .post(LOGIN_URL)
-        .set_header("Content-Type", "application/x-www-form-urlencoded")
-        .set_header("Referrer", LOGIN_URL)
-        .set_header("Cookie", cookie_string)
+        .insert_header(("Content-Type", "application/x-www-form-urlencoded"))
+        .insert_header(("Referrer", LOGIN_URL))
+        .insert_header(("Cookie", cookie_string))
         .send_body(&make_parameter!(
             "username" => user_name,
             "password" => &urlencoding::encode(&generate_passwd_string(&password.to_string(), &aes_key)),
@@ -88,7 +87,7 @@ pub fn generate_passwd_string(clear_password: &String, key: &String) -> String {
     type Aes128Cbc = Cbc<aes::Aes128, Pkcs7>;
 
     // Create an AES object.
-    let cipher = Aes128Cbc::new_var(key.as_bytes(), &[0u8; 16]).unwrap();
+    let cipher = Aes128Cbc::new_from_slices(key.as_bytes(), &[0u8; 16]).unwrap();
     // Concat plaintext: 64 bytes random bytes and original password.
     let mut content = Vec::new();
     content.extend_from_slice(&[0u8; 64]);

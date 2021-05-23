@@ -55,8 +55,7 @@ pub async fn get_goods_list(
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
     let page = page.into_inner();
-    let goods_list =
-        mall::get_full_goods_list(&app.pool, params.sort.unwrap_or(0), &params.q, page).await?;
+    let goods_list = mall::get_full_goods_list(&app.pool, page).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(goods_list)))
 }
 
@@ -68,10 +67,16 @@ pub async fn publish_goods(
 ) -> Result<HttpResponse> {
     let form = form.into_inner();
 
-    if form.description.map(|x| x.len()).ge(&Some(200)) || form.title.len() > 30 {
+    if let Some(description_text) = &form.description {
+        if description_text.len() > 200 {
+            return Err(ApiError::new(CommonError::Parameter));
+        }
+    }
+    if form.title.len() > 30 {
         return Err(ApiError::new(CommonError::Parameter));
     }
     let goods_id = mall::publish_goods(&app.pool, token.uid, &form).await?;
+    #[derive(serde::Serialize)]
     struct PublishResult {
         id: i32,
     }

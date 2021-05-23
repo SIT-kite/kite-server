@@ -3,7 +3,6 @@ use super::{AvatarImage, AvatarManager};
 use crate::config::CONFIG;
 use crate::error::{ApiError, Result};
 use crate::models::file::AttachmentError;
-use actix_web::client as awc;
 use sqlx::PgPool;
 use tokio::io::AsyncWriteExt;
 

@@ -6,7 +6,7 @@ mod textbook;
 mod views;
 mod wish;
 
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
 pub use comments::*;
@@ -109,7 +109,7 @@ pub struct GoodsDetail {
     pub publisher: i32,
     /// Submit and publish time
     #[serde(rename = "publishTime")]
-    pub publish_time: DateTime<Utc>,
+    pub publish_time: DateTime<Local>,
     /// The count of person who want to buy and have gotten the contact of seller.
     pub wish: i16,
     /// Total views
@@ -120,6 +120,7 @@ pub struct GoodsDetail {
 
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
 pub struct NewGoods {
+    pub id: i32,
     /// Product name
     pub title: String,
     /// Product description and transaction requirements
@@ -158,6 +159,7 @@ pub struct GoodsComment {
 
 #[derive(Serialize, sqlx::FromRow)]
 pub struct NewComment {
+    pub id: i32,
     #[serde(rename = "goodsId")]
     pub goods_id: i32,
     /// Publisher's uid
@@ -175,7 +177,7 @@ pub struct Favorites {
     /// Goods image
     pub image: String,
     /// Favorite timestamp
-    pub ts: DateTime<Utc>,
+    pub ts: DateTime<Local>,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -185,7 +187,7 @@ pub struct Views {
     /// Goods id
     pub goods: i32,
     /// Favorite timestamp
-    pub ts: DateTime<Utc>,
+    pub ts: DateTime<Local>,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -195,5 +197,5 @@ pub struct Wishes {
     /// Goods id
     pub goods: i32,
     /// Favorite timestamp
-    pub ts: DateTime<Utc>,
+    pub ts: DateTime<Local>,
 }

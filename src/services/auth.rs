@@ -1,15 +1,15 @@
 use super::get_auth_bearer_value;
 use crate::jwt::decode_jwt;
 use crate::services::JwtToken;
-use actix_http::{Error, Payload, PayloadStream};
-use actix_web::error::ErrorUnauthorized;
+use actix_web::dev::{Payload, PayloadStream};
+use actix_web::error::{Error, ErrorUnauthorized};
 use actix_web::{FromRequest, HttpRequest};
 use futures::future::{err, ok, Ready};
 
 impl FromRequest for JwtToken {
+    type Config = ();
     type Error = Error;
     type Future = Ready<Result<Self, Self::Error>>;
-    type Config = ();
 
     fn from_request(req: &HttpRequest, _: &mut Payload<PayloadStream>) -> Self::Future {
         // Get authentication header.
