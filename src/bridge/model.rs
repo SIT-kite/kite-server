@@ -22,6 +22,7 @@ pub struct CourseScoreRequest {
     pub credential: String,
     pub term: String,
 }
+
 /// Course score function.
 #[derive(Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct CourseScoreInner {

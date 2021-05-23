@@ -1,10 +1,15 @@
-use super::model::*;
-use super::Result;
-use serde::{Deserialize, Serialize};
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
+
+use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, BufReader};
 use tokio::net::tcp::OwnedReadHalf;
+
+use crate::bridge::HostError;
+use crate::error::ApiError;
+
+use super::model::*;
+use super::Result;
 
 lazy_static! {
     /// Last seq of request packet
@@ -46,9 +51,6 @@ pub struct ErrorResponse {
     pub code: u16,
     pub msg: String,
 }
-
-use crate::bridge::HostError;
-use crate::error::ApiError;
 
 /// Response payload
 #[derive(Serialize)]

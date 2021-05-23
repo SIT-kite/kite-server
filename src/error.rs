@@ -1,4 +1,5 @@
-use crate::models::user::wechat::WxErr;
+use std::io::Error as StdIoError;
+
 use actix_web::dev::BaseHttpResponseBuilder;
 use actix_web::{error::PayloadError, http::StatusCode, BaseHttpResponse, ResponseError};
 use anyhow::Error as AnyError;
@@ -7,7 +8,8 @@ use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlError;
-use std::io::Error as StdIoError;
+
+use crate::models::user::wechat::WxErr;
 
 pub type Result<T> = std::result::Result<T, ApiError>;
 pub type Error = ApiError;

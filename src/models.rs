@@ -1,5 +1,11 @@
 //! This module contains all the abstract models required by the business.
 
+use num_traits::ToPrimitive;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+use crate::error::ApiError;
+
 /// Course and score management.
 pub mod edu;
 /// Event display, sign-in and statistics
@@ -18,11 +24,6 @@ pub mod notice;
 pub mod pay;
 /// User management.
 pub mod user;
-
-use crate::error::ApiError;
-use num_traits::ToPrimitive;
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 const DEFAULT_PAGE_INDEX: u16 = 1;
 const DEFAULT_ITEM_COUNT: u16 = 20;

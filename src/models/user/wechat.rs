@@ -119,7 +119,7 @@ pub async fn get_session_by_code(wechat_code: &str) -> Result<WxSession, ApiErro
             return Err(ApiError::from(WxErr {
                 errcode: 0,
                 errmsg: String::from("Unknown."),
-            }))
+            }));
         }
     };
 }

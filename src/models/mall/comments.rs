@@ -1,6 +1,7 @@
+use sqlx::PgPool;
+
 use crate::error::Result;
 use crate::models::mall::{GoodsComment, NewComment};
-use sqlx::PgPool;
 
 pub async fn get_comments(db: &PgPool, goods_id: i32) -> Result<Vec<GoodsComment>> {
     let comments: Vec<GoodsComment> = sqlx::query_as(

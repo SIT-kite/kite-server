@@ -1,6 +1,8 @@
-use super::Favorites;
-use crate::error::Result;
 use sqlx::PgPool;
+
+use crate::error::Result;
+
+use super::Favorites;
 
 pub async fn get_favorites(db: &PgPool, person: i32) -> Result<Vec<Favorites>> {
     let comments: Vec<Favorites> = sqlx::query_as(

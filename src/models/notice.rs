@@ -1,7 +1,8 @@
-use crate::error::Result;
 use chrono::NaiveDateTime;
 use serde::Serialize;
 use sqlx::PgPool;
+
+use crate::error::Result;
 
 /// WeChat Miniprogram home page notification.
 #[derive(sqlx::FromRow, Serialize)]

@@ -1,8 +1,9 @@
-use crate::error::Result;
-use crate::models::PageView;
 use chrono::Datelike;
 use serde::Serialize;
 use sqlx::PgPool;
+
+use crate::error::Result;
+use crate::models::PageView;
 
 // Unused.
 // #[derive(Debug, Serialize, Deserialize)]
@@ -38,8 +39,10 @@ pub struct CourseClass {
     pub class_id: String,
     pub teacher: Vec<String>,
     pub place: Vec<String>,
-    pub campus: String,  // todo: convert to number.
-    pub plan_count: i16, // 添加 提升空间字段
+    pub campus: String,
+    // todo: convert to number.
+    pub plan_count: i16,
+    // 添加 提升空间字段
     pub selected_count: i16,
     pub arranged_class: Vec<String>,
     #[serde(skip_serializing_if = "String::is_empty")]

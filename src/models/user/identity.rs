@@ -1,5 +1,6 @@
-use super::Identity;
 use crate::error::Result;
+
+use super::Identity;
 
 async fn oa_password_check(account: &str, password: &str) -> Result<()> {
     super::authserver::portal_login(account, password).await?;

@@ -1,8 +1,10 @@
-use super::{GoodsDetail, SimpleGoods};
+use sqlx::PgPool;
+
 use crate::error::{ApiError, Result};
 use crate::models::mall::{MallError, NewGoods};
 use crate::models::PageView;
-use sqlx::PgPool;
+
+use super::{GoodsDetail, SimpleGoods};
 
 pub async fn get_full_goods_list(db: &PgPool, page: PageView) -> Result<Vec<SimpleGoods>> {
     // 0 presents all sorts.

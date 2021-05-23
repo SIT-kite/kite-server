@@ -1,13 +1,15 @@
-use crate::error::ApiError;
-use crate::ipset;
-use crate::models::CommonError;
+use std::net::Ipv4Addr;
+use std::str::FromStr;
+use std::task::{Context, Poll};
+
 use actix_service::{Service, Transform};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::{Error, HttpResponse};
 use futures::future::{ok, Either, Ready};
-use std::net::Ipv4Addr;
-use std::str::FromStr;
-use std::task::{Context, Poll};
+
+use crate::error::ApiError;
+use crate::ipset;
+use crate::models::CommonError;
 
 pub struct Reject {
     white_list: ipset::IpSet,

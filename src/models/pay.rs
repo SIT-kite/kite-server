@@ -1,5 +1,6 @@
-use crate::error::{ApiError, Result};
 use chrono::{DateTime, Local};
+
+use crate::error::{ApiError, Result};
 
 #[derive(serde::Serialize, sqlx::FromRow)]
 /// Electricity Balance for FengXian dormitory.

@@ -1,6 +1,8 @@
-use super::Views;
-use crate::error::Result;
 use sqlx::PgPool;
+
+use crate::error::Result;
+
+use super::Views;
 
 pub async fn get_views(db: &PgPool, goods: i32) -> Result<Vec<Views>> {
     let comments: Vec<_> =

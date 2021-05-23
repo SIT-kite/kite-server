@@ -1,10 +1,12 @@
-use super::{Authentication, Identity, Person, UserError};
-use super::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
+use chrono::Utc;
+use sqlx::PgPool;
+
 use crate::error::ApiError;
 use crate::error::Result;
 use crate::models::user::LOGIN_BY_CAMPUS_WEB;
-use chrono::Utc;
-use sqlx::PgPool;
+
+use super::{Authentication, Identity, Person, UserError};
+use super::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
 
 impl Authentication {
     pub fn from_password(username: String, password: String) -> Self {

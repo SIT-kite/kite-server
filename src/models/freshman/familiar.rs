@@ -1,7 +1,9 @@
-use super::{FreshmanBasic, NewMate, PeopleFamiliar};
+use sqlx::PgPool;
+
 use crate::error::Result;
 use crate::models::freshman::{FreshmanAnalysis, MapDefaultAvatar};
-use sqlx::PgPool;
+
+use super::{FreshmanBasic, NewMate, PeopleFamiliar};
 
 impl FreshmanBasic {
     /* Classmates, roommates, and familiar people */
@@ -21,9 +23,9 @@ impl FreshmanBasic {
                 AND stu.student_id <> $1
             ORDER BY stu.student_id",
         )
-        .bind(&self.student_id)
-        .fetch_all(client)
-        .await?;
+            .bind(&self.student_id)
+            .fetch_all(client)
+            .await?;
 
         Ok(classmates.map_default_avatar())
     }
@@ -42,9 +44,9 @@ impl FreshmanBasic {
                 AND stu.building = self.building
                 AND stu.student_id <> $1",
         )
-        .bind(&self.student_id)
-        .fetch_all(client)
-        .await?;
+            .bind(&self.student_id)
+            .fetch_all(client)
+            .await?;
 
         Ok(roommates.map_default_avatar())
     }

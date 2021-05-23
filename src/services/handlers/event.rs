@@ -1,9 +1,10 @@
 //! This module includes interfaces about the event and sign.
+use actix_web::{get, web, HttpResponse};
+
 use crate::error::Result;
 use crate::models::{event, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
-use actix_web::{get, web, HttpResponse};
 
 /**********************************************************************
     Interfaces in this module:

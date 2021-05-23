@@ -1,11 +1,3 @@
-mod comments;
-mod favorite;
-mod goods;
-mod sort;
-mod textbook;
-mod views;
-mod wish;
-
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +8,14 @@ pub use sort::*;
 pub use textbook::*;
 pub use views::*;
 pub use wish::*;
+
+mod comments;
+mod favorite;
+mod goods;
+mod sort;
+mod textbook;
+mod views;
+mod wish;
 
 /// Error handled in motto module.
 #[derive(thiserror::Error, Debug, ToPrimitive)]

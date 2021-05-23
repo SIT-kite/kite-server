@@ -2,14 +2,16 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
-use crate::bridge::AgentManager;
-use crate::config::CONFIG;
+use std::io::Read;
+
 use actix_web::http::HeaderValue;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
-use std::io::Read;
+
+use crate::bridge::AgentManager;
+use crate::config::CONFIG;
 
 mod auth;
 mod handlers;

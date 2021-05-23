@@ -1,10 +1,12 @@
-use super::get_auth_bearer_value;
-use crate::jwt::decode_jwt;
-use crate::services::JwtToken;
 use actix_web::dev::{Payload, PayloadStream};
 use actix_web::error::{Error, ErrorUnauthorized};
 use actix_web::{FromRequest, HttpRequest};
 use futures::future::{err, ok, Ready};
+
+use crate::jwt::decode_jwt;
+use crate::services::JwtToken;
+
+use super::get_auth_bearer_value;
 
 impl FromRequest for JwtToken {
     type Config = ();

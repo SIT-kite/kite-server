@@ -3,9 +3,14 @@
 extern crate chrono;
 #[macro_use]
 extern crate lazy_static;
+extern crate log;
 #[macro_use]
 extern crate num_derive;
-extern crate log;
+
+use futures::TryFutureExt;
+
+// Import main function.
+use crate::services::server_main;
 
 mod bridge;
 mod config;
@@ -14,10 +19,6 @@ mod ipset;
 mod jwt;
 mod models;
 mod services;
-
-// Import main function.
-use crate::services::server_main;
-use futures::TryFutureExt;
 
 #[actix_web::main]
 async fn main() {

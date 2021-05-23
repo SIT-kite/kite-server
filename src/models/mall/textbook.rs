@@ -1,7 +1,9 @@
-use super::TextBook;
+use sqlx::PgPool;
+
 use crate::error::{ApiError, Result};
 use crate::models::mall::MallError;
-use sqlx::PgPool;
+
+use super::TextBook;
 
 /// Query book by isbn
 pub async fn query_textbook_by_isbn(db: &PgPool, isbn: &str) -> Result<TextBook> {

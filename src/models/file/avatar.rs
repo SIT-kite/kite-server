@@ -1,10 +1,12 @@
-use super::AttachmentManager;
-use super::{AvatarImage, AvatarManager};
+use sqlx::PgPool;
+use tokio::io::AsyncWriteExt;
+
 use crate::config::CONFIG;
 use crate::error::{ApiError, Result};
 use crate::models::file::AttachmentError;
-use sqlx::PgPool;
-use tokio::io::AsyncWriteExt;
+
+use super::AttachmentManager;
+use super::{AvatarImage, AvatarManager};
 
 /// Url prefix for avatars.
 static URL_PREFIX: &str = "https://kite.sunnysab.cn/static/avatar/";

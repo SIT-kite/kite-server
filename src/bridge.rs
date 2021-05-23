@@ -1,19 +1,19 @@
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::Arc;
+
+use serde::Serialize;
+use tokio::sync::{broadcast, mpsc, oneshot, Mutex};
+
+use model::AgentInfo;
+use protocol::{Request, Response};
+pub use protocol::{RequestPayload, ResponsePayload};
+
 pub mod host;
 mod model;
 mod protocol;
 
-use model::AgentInfo;
-
-use protocol::{Request, Response};
-use serde::Serialize;
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::sync::Arc;
-use tokio::sync::{broadcast, mpsc, oneshot, Mutex};
-
 pub type Result<T> = anyhow::Result<T>;
-
-pub use protocol::{RequestPayload, ResponsePayload};
 
 #[derive(Debug, ToPrimitive, thiserror::Error)]
 /// Business error of web socket host

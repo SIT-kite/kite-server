@@ -1,8 +1,9 @@
 //! This module provides the ability to create, update and delete events, records and other about signs.
-use crate::error::Result;
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+
+use crate::error::Result;
 
 /// Event that imported from OA.
 const EVENT_TYPE_OA: i32 = 0;

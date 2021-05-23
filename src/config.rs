@@ -1,5 +1,6 @@
-use serde::Deserialize;
 use std::fs;
+
+use serde::Deserialize;
 
 // Look and rename kite.example.toml
 const DEFAULT_CONFIG_PATH: &str = "kite.toml";

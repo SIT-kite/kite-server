@@ -1,13 +1,14 @@
 //! This module includes interfaces about course, major and score.
 
+use actix_web::{get, web, HttpResponse};
+use chrono::Datelike;
+use serde::{Deserialize, Serialize};
+
 use crate::error::Result;
 use crate::models::edu::{self, CourseBase, CourseClass, Major, PlannedCourse};
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
-use actix_web::{get, web, HttpResponse};
-use chrono::Datelike;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 pub struct ListMajor {

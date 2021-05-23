@@ -1,9 +1,11 @@
-use super::{Attachment, AttachmentBasic, AttachmentError, AttachmentManager};
-use crate::error::{ApiError, Result};
-use crate::models::PageView;
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
+
+use crate::error::{ApiError, Result};
+use crate::models::PageView;
+
+use super::{Attachment, AttachmentBasic, AttachmentError, AttachmentManager};
 
 /// Url prefix for attachment.
 static URL_PREFIX: &str = "https://kite.sunnysab.cn/static/upload/";

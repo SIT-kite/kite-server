@@ -1,9 +1,10 @@
-use crate::error::Result;
-use crate::services::response::ApiResponse;
-use crate::services::AppState;
 use actix_web::{get, web, HttpResponse};
 use chrono::Utc;
 use serde::Serialize;
+
+use crate::error::Result;
+use crate::services::response::ApiResponse;
+use crate::services::AppState;
 
 #[get("/status/timestamp")]
 pub async fn get_timestamp() -> Result<HttpResponse> {

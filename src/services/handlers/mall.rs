@@ -1,9 +1,10 @@
+use actix_web::{get, post, web, HttpResponse};
+
 use crate::error::{ApiError, Result};
 use crate::models::mall::{self, MallError};
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
-use actix_web::{get, post, web, HttpResponse};
 
 pub fn is_numeric(s: &str) -> bool {
     for ch in s.chars() {

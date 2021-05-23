@@ -5,14 +5,16 @@
 //! name or admission ticket number, when the word "secret" used as "password".
 //! Usually, secret is the six right characters of their id card number.
 
-mod familiar;
-mod myself;
-
 use chrono::NaiveDateTime;
 use serde::Serialize;
 
 pub use familiar::*;
 pub use myself::*;
+
+use super::user::get_default_avatar;
+
+mod familiar;
+mod myself;
 
 #[derive(Debug, thiserror::Error, ToPrimitive)]
 pub enum FreshmanError {
@@ -135,8 +137,6 @@ pub struct FreshmanAnalysis {
 trait MapDefaultAvatar {
     fn map_default_avatar(self) -> Self;
 }
-
-use super::user::get_default_avatar;
 
 macro_rules! impl_default_avatar {
     ($structure: ident) => {

@@ -1,19 +1,21 @@
-use super::model::{AgentInfo, AgentInfoRequest};
-use super::protocol::{Request, RequestPayload, Response, ResponsePayload};
-use super::{Agent, AgentManager, AgentStatus, HostError, RequestQueue};
-use crate::config::CONFIG;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
+
+use log::{error, info, warn};
 use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{broadcast, mpsc, oneshot, Mutex, RwLock};
 use tokio::time::Duration;
 
-use super::Result;
 use crate::bridge::HaltChannel;
-use log::{error, info, warn};
+use crate::config::CONFIG;
+
+use super::model::{AgentInfo, AgentInfoRequest};
+use super::protocol::{Request, RequestPayload, Response, ResponsePayload};
+use super::Result;
+use super::{Agent, AgentManager, AgentStatus, HostError, RequestQueue};
 
 impl Clone for HaltChannel {
     fn clone(&self) -> Self {

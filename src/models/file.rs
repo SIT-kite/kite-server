@@ -1,9 +1,6 @@
 //! This module manages attachments, storage, upload and provides some interfaces for administrators.
 //! At current time, file will be stored in local storage.
 
-mod attachment;
-mod avatar;
-
 use chrono::NaiveDateTime;
 use serde::Serialize;
 use sqlx::PgPool;
@@ -11,6 +8,9 @@ use uuid::Uuid;
 
 pub use attachment::get_attachment_url_prefix;
 pub use attachment::get_file_extension;
+
+mod attachment;
+mod avatar;
 
 #[derive(Debug, thiserror::Error, Serialize, ToPrimitive)]
 pub enum AttachmentError {

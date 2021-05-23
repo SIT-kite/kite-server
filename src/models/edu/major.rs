@@ -1,7 +1,8 @@
-use crate::error::Result;
 use chrono::NaiveDateTime;
 use serde::Serialize;
 use sqlx::PgPool;
+
+use crate::error::Result;
 
 /// Correspondence between the school's professional codes and names
 #[derive(Debug, Serialize, sqlx::FromRow)]

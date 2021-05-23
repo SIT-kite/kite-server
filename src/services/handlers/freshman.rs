@@ -1,10 +1,11 @@
 //! This module includes interfaces about freshman queries.
+use actix_web::{get, post, put, web, HttpResponse};
+use serde::{Deserialize, Serialize};
+
 use crate::error::Result;
 use crate::models::freshman::{FreshmanAnalysis, FreshmanManager, NewMate, PeopleFamiliar};
 use crate::models::CommonError;
 use crate::services::{response::ApiResponse, AppState, JwtToken};
-use actix_web::{get, post, put, web, HttpResponse};
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 pub struct FreshmanReqSecret {

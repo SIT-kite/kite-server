@@ -1,10 +1,11 @@
+use actix_web::{get, web, HttpResponse};
+use serde::Deserialize;
+
 use crate::error::Result;
 use crate::models::motto::Motto;
 use crate::models::motto::{MOTTO_MAX_SIZE, MOTTO_MIN_SIZE};
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
-use actix_web::{get, web, HttpResponse};
-use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct MottoRequest {

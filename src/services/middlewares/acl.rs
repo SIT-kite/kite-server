@@ -1,7 +1,6 @@
-use crate::error::ApiError;
-use crate::jwt::*;
-use crate::models::CommonError;
-use crate::services::{get_auth_bearer_value, JwtToken};
+use std::result::Result;
+use std::task::{Context, Poll};
+
 use actix_service::{Service, Transform};
 use actix_web::{
     dev::{ServiceRequest, ServiceResponse},
@@ -9,8 +8,11 @@ use actix_web::{
     Error, HttpResponse,
 };
 use futures::future::{ok, Either, Ready};
-use std::result::Result;
-use std::task::{Context, Poll};
+
+use crate::error::ApiError;
+use crate::jwt::*;
+use crate::models::CommonError;
+use crate::services::{get_auth_bearer_value, JwtToken};
 
 pub struct Auth;
 

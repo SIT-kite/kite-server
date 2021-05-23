@@ -1,6 +1,7 @@
-use crate::error::{ApiError, Result};
 use serde::Serialize;
 use sqlx::PgPool;
+
+use crate::error::{ApiError, Result};
 
 /* Constants. */
 // Actually, the two constants are suggested min and max length, because of mottos in our DB.
@@ -44,10 +45,10 @@ impl Motto {
                     WHERE selected.id = motto.id
                 RETURNING motto.id, motto.source, motto.content, motto.impressions"
         )
-        .bind(min_length as i32)
-        .bind(max_length as i32)
-        .fetch_optional(client)
-        .await?;
+            .bind(min_length as i32)
+            .bind(max_length as i32)
+            .fetch_optional(client)
+            .await?;
         if let Some(motto) = motto {
             return Ok(motto);
         }

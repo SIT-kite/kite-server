@@ -1,7 +1,9 @@
-use super::UserError;
-use crate::error::{ApiError, Result};
 use actix_web::http::StatusCode;
 use awc::Client;
+
+use crate::error::{ApiError, Result};
+
+use super::UserError;
 
 /// Login page.
 const LOGIN_URL: &str = "https://authserver.sit.edu.cn/authserver/login";

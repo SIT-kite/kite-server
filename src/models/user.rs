@@ -1,14 +1,14 @@
 //! This module provides the ability to create, update and delete users including authentication tokens.
 
-mod authserver;
-mod identity;
-mod person;
-pub(crate) mod wechat;
-
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 pub use person::get_default_avatar;
+
+mod authserver;
+mod identity;
+mod person;
+pub(crate) mod wechat;
 
 /* Constants at the edge between self and database. */
 
