@@ -19,8 +19,6 @@ pub async fn get_timestamp() -> Result<HttpResponse> {
 // TODO: Consider to separate the interface to /status/cpu, /status/memory
 #[get("/status/system")]
 pub async fn get_system_status() -> Result<HttpResponse> {
-    use sys_info;
-
     #[derive(Serialize, Default)]
     struct MemoryStatus {
         pub total: u64,

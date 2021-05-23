@@ -22,7 +22,7 @@ pub async fn upload_file(
     mut payload: actix_multipart::Multipart,
     req: web::HttpRequest,
 ) -> Result<HttpResponse> {
-    let uid = token.ok_or(ApiError::new(CommonError::Forbidden))?.uid;
+    let uid = token.ok_or_else(|| ApiError::new(CommonError::Forbidden))?.uid;
 
     // Check file size
     for (header, value) in req.headers() {
@@ -67,13 +67,13 @@ pub async fn upload_file(
             .map_err(|_| ApiError::new(AttachmentError::Interrupted))?
         {
             file_size += chunk.len();
-            if let Err(_) = writer.write_all(&chunk).await {
+            if writer.write_all(&chunk).await.is_err() {
                 drop(writer);
-                tokio::fs::remove_file(&path).await;
+                tokio::fs::remove_file(&path).await.unwrap_or(());
                 return Err(ApiError::new(AttachmentError::FailedToWrite));
             }
         }
-        writer.flush().await;
+        writer.flush().await.unwrap_or(());
 
         let attachment = Attachment::with_id(uuid).set_uploader(uid).set_file(
             get_attachment_url_prefix(),
@@ -93,7 +93,7 @@ pub async fn list_attachments(
     token: Option<JwtToken>,
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
-    let token = token.ok_or(ApiError::new(CommonError::Forbidden))?;
+    let token = token.ok_or_else(|| ApiError::new(CommonError::Forbidden))?;
     if !token.is_admin {
         return Err(ApiError::new(CommonError::Forbidden));
     }

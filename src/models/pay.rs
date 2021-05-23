@@ -63,15 +63,14 @@ impl<'a> BalanceManager<'a> {
     }
 
     pub async fn query_last_balance(self, room: i32) -> Result<ElectricityBalance> {
-        let balance: Option<ElectricityBalance> = sqlx::query_as(
+        sqlx::query_as(
             "SELECT room, total_balance AS balance, CAST(total_balance / 0.6 AS real) AS power, ts
                 FROM dormitory.balance WHERE room = $1 ORDER BY ts DESC LIMIT 1",
         )
         .bind(room)
         .fetch_optional(self.db)
-        .await?;
-
-        balance.ok_or(ApiError::new(BalanceError::NoSuchRoom))
+        .await?
+        .ok_or_else(|| ApiError::new(BalanceError::NoSuchRoom))
     }
 
     pub async fn query_statistics_by_day(
@@ -124,14 +123,14 @@ impl<'a> BalanceManager<'a> {
     }
 
     pub async fn query_recent_consumption_rank(self, room: i32) -> Result<RecentConsumptionRank> {
-        let rank = sqlx::query_as(
+        sqlx::query_as(
             "SELECT room, consumption, rank, (SELECT CAST(COUNT(*) AS integer) FROM dormitory.rooms) AS room_count
                 FROM dormitory.rank_last_24hour_consumption()
                 WHERE room = $1 LIMIT 1",
         )
-        .bind(room)
-        .fetch_optional(self.db)
-        .await?;
-        rank.ok_or(ApiError::new(BalanceError::NoSuchRoom))
+            .bind(room)
+            .fetch_optional(self.db)
+            .await?
+            .ok_or_else(|| ApiError::new(BalanceError::NoSuchRoom))
     }
 }

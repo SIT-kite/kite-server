@@ -1,4 +1,3 @@
-use jsonwebtoken;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -16,7 +15,7 @@ pub fn encode_jwt<T: Serialize>(claims: &T) -> Result<String> {
     )?)
 }
 
-pub fn decode_jwt<'a, T: DeserializeOwned>(token: &str) -> Option<T> {
+pub fn decode_jwt<T: DeserializeOwned>(token: &str) -> Option<T> {
     let key = &CONFIG.server.secret.as_ref();
     let decoding_key = jsonwebtoken::DecodingKey::from_secret(key);
     let option = jsonwebtoken::Validation {

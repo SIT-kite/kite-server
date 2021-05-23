@@ -26,7 +26,7 @@ impl IpCIDR {
         // FIX: Standard CIDR need to express the range of network address, but I encountered that
         // `127.0.0.1` doesn't meets `127.0.0.1/24`. Although the last `1` is not needed, we should
         // fix this issue.
-        let bin_prefix = ((0xFFFFFFFF00000000 as u64) >> n) as u32;
+        let bin_prefix = (0xFFFFFFFF00000000_u64 >> n) as u32;
         let prefix = prefix & bin_prefix;
 
         Self {
@@ -37,7 +37,7 @@ impl IpCIDR {
 
     /// To check if addr is in range.
     pub fn contain(&self, addr: u32) -> bool {
-        return addr & ((0xFFFFFFFF00000000 as u64) >> self.n) as u32 == self.addr_prefix;
+        addr & (0xFFFFFFFF00000000_u64 >> self.n) as u32 == self.addr_prefix
     }
 }
 
@@ -68,14 +68,14 @@ impl IpSet {
                 return true;
             }
         }
-        return false;
+        false
     }
 }
 
 #[inline]
 pub fn convert_ipv4_addr_to_u32(ipv4_addr: &[u8; 4]) -> u32 {
-    return ((ipv4_addr[0] as u32) << 24)
+    ((ipv4_addr[0] as u32) << 24)
         + ((ipv4_addr[1] as u32) << 16)
         + ((ipv4_addr[2] as u32) << 8)
-        + ipv4_addr[3] as u32;
+        + ipv4_addr[3] as u32
 }

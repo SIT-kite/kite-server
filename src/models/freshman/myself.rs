@@ -18,7 +18,7 @@ impl FreshmanBasic {
                 .await?;
         result
             .map(|x| x.0)
-            .ok_or(ApiError::new(FreshmanError::NoSuchAccount))
+            .ok_or_else(|| ApiError::new(FreshmanError::NoSuchAccount))
     }
 
     pub async fn set_contact(&self, pool: &PgPool, contact: serde_json::Value) -> Result<()> {

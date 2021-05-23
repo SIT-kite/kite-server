@@ -1,7 +1,7 @@
 use super::Identity;
 use crate::error::Result;
 
-async fn oa_password_check(account: &String, password: &String) -> Result<()> {
+async fn oa_password_check(account: &str, password: &str) -> Result<()> {
     super::authserver::portal_login(account, password).await?;
     Ok(())
 }
@@ -15,13 +15,13 @@ impl Identity {
         }
     }
 
-    pub async fn validate_oa_account(student_id: &String, oa_secret: &String) -> Result<()> {
+    pub async fn validate_oa_account(student_id: &str, oa_secret: &str) -> Result<()> {
         oa_password_check(student_id, oa_secret).await?;
         Ok(())
     }
 
     pub fn validate_identity_number(identity_number: &str) -> bool {
         let re = regex::Regex::new("[0-9]{5}[0-9X]").unwrap();
-        return re.is_match(identity_number) && identity_number.len() == 6;
+        re.is_match(identity_number) && identity_number.len() == 6
     }
 }

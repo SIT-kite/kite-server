@@ -46,7 +46,8 @@ impl ResponseError for ApiError {
     }
     // Make json response body for error.
     fn error_response(&self) -> BaseHttpResponse<actix_web::dev::Body> {
-        let body = serde_json::to_string(&self).unwrap_or(String::from("Internal Server Error"));
+        let body =
+            serde_json::to_string(&self).unwrap_or_else(|_| String::from("Internal Server Error"));
         BaseHttpResponseBuilder::new(StatusCode::OK)
             .content_type("application/json")
             .body(body)

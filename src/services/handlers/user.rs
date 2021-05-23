@@ -150,9 +150,12 @@ pub async fn create_user(
 
     if let Some(avatar_url) = parameters.avatar {
         let avatar_storage = AvatarManager::new(&app.pool);
-        let stored_url = avatar_storage.save(0, &avatar_url).await?.url;
 
-        user.avatar = stored_url.unwrap_or(get_default_avatar().to_string());
+        user.avatar = avatar_storage
+            .save(0, &avatar_url)
+            .await?
+            .url
+            .unwrap_or_else(|| get_default_avatar().to_string());
     }
     user.register(&app.pool).await?;
 
@@ -209,7 +212,7 @@ pub async fn update_user_detail(
             // Download and save avatar if not stored.
             Err(_) => avatar_storage.save(0, &avatar_url).await?.url,
         };
-        person.avatar = final_url.unwrap_or(get_default_avatar().to_string());
+        person.avatar = final_url.unwrap_or_else(|| get_default_avatar().to_string());
     }
     person.update(&app.pool).await?;
 
@@ -280,7 +283,7 @@ pub async fn get_user_detail(
     token: Option<JwtToken>,
     uid: web::Path<i32>,
 ) -> Result<HttpResponse> {
-    if let None = token {
+    if token.is_none() {
         return Err(ApiError::new(CommonError::Forbidden));
     }
     let token = token.unwrap();
@@ -306,7 +309,7 @@ pub async fn get_user_identity(
         return Err(ApiError::new(CommonError::Forbidden));
     }
     let identity = Person::get_identity(&app.pool, uid).await?;
-    if let None = identity {
+    if identity.is_none() {
         return Err(ApiError::new(UserError::NoSuchUser));
     }
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(identity.unwrap())))

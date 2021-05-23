@@ -77,10 +77,10 @@ where
                 return Either::Left(self.service.call(req));
             }
         }
-        return Either::Right(ok(req.into_response(
+        Either::Right(ok(req.into_response(
             HttpResponse::Forbidden()
                 .json(ApiError::new(CommonError::AddrNotSupported))
                 .into_body(),
-        )));
+        )))
     }
 }

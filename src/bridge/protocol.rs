@@ -82,6 +82,9 @@ impl Request {
 
 impl Response {
     async fn read_header(buffer: &mut BufReader<OwnedReadHalf>) -> Result<Self> {
+        // Note: Do not use Response {} initialization statement here because the read_xx() calling
+        // order is not under control.
+
         // Default response header is 14 bytes.
         let mut response = Response::default();
 

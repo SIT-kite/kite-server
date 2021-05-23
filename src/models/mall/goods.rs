@@ -44,7 +44,7 @@ pub async fn get_goods_detail(db: &PgPool, goods_id: i32) -> Result<GoodsDetail>
     .bind(goods_id)
     .fetch_optional(db)
     .await?;
-    goods.ok_or(ApiError::new(MallError::NoSuchGoods))
+    goods.ok_or_else(|| ApiError::new(MallError::NoSuchGoods))
 }
 
 pub async fn delete_goods(db: &PgPool, goods_id: i32) -> Result<()> {
@@ -52,7 +52,9 @@ pub async fn delete_goods(db: &PgPool, goods_id: i32) -> Result<()> {
         .bind(goods_id)
         .fetch_optional(db)
         .await?;
-    result.map(|_| ()).ok_or(ApiError::new(MallError::NoSuchGoods))
+    result
+        .map(|_| ())
+        .ok_or_else(|| ApiError::new(MallError::NoSuchGoods))
 }
 
 pub async fn publish_goods(db: &PgPool, uid: i32, new: &NewGoods) -> Result<i32> {

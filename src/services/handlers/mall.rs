@@ -5,17 +5,17 @@ use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
 use actix_web::{get, post, web, HttpResponse};
 
-pub fn is_numeric(s: &String) -> bool {
+pub fn is_numeric(s: &str) -> bool {
     for ch in s.chars() {
         if !ch.is_numeric() {
             return false;
         }
     }
-    return true;
+    true
 }
 
 /// It's not a strict function for validating isbn numbers.
-pub fn is_valid_isbn(isbn: &String) -> bool {
+pub fn is_valid_isbn(isbn: &str) -> bool {
     if isbn.len() != 13 && isbn.len() != 10 {
         return false;
     }
@@ -55,7 +55,15 @@ pub async fn get_goods_list(
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
     let page = page.into_inner();
-    let goods_list = mall::get_full_goods_list(&app.pool, page).await?;
+    let params = params.into_inner();
+
+    let goods_list = if params.q.is_some() || params.sort.is_some() {
+        let sort = params.sort.unwrap_or(0i32);
+        let params = params.q.unwrap_or_default();
+        mall::query_goods(&app.pool, &params, sort, page).await?
+    } else {
+        mall::get_full_goods_list(&app.pool, page).await?
+    };
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(goods_list)))
 }
 

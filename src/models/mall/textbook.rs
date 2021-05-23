@@ -4,8 +4,8 @@ use crate::models::mall::MallError;
 use sqlx::PgPool;
 
 /// Query book by isbn
-pub async fn query_textbook_by_isbn(db: &PgPool, isbn: &String) -> Result<TextBook> {
-    let textbook = sqlx::query_as(
+pub async fn query_textbook_by_isbn(db: &PgPool, isbn: &str) -> Result<TextBook> {
+    sqlx::query_as(
         "SELECT isbn, title, sub_title, press, author, translator, price, edition, 
                 edition_date, page, tag
         FROM mall.textbooks
@@ -13,7 +13,6 @@ pub async fn query_textbook_by_isbn(db: &PgPool, isbn: &String) -> Result<TextBo
     )
     .bind(isbn)
     .fetch_optional(db)
-    .await?;
-
-    textbook.ok_or(ApiError::new(MallError::NoSuchTextBook))
+    .await?
+    .ok_or_else(|| ApiError::new(MallError::NoSuchTextBook))
 }

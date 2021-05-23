@@ -4,7 +4,6 @@ use crate::models::{event, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
 use actix_web::{get, web, HttpResponse};
-use serde::Deserialize;
 
 /**********************************************************************
     Interfaces in this module:
@@ -17,17 +16,8 @@ use serde::Deserialize;
     participate()         <-- post /event/{event_id}/participant
 *********************************************************************/
 
-#[derive(Debug, Deserialize)]
-pub struct ListEvent {
-    refresh: Option<bool>,
-}
-
 #[get("/event")]
-pub async fn list_events(
-    app: web::Data<AppState>,
-    page: web::Query<PageView>,
-    form: web::Query<ListEvent>,
-) -> Result<HttpResponse> {
+pub async fn list_events(app: web::Data<AppState>, page: web::Query<PageView>) -> Result<HttpResponse> {
     let parameters: PageView = page.into_inner();
 
     let event_summaries =

@@ -67,11 +67,11 @@ where
                 }
             }
         }
-        return Either::Right(ok(req.into_response(
+        Either::Right(ok(req.into_response(
             HttpResponse::Ok()
                 .json(ApiError::new(CommonError::LoginNeeded))
                 .into_body(),
-        )));
+        )))
     }
 }
 

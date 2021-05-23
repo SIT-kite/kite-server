@@ -16,11 +16,11 @@ impl Authentication {
         }
     }
 
-    pub fn from_wechat(open_id: &String) -> Self {
+    pub fn from_wechat(open_id: &str) -> Self {
         Authentication {
             uid: 0,
             login_type: LOGIN_BY_WECHAT,
-            account: open_id.clone(),
+            account: open_id.to_string(),
             credential: None,
         }
     }
@@ -79,7 +79,7 @@ impl Authentication {
         // If campus credential filled in database, return login success, even if the credential is
         // out of date. Because password error will be thrown out if backend function failed, when,
         // for example, loading course data...
-        let auth = auth.ok_or(ApiError::new(UserError::NoSuchUser))?;
+        let auth = auth.ok_or_else(|| ApiError::new(UserError::NoSuchUser))?;
         self.uid = auth.uid;
 
         if auth.credential.eq(&self.credential) && auth.credential.is_some() {
@@ -183,12 +183,12 @@ impl Person {
             .bind(uid)
             .fetch_optional(client)
             .await?;
-        user.ok_or(ApiError::new(UserError::NoSuchUser))
+        user.ok_or_else(|| ApiError::new(UserError::NoSuchUser))
     }
 
     pub async fn fuzzy_query(
         client: &PgPool,
-        query_string: &String,
+        query_string: &str,
         page_index: u32,
         count: u32,
     ) -> Result<Vec<Person>> {

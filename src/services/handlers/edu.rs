@@ -69,7 +69,7 @@ pub async fn list_course_classes(
             return Err(CommonError::Parameter.into());
         }
     }
-    let term_string = term.unwrap_or(edu::get_current_term());
+    let term_string = term.unwrap_or_else(edu::get_current_term);
     let course = CourseBase::get(&app.pool, &course_code, &term_string).await?;
     if let Some(course) = course {
         let classes = CourseClass::list(&app.pool, &course_code, &term_string).await?;
@@ -78,7 +78,7 @@ pub async fn list_course_classes(
             pub course: CourseBase,
             pub classes: Vec<CourseClass>,
         }
-        Ok(HttpResponse::Ok().json(&ApiResponse::normal(Response { classes, course })))
+        Ok(HttpResponse::Ok().json(&ApiResponse::normal(Response { course, classes })))
     } else {
         Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
     }
@@ -107,7 +107,7 @@ pub async fn query_course(
     if parameters.q.is_empty() {
         return Ok(HttpResponse::Ok().json(&ApiResponse::empty()));
     }
-    let term_string = term.unwrap_or(edu::get_current_term());
+    let term_string = term.unwrap_or_else(edu::get_current_term);
     let course = CourseBase::query(&app.pool, &parameters.q, &term_string, &page).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(course)))
 }

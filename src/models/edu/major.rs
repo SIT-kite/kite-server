@@ -44,7 +44,7 @@ pub struct PlannedCourse {
 
 impl Major {
     /// Query majors title or code.
-    pub async fn query(pool: &PgPool, query_string: &String) -> Result<Vec<Self>> {
+    pub async fn query(pool: &PgPool, query_string: &str) -> Result<Vec<Self>> {
         if query_string.is_empty() {
             return Ok(vec![]);
         }
@@ -72,7 +72,7 @@ impl Major {
 
 impl PlannedCourse {
     /// Query planned courses of certain majors.
-    pub async fn query(pool: &PgPool, major_code: &String, enter_year: i16) -> Result<Vec<Self>> {
+    pub async fn query(pool: &PgPool, major_code: &str, enter_year: i16) -> Result<Vec<Self>> {
         let results: Vec<PlannedCourse> = sqlx::query_as(
             "SELECT c.title AS course_category, mp.code, mp.title, has_test, credit, term
                 FROM course.major_plan mp

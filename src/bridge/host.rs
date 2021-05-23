@@ -42,11 +42,10 @@ impl Agent {
 
         // Send request packet to the sender loop to post, if the process failed, set channel to None
         // so that the next try could return immediately.
-        channel.send(request).await.or_else(move |_| {
+        channel.send(request).await.map_err(move |_| {
             self.channel = None;
-            Err(HostError::AgentUnavailable)
-        });
-        Ok(())
+            HostError::AgentUnavailable.into()
+        })
     }
 
     /// Request to agent, and add an oneshot sender and it can be used when the response received.
@@ -77,7 +76,7 @@ impl Agent {
     }
 
     /// Select requester and post the response.
-    async fn dispatch_response(queue: Arc<Mutex<RequestQueue>>, response: Response) {
+    async fn dispatch_response(queue: Arc<Mutex<RequestQueue>>, response: Response) -> Result<()> {
         let mut queue = queue.lock().await;
 
         if let Some(sender) = queue.remove(&response.ack) {
@@ -85,6 +84,7 @@ impl Agent {
         } else {
             warn!("Received a response message without corresponding request.");
         }
+        Ok(())
     }
 
     /// Sender loop: send requests to agent over ws.
@@ -134,7 +134,7 @@ impl Agent {
                         }
                         Err(e) => {
                             warn!("Connection lost: {:?}", e);
-                            halt.sender.send(());
+                            halt.sender.send(())?;
                             break;
                         }
                     }
@@ -148,7 +148,7 @@ impl Agent {
         Ok(())
     }
 
-    async fn heartbeat_loop(last_update: Arc<RwLock<Instant>>, tx: mpsc::Sender<Request>) {
+    async fn heartbeat_loop(last_update: Arc<RwLock<Instant>>, tx: mpsc::Sender<Request>) -> Result<()> {
         let timeout = Duration::from_secs(20);
         let mut f = false;
 
@@ -167,6 +167,7 @@ impl Agent {
             tokio::time::sleep(timeout).await;
         }
         info!("Heartbeat loop exited.");
+        Ok(())
     }
 
     /// Start listening response from the agent and request from web.
@@ -203,23 +204,23 @@ impl Agent {
         self.halt.is_some()
     }
 
-    pub async fn join(&mut self) {
+    pub async fn join(&mut self) -> Result<()> {
         if let Some(channel) = self.halt.clone() {
             let mut rx = channel.receiver;
 
             rx.recv().await;
             tokio::time::sleep(Duration::from_secs(1)).await;
             self.halt = None;
-
-            return;
         }
+        Ok(())
     }
 
     /// Halt the agent client
-    pub fn stop(&mut self) {
+    pub fn stop(&mut self) -> Result<()> {
         if let Some(halt_channel) = self.halt.take() {
-            halt_channel.sender.send(());
+            halt_channel.sender.send(())?;
         }
+        Ok(())
     }
 }
 
@@ -290,15 +291,12 @@ impl AgentManager {
             agents.get(&peer).map(Clone::clone)
         };
 
-        match agent {
-            Some(mut agent) => {
-                // Wait for agent breaks
-                agent.join().await;
-                // Clear agent in agent list and return
-                let mut agents = self.agents.lock().await;
-                agents.remove(&peer);
-            }
-            None => (),
+        if let Some(mut agent) = agent {
+            // Wait for agent breaks
+            agent.join().await;
+            // Clear agent in agent list and return
+            let mut agents = self.agents.lock().await;
+            agents.remove(&peer);
         }
     }
 
@@ -311,7 +309,7 @@ impl AgentManager {
             let new_handler = self.clone();
             tokio::spawn(async move {
                 let addr = peer;
-                match new_handler.start(stream, addr.clone()).await {
+                match new_handler.start(stream, addr).await {
                     Ok(_) => {
                         info!("One agent task started.");
                         new_handler.wait(addr).await;

@@ -1,6 +1,5 @@
 use awc::Client;
 use serde::Deserialize;
-use serde_json;
 
 use crate::config::CONFIG;
 use crate::error::ApiError;

@@ -56,11 +56,11 @@ pub fn get_current_term() -> String {
 
 pub fn is_valid_term(term: &str) -> bool {
     let re = regex::Regex::new(r"^20[\d]{2}[AB]$").unwrap();
-    return re.is_match(term);
+    re.is_match(term)
 }
 
 impl CourseBase {
-    pub async fn get(pool: &PgPool, course_code: &String, term: &String) -> Result<Option<Self>> {
+    pub async fn get(pool: &PgPool, course_code: &str, term: &str) -> Result<Option<Self>> {
         let results: Option<Self> = sqlx::query_as(
             "SELECT DISTINCT 
                     term, list.code, title, type AS _type, credit, CAST(c.class_count AS int2)
@@ -81,8 +81,8 @@ impl CourseBase {
 
     pub async fn query(
         pool: &PgPool,
-        query_string: &String,
-        term: &String,
+        query_string: &str,
+        term: &str,
         page: &PageView,
     ) -> Result<Vec<Self>> {
         let results: Vec<Self> = sqlx::query_as(
@@ -107,17 +107,17 @@ impl CourseBase {
 }
 
 impl CourseClass {
-    pub async fn list(pool: &PgPool, course_code: &String, term: &String) -> Result<Vec<Self>> {
+    pub async fn list(pool: &PgPool, course_code: &str, term: &str) -> Result<Vec<Self>> {
         let results: Vec<CourseClass> = sqlx::query_as(
             "SELECT
                     class_id, teacher, place, campus, plan_count, selected_count, arranged_class, note, schedule
                 FROM course.list
                 WHERE code = $1 AND term = $2",
         )
-        .bind(course_code)
-        .bind(term)
-        .fetch_all(pool)
-        .await?;
+            .bind(course_code)
+            .bind(term)
+            .fetch_all(pool)
+            .await?;
         Ok(results)
     }
 }

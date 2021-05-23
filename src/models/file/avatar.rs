@@ -7,7 +7,7 @@ use sqlx::PgPool;
 use tokio::io::AsyncWriteExt;
 
 /// Url prefix for avatars.
-static URL_PREFIX: &'static str = "https://kite.sunnysab.cn/static/avatar/";
+static URL_PREFIX: &str = "https://kite.sunnysab.cn/static/avatar/";
 
 impl<'a> AvatarManager<'a> {
     pub fn new(pool: &'a PgPool) -> Self {
@@ -15,15 +15,14 @@ impl<'a> AvatarManager<'a> {
     }
 
     pub async fn query(&self, original_url: &str) -> Result<AvatarImage> {
-        let avatar = sqlx::query_as(
+        sqlx::query_as(
             "SELECT id, name, path, uploader, is_deleted, size, upload_time, url
                 FROM public.attachments WHERE name = $1 LIMIT 1",
         )
         .bind(original_url)
         .fetch_optional(self.pool)
-        .await?;
-
-        avatar.ok_or(ApiError::new(AttachmentError::NotFound))
+        .await?
+        .ok_or_else(|| ApiError::new(AttachmentError::NotFound))
     }
 
     pub async fn save(&self, uid: i32, original_url: &str) -> Result<AvatarImage> {

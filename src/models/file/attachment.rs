@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 /// Url prefix for attachment.
-static URL_PREFIX: &'static str = "https://kite.sunnysab.cn/static/upload/";
+static URL_PREFIX: &str = "https://kite.sunnysab.cn/static/upload/";
 
 /// Allowed file extension
 static ALLOWED_EXT: &[&str] = &[
@@ -56,7 +56,7 @@ impl Attachment {
 pub fn get_file_extension(filename: &str) -> String {
     // Consider filename with no extension
     // "text.", "text.txt", "text".
-    let last_terminator = filename.rfind(".").unwrap_or_default();
+    let last_terminator = filename.rfind('.').unwrap_or_default();
     if last_terminator == 0usize || last_terminator == filename.len() - 1 {
         return "".to_string();
     }
@@ -116,15 +116,14 @@ impl<'a> AttachmentManager<'a> {
     }
 
     pub async fn query(&self, id: Uuid) -> Result<Attachment> {
-        let basic_info: Option<Attachment> = sqlx::query_as(
+        sqlx::query_as(
             "SELECT id, name, path, uploader, upload_time, is_deleted, size, url 
                 FROM public.attachments WHERE id = $1 LIMIT 1",
         )
         .bind(id)
         .fetch_optional(self.pool)
-        .await?;
-
-        basic_info.ok_or(ApiError::new(AttachmentError::NotFound))
+        .await?
+        .ok_or_else(|| ApiError::new(AttachmentError::NotFound))
     }
 }
 

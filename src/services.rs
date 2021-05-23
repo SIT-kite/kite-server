@@ -156,8 +156,8 @@ fn get_auth_bearer_value(auth_string: &HeaderValue) -> Option<&str> {
     // Note: to_str().unwrap() will panic when value string contains non-visible chars.
     if let Ok(auth_string) = auth_string.to_str() {
         // Authorization: <Type> <Credentials>
-        if auth_string.starts_with("Bearer ") {
-            return Some(auth_string[7..].as_ref());
+        if let Some(token) = auth_string.strip_prefix("Bearer ") {
+            return Some(token);
         }
     }
     None

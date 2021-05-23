@@ -43,12 +43,12 @@ pub enum CommonError {
     Forbidden = 5,
 }
 
-impl Into<ApiError> for CommonError {
-    fn into(self) -> ApiError {
+impl From<CommonError> for ApiError {
+    fn from(common_error: CommonError) -> Self {
         ApiError {
-            code: self.to_u16().unwrap(),
+            code: common_error.to_u16().unwrap(),
             inner_msg: None,
-            error_msg: Some(self.to_string()),
+            error_msg: Some(common_error.to_string()),
         }
     }
 }
@@ -74,7 +74,7 @@ impl PageView {
                 return index;
             }
         }
-        return DEFAULT_PAGE_INDEX;
+        DEFAULT_PAGE_INDEX
     }
     /// Get validated item count value
     pub fn count(&self, max_count: u16) -> u16 {
@@ -83,7 +83,7 @@ impl PageView {
                 return count;
             }
         }
-        return DEFAULT_ITEM_COUNT;
+        DEFAULT_ITEM_COUNT
     }
     /// Calculate offset
     pub fn offset(&self, max_count: u16) -> u16 {
