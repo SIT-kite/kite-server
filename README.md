@@ -1,27 +1,22 @@
-# 上应小风筝 Restful API
+# 上应小风筝 API
 
-## 项目概要
+## 概要
 
-本项目旨在为上海应用技术大学的学生提供校园信息整合与管理服务。
+本项目旨在为上海应用技术大学的学生提供校园信息整合与管理服务，项目背景详情见 [上应小风筝](https://github.com/SIT-Yiban/kite-microapp) 项目仓库。
+
+后端 API 为整个项目提供接口支持和数据处理。由于经费有限，尽可能需要一个资源占用小的后端服务，开发者希望它能在单核 1G 内存的机器上流畅运行，并承载和选课阶段差不多的访问量。 在之前的测试中，能稳定应对 1k
+左右的并发量，并保持低内存占用。
 
 ## 功能
 
 - [x] 登录模块
-- [x] 活动与签到
-- [ ] 第二课堂
+- [x] 活动与签到（开发中）
+- [ ] 搜索（开发中）
 - [ ] 课表查询与选课
-- [ ] 二手闲置交易
+- [ ] 空教室查询（开发中）
+- [ ] 二手闲置交易（开发中）
 - [x] 入学信息查询
 - [ ] 失物招领
-- [ ] 每日学习打卡
-
-## 项目设计
-
-TODO: 项目设计文档。链接至 `docs/`
-
-## 目标平台
-
-阿里云 ECS（1G 1C） Debian 10
 
 ## 安装
 
@@ -30,7 +25,7 @@ TODO: 项目设计文档。链接至 `docs/`
 下载并编译：
 
 ```shell
-git clone https://github.com/sunnysab/kite-server.git
+git clone https://github.com/SIT-Yiban/kite-server.git
 cd kite-server
 cargo build
 ```
@@ -76,9 +71,7 @@ cargo run
 | ------------ | ---------------- |
 | [kite-agent](https://github.com/sunnysab/kite-agent) | 后端数据抓取工具 |
 | [kite-protocol](https://github.com/sunnysab/kite-protocol) | 通信协议库（已废弃）  |
-| [kite-checking](https://github.com/snomiao/kite-checking) | 返校码管理后台（暂不使用） |
-| [kite-admin](https://github.com/Crystal-RainSlide/kite-admin) | 综合管理后台（暂不更新） |
-
+| [kite-string](https://github.com/SIT-Yiban/kite-string) | 校园网爬虫工具 |
 
 ## 如何贡献
 
