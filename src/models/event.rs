@@ -13,13 +13,15 @@ const EVENT_TYPE_INNER: i32 = 1;
 #[derive(thiserror::Error, Debug, ToPrimitive)]
 pub enum EventError {
     #[error("重复创建活动")]
-    DuplicatedEvent = 8,
+    DuplicatedEvent = 270,
     #[error("找不到这个活动")]
-    NoSuchEvent = 9,
+    NoSuchEvent = 271,
     #[error("重复申请")]
-    DuplicatedApply = 14,
+    DuplicatedApply = 272,
     #[error("重复签到")]
-    AlreadySigned = 17,
+    AlreadySigned = 273,
+    #[error("需要实名认证")]
+    NeedIdentity = 274,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -121,7 +123,28 @@ impl Event {
         Event { ..Event::default() }
     }
     /// Save event to database
-    pub async fn create(_client: &PgPool) {}
+    pub async fn create(&mut self, client: &PgPool) -> Result<()>{
+        let event: Option<(i32,)> = sqlx::query_as(
+            "INSERT INTO events.events
+                (publisher_uid, title, description, start_time, end_time, tags, place, image)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING event_id",
+        )
+        .bind(&self.publisher_uid)
+        .bind(&self.title)
+        .bind(&self.description)
+        .bind(&self.start_time)
+        .bind(&self.end_time)
+        .bind(&self.tags)
+        .bind(&self.place)
+        .bind(&self.image)
+        .fetch_optional(client)
+        .await?;
+        if let Some((event_id_value,)) = event {
+            self.id = event_id_value;
+        }
+        Ok(())
+    }
 
     pub async fn list(client: &PgPool, page_index: u32, count: u32) -> Result<Vec<EventSummary>> {
         let count = if count > 50 { 50 } else { count };
