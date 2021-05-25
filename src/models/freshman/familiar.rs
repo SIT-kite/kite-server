@@ -102,11 +102,11 @@ impl FreshmanBasic {
     /// Count the number of people with the same name
     async fn count_by_name(&self, client: &PgPool) -> Result<i64> {
         let same_name_count: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) - 1 FROM freshman.students WHERE student_id = $1")
-                .bind(&self.student_id)
+            sqlx::query_as("SELECT COUNT(*) FROM freshman.students WHERE name = $1")
+                .bind(&self.name)
                 .fetch_one(client)
                 .await?;
-        Ok(same_name_count.0)
+        Ok(same_name_count.0 - 1)
     }
 
     /// Count the freshman in the given major.
@@ -137,7 +137,7 @@ impl FreshmanBasic {
                         (SELECT COUNT(student_id) FROM freshman.students WHERE major = $1 AND gender = 'M') 
                         AS major_boy_count, 
                         (SELECT COUNT(student_id) FROM freshman.students WHERE major = $1 AND gender = 'F') 
-                        AS major_girl_count")
+                        AS major_girl_count;")
                 .bind(&self.major)
                 .fetch_one(client)
                 .await?;
@@ -146,25 +146,25 @@ impl FreshmanBasic {
 
     async fn count_by_graduated_school(&self, client: &PgPool) -> Result<i64> {
         let result: (i64,) = sqlx::query_as(
-            "SELECT COUNT(student_id) - 1 FROM freshman.students
+            "SELECT COUNT(student_id) FROM freshman.students
                     WHERE graduated_from = 
-                        (SELECT graduated_from FROM freshman.students WHERE student_id = $1)",
+                        (SELECT graduated_from FROM freshman.students WHERE student_id = $1);",
         )
         .bind(&self.student_id)
         .fetch_one(client)
         .await?;
-        Ok(result.0)
+        Ok(result.0 - 1)
     }
 
     async fn count_by_city(&self, client: &PgPool) -> Result<i64> {
         let result: (i64,) = sqlx::query_as(
             "WITH self AS (SELECT city, postcode FROM freshman.students WHERE student_id = $1)
-                SELECT COUNT(student_id) - 1 FROM freshman.students s, self
-                WHERE s.city = self.city OR s.postcode / 1000 = self.postcode / 1000",
+                SELECT COUNT(student_id) FROM freshman.students s, self
+                WHERE s.city = self.city OR s.postcode / 1000 = self.postcode / 1000;",
         )
         .bind(&self.student_id)
         .fetch_one(client)
         .await?;
-        Ok(result.0)
+        Ok(result.0 - 1)
     }
 }
