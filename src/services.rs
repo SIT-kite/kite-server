@@ -126,7 +126,11 @@ fn routes(app: &mut web::ServiceConfig) {
             // Mall module
             .service(mall::query_textbook)
             .service(mall::get_goods_sorts)
-            .service(mall::get_goods_list),
+            .service(mall::get_goods_list)
+            .service(mall::get_goods_byid)
+            .service(mall::publish_goods)
+            .service(mall::update_goods)
+            .service(mall::delete_goods),
     );
 }
 

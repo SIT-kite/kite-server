@@ -98,6 +98,7 @@ pub struct GoodsDetail {
     /// Campus name.
     pub campus: String,
     /// Product detailed picture introduction
+    #[serde(rename = "images")]
     pub images: Vec<String>,
     /// Tags, like '全新', '可议价'
     pub tags: Vec<String>,
@@ -134,13 +135,16 @@ pub struct NewGoods {
     pub images: Vec<String>,
     /// Tags, like '全新', '可议价'
     pub tags: Vec<String>,
-    /// Features
-    pub features: serde_json::Value,
     /// Price for selling
     pub price: f32,
     /// Sort id
     pub sort: i32,
+    /// Features
+    pub features: serde_json::Value,
+    /// Is Hidden
+    pub status: i32,
 }
+
 
 /* Comments */
 #[derive(Serialize, sqlx::FromRow)]
