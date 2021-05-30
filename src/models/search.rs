@@ -53,10 +53,20 @@ pub struct Page {
     pub link_count: Option<i16>,
     pub content: Option<String>,
 }
+///pages summary
+///
+/// show  summary page to user
+#[derive(sqlx::FromRow, Serialize)]
+pub struct Pagesummary {
+    pub title: Option<String>,
+    pub uri: Option<String>,
+    pub publish_date: Option<NaiveDate>,
+    pub content: Option<String>,
+}
 
-pub async fn query_page(pool: &PgPool, query: &str, page: &PageView) -> Result<Vec<Page>> {
+pub async fn query_page(pool: &PgPool, query: &str, page: &PageView) -> Result<Vec<Pagesummary>> {
     let result = sqlx::query_as(
-        "SELECT title, host, path, publish_date, update_date, link_count, content
+        "SELECT title, uri, publish_date, content
             FROM search.search_page($1)
             ORDER BY publish_date DESC
             OFFSET $2 LIMIT $3;",
