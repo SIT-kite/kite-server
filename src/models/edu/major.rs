@@ -51,17 +51,17 @@ impl Major {
         }
         let results: Vec<Major> = sqlx::query_as(
             "SELECT category, code, title, last_update
-                FROM course.majors
+                FROM edu.majors
                 INNER JOIN (
                     SELECT major, COUNT(*) AS count
-                    FROM course.major_plan
+                    FROM edu.major_plan
                     GROUP BY major
                     HAVING count(*) > 0
                     ) s
                 ON s.major = majors.code
                 WHERE (title LIKE $1 AND code is not null)
                    OR  majors.category =
-                   (SELECT category FROM course.majors WHERE title like $1 AND code is null LIMIT 1)
+                   (SELECT category FROM edu.majors WHERE title like $1 AND code is null LIMIT 1)
                 ORDER BY code",
         )
         .bind(format!("%{}%", query_string))
@@ -76,8 +76,8 @@ impl PlannedCourse {
     pub async fn query(pool: &PgPool, major_code: &str, enter_year: i16) -> Result<Vec<Self>> {
         let results: Vec<PlannedCourse> = sqlx::query_as(
             "SELECT c.title AS course_category, mp.code, mp.title, has_test, credit, term
-                FROM course.major_plan mp
-                INNER JOIN course.category c
+                FROM edu.major_plan mp
+                INNER JOIN edu.category c
                 ON mp.course_category = c.code
                 WHERE major = $1 AND year = $2
                 ORDER BY mp.term;",

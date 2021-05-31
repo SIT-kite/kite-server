@@ -67,9 +67,9 @@ impl CourseBase {
         let results: Option<Self> = sqlx::query_as(
             "SELECT DISTINCT 
                     term, list.code, title, type AS _type, credit, CAST(c.class_count AS int2)
-                FROM course.list
+                FROM edu.list
                 INNER JOIN (
-                    SELECT code, COUNT(*) AS class_count FROM course.list WHERE term = $2 GROUP BY code
+                    SELECT code, COUNT(*) AS class_count FROM edu.list WHERE term = $2 GROUP BY code
                     ) AS c
                 ON c.code = list.code
                 WHERE list.code = $1 AND term = $2
@@ -91,9 +91,9 @@ impl CourseBase {
         let results: Vec<Self> = sqlx::query_as(
             "SELECT DISTINCT 
                     term, list.code, title, type AS _type, credit, CAST(c.class_count AS int2) 
-                FROM course.list
+                FROM edu.list
                 INNER JOIN (
-                    SELECT code, COUNT(*) AS class_count FROM course.list WHERE term = $2 GROUP BY code
+                    SELECT code, COUNT(*) AS class_count FROM edu.list WHERE term = $2 GROUP BY code
                     ) AS c
                 ON c.code = list.code
                 WHERE title like $1 AND term = $2
@@ -114,7 +114,7 @@ impl CourseClass {
         let results: Vec<CourseClass> = sqlx::query_as(
             "SELECT
                     class_id, teacher, place, campus, plan_count, selected_count, arranged_class, note, schedule
-                FROM course.list
+                FROM edu.list
                 WHERE code = $1 AND term = $2",
         )
             .bind(course_code)
