@@ -6,20 +6,17 @@ use crate::models::PageView;
 
 use super::{GoodsDetail, SimpleGoods};
 
-pub async fn get_full_goods_list(
-    db: &PgPool,
-    page: PageView,
-) -> Result<Vec<SimpleGoods>> {
+pub async fn get_full_goods_list(db: &PgPool, page: PageView) -> Result<Vec<SimpleGoods>> {
     let goods = sqlx::query_as(
         "SELECT id, title, cover_image, tags, price, status, publish_time
         FROM mall.goods
         ORDER BY publish_time DESC
         LIMIT $1 OFFSET $2;",
     )
-        .bind(page.count(20) as i16)
-        .bind(page.offset(20) as i16)
-        .fetch_all(db)
-        .await?;
+    .bind(page.count(20) as i16)
+    .bind(page.offset(20) as i16)
+    .fetch_all(db)
+    .await?;
     Ok(goods)
 }
 
@@ -62,7 +59,7 @@ pub async fn get_goods_detail(db: &PgPool, goods_id: i32) -> Result<GoodsDetail>
 }
 
 pub async fn delete_goods(db: &PgPool, goods_id: i32) -> Result<i32> {
-    let result:(i32,)  = sqlx::query_as("UPDATE mall.goods SET status = 0 WHERE id = $1;")
+    let result: (i32,) = sqlx::query_as("UPDATE mall.goods SET status = 0 WHERE id = $1;")
         .bind(goods_id)
         .fetch_one(db)
         .await?;
@@ -93,7 +90,7 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &NewGoods) -> Result<i32>
     Ok(returning.0)
 }
 
-pub async fn update_goods(db: &PgPool,new: &NewGoods) -> Result<i32> {
+pub async fn update_goods(db: &PgPool, new: &NewGoods) -> Result<i32> {
     let returning: (i32,) = sqlx::query_as(
         "UPDATE
                 mall.goods
@@ -112,19 +109,18 @@ pub async fn update_goods(db: &PgPool,new: &NewGoods) -> Result<i32> {
                 id=$11
              ",
     )
-        .bind(&new.title)
-        .bind(&new.description)
-        .bind(&new.status)
-        .bind(&new.cover_image)
-        .bind(&new.campus)
-        .bind(&new.images)
-        .bind(&new.tags)
-        .bind(new.price)
-        .bind(new.sort)
-        .bind(&new.features)
-        .bind(&new.id)
-        .fetch_one(db)
-        .await?;
+    .bind(&new.title)
+    .bind(&new.description)
+    .bind(&new.status)
+    .bind(&new.cover_image)
+    .bind(&new.campus)
+    .bind(&new.images)
+    .bind(&new.tags)
+    .bind(new.price)
+    .bind(new.sort)
+    .bind(&new.features)
+    .bind(&new.id)
+    .fetch_one(db)
+    .await?;
     Ok(returning.0)
 }
-

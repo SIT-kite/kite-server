@@ -1,9 +1,9 @@
 use crate::error::{ApiError, Result};
-use crate::models::search::{query_notice, SearchError, query_page};
+use crate::models::search::{query_notice, query_page, SearchError};
+use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
 use crate::services::{response::ApiResponse, AppState, JwtToken};
 use actix_web::{get, web, HttpResponse};
-use crate::models::user::Person;
 
 #[derive(serde::Deserialize)]
 pub struct SearchReq {

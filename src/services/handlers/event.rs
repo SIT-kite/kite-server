@@ -1,12 +1,12 @@
 //! This module includes interfaces about the event and sign.
-use crate::error::{Result, ApiError};
-use crate::models::{event, PageView, CommonError};
+use crate::error::{ApiError, Result};
+use crate::models::event::{Event, EventError};
+use crate::models::user::Person;
+use crate::models::{event, CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
 use actix_web::{get, post, web, HttpResponse};
 use serde::Deserialize;
-use crate::models::event::{Event, EventError};
-use crate::models::user::{Identity, Person};
 
 /**********************************************************************
     Interfaces in this module:
@@ -19,17 +19,8 @@ use crate::models::user::{Identity, Person};
     participate()         <-- post /event/{event_id}/participant
 *********************************************************************/
 
-#[derive(Debug, Deserialize)]
-pub struct ListEvent {
-    refresh: Option<bool>,
-}
-
 #[get("/event")]
-pub async fn list_events(
-    app: web::Data<AppState>,
-    page: web::Query<PageView>,
-    form: web::Query<ListEvent>,
-) -> Result<HttpResponse> {
+pub async fn list_events(app: web::Data<AppState>, page: web::Query<PageView>) -> Result<HttpResponse> {
     let parameters: PageView = page.into_inner();
 
     let event_summaries =
@@ -43,7 +34,7 @@ pub async fn create_event(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
     form: web::Form<Event>,
-) ->  Result<HttpResponse> {
+) -> Result<HttpResponse> {
     //User need log in before create event
     if token.is_none() {
         return Err(ApiError::new(CommonError::LoginNeeded));
@@ -54,7 +45,6 @@ pub async fn create_event(
     if Person::get_identity(&app.pool, uid).await?.is_none() {
         return Err(ApiError::new(EventError::NeedIdentity));
     }
-
 
     let parameter: Event = form.into_inner();
     let mut event: Event = Event::new();

@@ -145,7 +145,6 @@ pub struct NewGoods {
     pub status: i32,
 }
 
-
 /* Comments */
 #[derive(Serialize, sqlx::FromRow)]
 pub struct GoodsComment {

@@ -123,7 +123,7 @@ impl Event {
         Event { ..Event::default() }
     }
     /// Save event to database
-    pub async fn create(&mut self, client: &PgPool) -> Result<()>{
+    pub async fn create(&mut self, client: &PgPool) -> Result<()> {
         let event: Option<(i32,)> = sqlx::query_as(
             "INSERT INTO events.events
                 (publisher_uid, title, description, start_time, end_time, tags, place, image)

@@ -5,18 +5,7 @@ use sqlx::PgPool;
 use crate::error::Result;
 use crate::models::PageView;
 
-// Unused.
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct ClassTime {
-//     /// Class type. 0 for every week, 1 for odd weeks, 2 for even weeks.
-//     #[serde(rename = "type")]
-//     pub _type: u8,
-//     pub week_range: (u8, u8),
-//     pub day_range: (u8, u8),
-//     pub day_index: u8,
-// }
-
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Serialize, sqlx::FromRow)]
 pub struct CourseBase {
     /// Term that the class open.
     pub term: String,

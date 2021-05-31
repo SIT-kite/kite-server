@@ -69,18 +69,13 @@ pub async fn get_goods_list(
 }
 
 #[get("/mall/goods/{id}")]
-pub async fn get_goods_byid(
-    app: web::Data<AppState>,
-    id: web::Path<i32>
-) -> Result<HttpResponse> {
-
+pub async fn get_goods_byid(app: web::Data<AppState>, id: web::Path<i32>) -> Result<HttpResponse> {
     let id = id.into_inner();
 
-    let goods_detail = mall::get_goods_detail(&app.pool,id).await?;
+    let goods_detail = mall::get_goods_detail(&app.pool, id).await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(goods_detail)))
 }
-
 
 #[post("/mall/goods")]
 pub async fn publish_goods(
@@ -114,12 +109,12 @@ pub async fn update_goods(
 ) -> Result<HttpResponse> {
     let form = form.into_inner();
 
-    let goods_detail = mall::get_goods_detail(&app.pool,form.id).await?;
+    let goods_detail = mall::get_goods_detail(&app.pool, form.id).await?;
 
-    if !(goods_detail.publisher == token.uid || token.is_admin){
+    if !(goods_detail.publisher == token.uid || token.is_admin) {
         return Err(ApiError::new(CommonError::Forbidden));
     }
-    let goods_id = mall::update_goods(&app.pool,&form).await?;
+    let goods_id = mall::update_goods(&app.pool, &form).await?;
 
     #[derive(serde::Serialize)]
     struct PublishResult {
@@ -129,11 +124,7 @@ pub async fn update_goods(
 }
 
 #[get("/mall/delete_goods/{id}")]
-pub async fn delete_goods(
-    app: web::Data<AppState>,
-    id: web::Path<i32>
-) -> Result<HttpResponse> {
-
+pub async fn delete_goods(app: web::Data<AppState>, id: web::Path<i32>) -> Result<HttpResponse> {
     let id = id.into_inner();
     //
     // let goods_detail = mall::get_goods_detail(&app.pool,id).await?;
@@ -142,7 +133,7 @@ pub async fn delete_goods(
     //     return Err(ApiError::new(CommonError::Forbidden));
     // }
 
-    let goods_id = mall::delete_goods(&app.pool,id).await?;
+    let goods_id = mall::delete_goods(&app.pool, id).await?;
 
     Ok(HttpResponse::Ok().json(goods_id))
 }

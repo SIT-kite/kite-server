@@ -1,6 +1,6 @@
 use crate::error::Result;
 use crate::models::PageView;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, NaiveDate};
 use serde::Serialize;
 use sqlx::PgPool;
 
@@ -10,15 +10,17 @@ pub enum SearchError {
     NeedIdentity = 220,
 }
 
-/// Notice
-///
 /// The notices in OA portal.
 #[derive(sqlx::FromRow, Serialize)]
 pub struct Notice {
+    /// Id
+    pub id: i32,
+    /// Notice url in OA
     pub url: String,
     pub title: String,
     pub publish_time: DateTime<Local>,
     pub department: String,
+    /// Author name (with teacher ID)
     pub author: Option<String>,
     pub sort: String,
     pub content: String,
@@ -26,7 +28,7 @@ pub struct Notice {
 
 pub async fn query_notice(pool: &PgPool, query: &str, page: &PageView) -> Result<Vec<Notice>> {
     let result = sqlx::query_as(
-        "SELECT ('http://' || url) AS url, title, publish_time, department, author, sort, content
+        "SELECT id, ('http://' || url) AS url, title, publish_time, department, author, sort, content
             FROM search.search_notice($1)
             ORDER BY publish_time DESC
             OFFSET $2 LIMIT $3;",
@@ -40,33 +42,39 @@ pub async fn query_notice(pool: &PgPool, query: &str, page: &PageView) -> Result
     Ok(result)
 }
 
-///pages
-///
 /// The pages in OA portal.
 #[derive(sqlx::FromRow, Serialize)]
 pub struct Page {
+    /// Id
+    pub id: i32,
+    /// Page title
     pub title: Option<String>,
-    pub host: Option<String>,
-    pub path: Option<String>,
+    /// Complete page url
+    pub url: Option<String>,
+    /// Published date for articles.
     pub publish_date: Option<NaiveDate>,
+    /// Last update date by spider
     pub update_date: Option<NaiveDate>,
-    pub link_count: Option<i16>,
-    pub content: Option<String>,
-}
-///pages summary
-///
-/// show  summary page to user
-#[derive(sqlx::FromRow, Serialize)]
-pub struct Pagesummary {
-    pub title: Option<String>,
-    pub uri: Option<String>,
-    pub publish_date: Option<NaiveDate>,
+    /// Page content without any format
     pub content: Option<String>,
 }
 
-pub async fn query_page(pool: &PgPool, query: &str, page: &PageView) -> Result<Vec<Pagesummary>> {
+/// Page summary shown in search results.
+#[derive(sqlx::FromRow, Serialize)]
+pub struct PageSummary {
+    /// Id
+    pub id: i32,
+    /// Page title
+    pub title: Option<String>,
+    /// Published date for articles.
+    pub publish_date: Option<NaiveDate>,
+    /// Page content summary
+    pub summary: Option<String>,
+}
+
+pub async fn query_page(pool: &PgPool, query: &str, page: &PageView) -> Result<Vec<PageSummary>> {
     let result = sqlx::query_as(
-        "SELECT title, uri, publish_date, content
+        "SELECT id, title, ('http://' || uri) AS uri, publish_date, content AS summary
             FROM search.search_page($1)
             ORDER BY publish_date DESC
             OFFSET $2 LIMIT $3;",
@@ -79,28 +87,3 @@ pub async fn query_page(pool: &PgPool, query: &str, page: &PageView) -> Result<V
 
     Ok(result)
 }
-
-// ///attachments
-// ///
-// /// The pages in OA portal.
-// #[derive(sqlx::FromRow, Serialize())]
-// pub struct Attachment {
-//     pub id: i32,
-//     pub title: Option<String>,
-//     pub host: Option<String>,
-//     pub path: Option<String>,
-//     pub size: Option<i32>,
-//     pub local_name: Option<String>,
-//     pub checksum: Option<String>,
-//     pub referer: Option<String>,
-// }
-//
-// pub async fn query_attachment(pool: &PgPool, query: &str, page: &PageView) -> Result<Vec<Attachment>> {
-//     let result = sqlx::query_as(
-//         "",
-//     )
-//         .fetch_all(pool)
-//         .await?;
-//
-//     Ok(result)
-// }
