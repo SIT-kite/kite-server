@@ -18,7 +18,38 @@
 - [x] 入学信息查询
 - [ ] 失物招领
 
-## 安装
+## 环境配置
+
+### 数据库配置
+
+在 `sql` 目录下有一个 `initial.sql` 文件，用于初始化数据库。
+
+请先部署好数据库，可以参考 [配置文档](docs/数据库配置.md)。考虑到可能的兼容性问题，建议数据库版本不低于 PostgreSQL 13.2。
+
+**方式一** 在 `psql` 中导入数据库
+
+切换到数据库脚本所在路径后，通过 `psql` 连接到对应的数据库：
+
+```shell
+cd kite-server/sql
+psql -U postgres
+```
+
+进入数据库后，输入：
+
+```shell
+\i initial.sql
+```
+
+**方式二** 直接通过 `psql` 命令执行 SQL 文件
+
+```shell
+psql -U postgres -f kite-server/sql/initial.sql
+```
+
+导入完成即可。推荐使用 DataGrip 进行后续的数据库管理操作。
+
+### 编译
 
 请先确保系统中已预装有 rust 编程环境（rustc、cargo等），并已连接上互联网。
 
