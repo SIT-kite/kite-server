@@ -70,7 +70,7 @@ pub async fn server_main() -> std::io::Result<()> {
             .wrap(middlewares::Reject::new(&buffer))
             .wrap(actix_web::middleware::Compress::default())
             .wrap(actix_web::middleware::Logger::new(log_string))
-            .data(app_state.clone())
+            .app_data(app_state.clone())
             .configure(routes)
     })
     .bind(&CONFIG.server.bind.as_str())?
