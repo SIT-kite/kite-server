@@ -1,13 +1,13 @@
 use std::result::Result;
-use std::task::{Context, Poll};
 
 use actix_service::{Service, Transform};
+use actix_utils::future::{self, ok, Ready};
 use actix_web::{
     dev::{ServiceRequest, ServiceResponse},
     http::Method,
-    Error, HttpResponse,
+    Error,
 };
-use futures::future::{ok, Either, Ready};
+use futures_util::future::Either;
 
 use crate::error::ApiError;
 use crate::jwt::*;
@@ -16,20 +16,19 @@ use crate::services::{get_auth_bearer_value, JwtToken};
 
 pub struct Auth;
 
-impl<S, B> Transform<S> for Auth
+impl<S> Transform<S, ServiceRequest> for Auth
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse, Error = Error>,
     S::Future: 'static,
 {
-    type Request = ServiceRequest;
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse;
     type Error = Error;
     type Transform = AuthMiddleware<S>;
     type InitError = ();
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ok(AuthMiddleware { service })
+        future::ok(AuthMiddleware { service })
     }
 }
 
@@ -37,21 +36,18 @@ pub struct AuthMiddleware<S> {
     service: S,
 }
 
-impl<S, B> Service for AuthMiddleware<S>
+impl<S> Service<ServiceRequest> for AuthMiddleware<S>
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse, Error = Error>,
     S::Future: 'static,
 {
-    type Request = ServiceRequest;
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse;
     type Error = Error;
     type Future = Either<S::Future, Ready<Result<Self::Response, Self::Error>>>;
 
-    fn poll_ready(&mut self, cx: &mut Context) -> Poll<Result<(), Self::Error>> {
-        self.service.poll_ready(cx)
-    }
+    actix_service::forward_ready!(service);
 
-    fn call(&mut self, req: ServiceRequest) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         // 检查请求的 path 和请求方法
         // 对可匿名访问的页面予以放行
         if check_anonymous_list(req.method(), req.path()) {
@@ -69,11 +65,7 @@ where
                 }
             }
         }
-        Either::Right(ok(req.into_response(
-            HttpResponse::Ok()
-                .json(ApiError::new(CommonError::LoginNeeded))
-                .into_body(),
-        )))
+        Either::Right(ok(req.error_response(ApiError::new(CommonError::LoginNeeded))))
     }
 }
 
