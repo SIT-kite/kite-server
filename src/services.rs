@@ -70,7 +70,7 @@ pub async fn server_main() -> std::io::Result<()> {
             .wrap(middlewares::Reject::new(&buffer))
             .wrap(actix_web::middleware::Compress::default())
             .wrap(actix_web::middleware::Logger::new(log_string))
-            .app_data(app_state.clone())
+            .app_data(web::Data::new(app_state.clone()))
             .configure(routes)
     })
     .bind(&CONFIG.server.bind.as_str())?
@@ -145,8 +145,8 @@ fn set_logger(path: &str) {
     fern::Dispatch::new()
         // Perform allocation-free log formatting
         .format(|out, message, _| out.finish(format_args!("{}", message)))
-        .level(log::LevelFilter::Info)
-        // .chain(std::io::stdout())
+        .level(log::LevelFilter::Off)
+        .level_for("actix_web", log::LevelFilter::Info)
         .chain(fern::log_file(path).expect("Could not open log file."))
         .apply()
         .expect("Failed to set logger.");
