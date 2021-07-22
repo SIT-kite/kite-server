@@ -1,3 +1,6 @@
-pub mod acl;
-pub mod logger;
-pub mod reject;
+pub use acl::Auth;
+pub use reject::Reject;
+
+mod acl;
+mod logger;
+mod reject;

@@ -2,11 +2,17 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
+use std::io::Read;
+
+use actix_web::{web, App, HttpResponse, HttpServer};
+// use crate::services::middlewares::reject::Reject;
+use actix_web::http::HeaderValue;
+use serde::{Deserialize, Serialize};
+use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::Executor;
+
 use crate::bridge::AgentManager;
 use crate::config::CONFIG;
-use actix_web::{web, App, HttpResponse, HttpServer};
-use sqlx::postgres::{PgPool, PgPoolOptions};
-use std::io::Read;
 
 mod auth;
 mod handlers;
@@ -60,11 +66,11 @@ pub async fn server_main() -> std::io::Result<()> {
     // Run actix-web services.
     HttpServer::new(move || {
         App::new()
+            .wrap(middlewares::Auth {})
+            .wrap(middlewares::Reject::new(&buffer))
             .wrap(actix_web::middleware::Compress::default())
-            // .wrap(middlewares::acl::Auth)
             .wrap(actix_web::middleware::Logger::new(log_string))
-            // .wrap(Reject::new(&buffer))
-            .data(app_state.clone())
+            .app_data(web::Data::new(app_state.clone()))
             .configure(routes)
     })
     .bind(&CONFIG.server.bind.as_str())?
@@ -110,6 +116,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(edu::query_major)
             .service(edu::list_course_classes)
             .service(edu::query_course)
+            .service(edu::query_available_classrooms)
             // System status routes
             .service(status::get_timestamp)
             .service(status::get_system_status)
@@ -138,16 +145,12 @@ fn set_logger(path: &str) {
     fern::Dispatch::new()
         // Perform allocation-free log formatting
         .format(|out, message, _| out.finish(format_args!("{}", message)))
-        .level(log::LevelFilter::Info)
-        // .chain(std::io::stdout())
+        .level(log::LevelFilter::Off)
+        .level_for("actix_web", log::LevelFilter::Info)
         .chain(fern::log_file(path).expect("Could not open log file."))
         .apply()
         .expect("Failed to set logger.");
 }
-
-use actix_web::http::HeaderValue;
-use serde::{Deserialize, Serialize};
-use sqlx::Executor;
 
 /// User Jwt token carried in each request.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

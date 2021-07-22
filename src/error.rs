@@ -1,7 +1,6 @@
 use std::io::Error as StdIoError;
 
-use actix_web::dev::BaseHttpResponseBuilder;
-use actix_web::{error::PayloadError, http::StatusCode, BaseHttpResponse, ResponseError};
+use actix_web::{error::PayloadError, http::StatusCode, HttpResponse, ResponseError};
 use anyhow::Error as AnyError;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
@@ -47,12 +46,8 @@ impl ResponseError for ApiError {
         StatusCode::OK
     }
     // Make json response body for error.
-    fn error_response(&self) -> BaseHttpResponse<actix_web::dev::Body> {
-        let body =
-            serde_json::to_string(&self).unwrap_or_else(|_| String::from("Internal Server Error"));
-        BaseHttpResponseBuilder::new(StatusCode::OK)
-            .content_type("application/json")
-            .body(body)
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::Ok().json(&self)
     }
 }
 
