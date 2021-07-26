@@ -9,6 +9,7 @@ use crate::models::edu::{self, AvailClassroomQuery, CourseBase, CourseClass, Maj
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
+use serde::de::value::StringDeserializer;
 
 #[derive(Debug, Deserialize)]
 pub struct ListMajor {
@@ -116,7 +117,7 @@ pub async fn query_course(
 #[derive(serde::Deserialize, sqlx::FromRow)]
 pub struct ClassroomQuery {
     pub building: Option<String>,
-    pub layer: Option<i32>,
+    pub campus: Option<String>,
     pub date: String,
     pub time: Option<String>,
 }
@@ -129,13 +130,15 @@ pub async fn query_available_classrooms(
 ) -> Result<HttpResponse> {
     let query = query.into_inner();
 
-    let want_time = query.time.unwrap_or_else(|| String::from("1-11"));
+    let want_time = query.time.unwrap_or_else(|| String::from("0-0"));
     // See: model::edu::classroom::AvailClassroomQuery::want_time
     let want_time_bits = edu::convert_time_string(&want_time);
+    let campus = query.campus.unwrap_or_else(|| String::from(""));
+    let campus_codename = edu::transform_campus(&campus);
     let (term_week, week_day) = edu::transform_date(&query.date);
     let query = AvailClassroomQuery {
         building: query.building,
-        layer: query.layer,
+        campus: Some(campus_codename),
         week: term_week,
         day: week_day,
         want_time: Some(want_time_bits),

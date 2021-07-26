@@ -8,8 +8,6 @@ use sqlx::PgPool;
 pub struct AvailClassroom {
     /// The building to the classroom
     pub building: String,
-    /// Layer
-    pub layer: i32,
     /// Room number
     pub room: String,
     /// Busy time
@@ -20,9 +18,8 @@ pub struct AvailClassroom {
 pub struct AvailClassroomQuery {
     /// The building to the classroom, for example, "一教"
     pub building: Option<String>,
-    /// Layer
-    pub layer: Option<i32>,
-    /// Part of the building, like A, B, C, D.
+    /// Campus, for example, "徐汇校区" = 2 "奉贤校区" = 1
+    pub campus: Option<i32>,
     /// Week index
     pub week: i32,
     /// Day index in a week
@@ -40,18 +37,18 @@ pub async fn query_avail_classroom(
     page: &PageView,
 ) -> Result<Vec<AvailClassroom>> {
     let classrooms = sqlx::query_as(
-        "SELECT building, layer::int, room, busy_time::int FROM edu.query_available_classrooms($1, $2, $3, $4, $5)
+        "SELECT building, room, busy_time::int FROM edu.query_available_classrooms($1, $2, $3, $4, $5)
         LIMIT $6 OFFSET $7;",
     )
-        .bind(&query.building)
-        .bind(&query.layer)
-        .bind(query.week)
-        .bind(query.day)
-        .bind(query.want_time.unwrap_or(!0))
-        .bind(page.count(30) as i32)
-        .bind(page.offset(30) as i32)
-        .fetch_all(db)
-        .await?;
+    .bind(&query.campus)
+    .bind(&query.building)
+    .bind(query.week)
+    .bind(query.day)
+    .bind(query.want_time.unwrap_or(!0))
+    .bind(page.count(30) as i32)
+    .bind(page.offset(30) as i32)
+    .fetch_all(db)
+    .await?;
 
     Ok(classrooms)
 }
@@ -95,9 +92,19 @@ pub fn transform_date(s: &str) -> (i32, i32) {
     (week, day)
 }
 
+pub fn transform_campus(s: &str) -> i32 {
+    if s == "徐汇校区" {
+        return 2;
+    } else if s == "奉贤校区" {
+        return 1;
+    }
+    0
+}
+
 #[cfg(test)]
 mod test {
     use super::convert_time_string;
+    use super::transform_campus;
     use super::transform_date;
     #[test]
     fn test_convert_time_string() {
@@ -119,5 +126,12 @@ mod test {
         assert_eq!(transform_date("2021-9-17"), (2, 5));
         assert_eq!(transform_date("2021-10-23"), (7, 6));
         assert_eq!(transform_date("2021-9-23"), (3, 4));
+    }
+
+    #[test]
+    fn test_transform_campus() {
+        assert_eq!(transform_campus("奉贤校区"), 1);
+        assert_eq!(transform_campus("徐汇校区"), 2);
+        assert_eq!(transform_campus(""), 0);
     }
 }
