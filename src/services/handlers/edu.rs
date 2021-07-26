@@ -5,7 +5,7 @@ use chrono::Datelike;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
-use crate::models::edu::{self, CourseBase, CourseClass, Major, PlannedCourse};
+use crate::models::edu::{self, AvailClassroomQuery, CourseBase, CourseClass, Major, PlannedCourse};
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
@@ -111,4 +111,35 @@ pub async fn query_course(
     let term_string = term.unwrap_or_else(edu::get_current_term);
     let course = CourseBase::query(&app.pool, &parameters.q, &term_string, &page).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(course)))
+}
+
+#[derive(serde::Deserialize, sqlx::FromRow)]
+pub struct ClassroomQuery {
+    pub building: Option<String>,
+    pub layer: Option<i32>,
+    pub date: String,
+    pub time: Option<String>,
+}
+
+#[get("/edu/classroom/available")]
+pub async fn query_available_classrooms(
+    app: web::Data<AppState>,
+    query: web::Query<ClassroomQuery>,
+    page: web::Query<PageView>,
+) -> Result<HttpResponse> {
+    let query = query.into_inner();
+
+    let want_time = query.time.unwrap_or_else(|| String::from("1-11"));
+    // See: model::edu::classroom::AvailClassroomQuery::want_time
+    let want_time_bits = edu::convert_time_string(&want_time);
+    let (term_week, week_day) = edu::transform_date(&query.date);
+    let query = AvailClassroomQuery {
+        building: query.building,
+        layer: query.layer,
+        week: term_week,
+        day: week_day,
+        want_time: Some(want_time_bits),
+    };
+    let result = edu::query_avail_classroom(&app.pool, &query, &page).await?;
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
 }
