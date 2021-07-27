@@ -4,12 +4,15 @@ use actix_web::{get, web, HttpResponse};
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
 
-use crate::error::Result;
+use crate::error::{ApiError, Result};
 use crate::models::edu::{self, AvailClassroomQuery, CourseBase, CourseClass, Major, PlannedCourse};
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
 use serde::de::value::StringDeserializer;
+
+const CAMPUS_XUHUI: i32 = 2;
+const CAMPUS_FENGXIAN: i32 = 1;
 
 #[derive(Debug, Deserialize)]
 pub struct ListMajor {
@@ -117,7 +120,7 @@ pub async fn query_course(
 #[derive(serde::Deserialize, sqlx::FromRow)]
 pub struct ClassroomQuery {
     pub building: Option<String>,
-    pub campus: Option<String>,
+    pub campus: Option<i32>,
     pub date: String,
     pub time: Option<String>,
 }
@@ -133,12 +136,17 @@ pub async fn query_available_classrooms(
     let want_time = query.time.unwrap_or_else(|| String::from("0-0"));
     // See: model::edu::classroom::AvailClassroomQuery::want_time
     let want_time_bits = edu::convert_time_string(&want_time);
-    let campus = query.campus.unwrap_or_else(|| String::from(""));
-    let campus_codename = edu::transform_campus(&campus);
+
+    let campus = query.campus.unwrap_or_else(|| 0);
+    // Judge the campus weather it is true number
+    if campus != CAMPUS_FENGXIAN && campus != CAMPUS_XUHUI {
+        return Err(ApiError::new(CommonError::Parameter));
+    }
+
     let (term_week, week_day) = edu::transform_date(&query.date);
     let query = AvailClassroomQuery {
         building: query.building,
-        campus: Some(campus_codename),
+        campus: Some(campus),
         week: term_week,
         day: week_day,
         want_time: Some(want_time_bits),

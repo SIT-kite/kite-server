@@ -92,19 +92,9 @@ pub fn transform_date(s: &str) -> (i32, i32) {
     (week, day)
 }
 
-pub fn transform_campus(s: &str) -> i32 {
-    if s == "徐汇校区" {
-        return 2;
-    } else if s == "奉贤校区" {
-        return 1;
-    }
-    0
-}
-
 #[cfg(test)]
 mod test {
     use super::convert_time_string;
-    use super::transform_campus;
     use super::transform_date;
     #[test]
     fn test_convert_time_string() {
@@ -126,12 +116,5 @@ mod test {
         assert_eq!(transform_date("2021-9-17"), (2, 5));
         assert_eq!(transform_date("2021-10-23"), (7, 6));
         assert_eq!(transform_date("2021-9-23"), (3, 4));
-    }
-
-    #[test]
-    fn test_transform_campus() {
-        assert_eq!(transform_campus("奉贤校区"), 1);
-        assert_eq!(transform_campus("徐汇校区"), 2);
-        assert_eq!(transform_campus(""), 0);
     }
 }
