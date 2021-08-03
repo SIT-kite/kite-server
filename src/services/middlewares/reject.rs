@@ -1,4 +1,4 @@
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
 use actix_service::{Service, Transform};
@@ -62,15 +62,17 @@ where
         // X-Forwarded-For field is set by nginx, so we should trust it.
         let origin_addr = req.headers().get("X-Forwarded-For");
 
-        if let Some(peer_addr) = origin_addr
-            .and_then(|peer| peer.to_str().ok())
-            .and_then(|addr| Ipv4Addr::from_str(addr).ok())
-        {
-            let should_allow = self
-                .white_list
-                .contain(ipset::convert_ipv4_addr_to_u32(&peer_addr.octets()));
+        if let Some(peer_addr) = origin_addr.and_then(|peer| peer.to_str().ok()) {
+            if let Ok(ipv4_addr) = Ipv4Addr::from_str(peer_addr) {
+                let should_allow = self
+                    .white_list
+                    .contain(ipset::convert_ipv4_addr_to_u32(&ipv4_addr.octets()));
 
-            if should_allow {
+                if should_allow {
+                    return Either::Left(self.service.call(req));
+                }
+            } else if let Ok(_) = Ipv6Addr::from_str(peer_addr) {
+                // Allow ipv6 request unconditionally.
                 return Either::Left(self.service.call(req));
             }
         }
