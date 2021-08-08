@@ -8,7 +8,6 @@ pub use person::get_default_avatar;
 mod authserver;
 mod identity;
 mod person;
-pub(crate) mod wechat;
 
 /* Constants at the edge between self and database. */
 

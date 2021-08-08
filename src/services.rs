@@ -4,12 +4,12 @@
 
 use std::io::Read;
 
-use actix_web::{web, App, HttpResponse, HttpServer};
-// use crate::services::middlewares::reject::Reject;
 use actix_web::http::HeaderValue;
+use actix_web::{web, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
+use wechat_sdk::client::{WeChatClient, WeChatClientBuilder};
 
 use crate::bridge::AgentManager;
 use crate::config::CONFIG;
@@ -23,6 +23,7 @@ mod response;
 pub struct AppState {
     pool: PgPool,
     host: AgentManager,
+    wx_client: WeChatClient,
 }
 
 pub async fn server_main() -> std::io::Result<()> {
@@ -49,12 +50,19 @@ pub async fn server_main() -> std::io::Result<()> {
     file.read_to_string(&mut buffer).unwrap();
     drop(file);
 
+    // Wechat server side API client
+    let wx_client = WeChatClientBuilder::new()
+        .appid(&CONFIG.wechat.appid)
+        .secret(&CONFIG.wechat.secret)
+        .build();
+
     // Websocket server.
     let ws_host = AgentManager::new();
 
     let app_state = AppState {
         pool,
         host: ws_host.clone(),
+        wx_client,
     };
 
     tokio::spawn(async move {

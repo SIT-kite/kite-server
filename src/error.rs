@@ -7,8 +7,7 @@ use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlError;
-
-use crate::models::user::wechat::WxErr;
+use wechat_sdk::WxClientError;
 
 pub type Result<T> = std::result::Result<T, ApiError>;
 pub type Error = ApiError;
@@ -61,16 +60,6 @@ impl ApiError {
     }
 }
 
-impl From<WxErr> for ApiError {
-    fn from(e: WxErr) -> Self {
-        ApiError {
-            code: e.errcode,
-            inner_msg: Some(e.errmsg),
-            error_msg: None,
-        }
-    }
-}
-
 #[macro_export]
 macro_rules! convert_inner_errors {
     ($src_err_type: ident) => {
@@ -93,3 +82,4 @@ convert_inner_errors!(JwtError);
 convert_inner_errors!(SqlError);
 convert_inner_errors!(StdIoError);
 convert_inner_errors!(AnyError);
+convert_inner_errors!(WxClientError);

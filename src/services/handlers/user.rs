@@ -1,10 +1,10 @@
 use actix_web::{get, post, put, web, HttpResponse};
 use serde::{Deserialize, Serialize};
+use wechat_sdk::wechat::{Login, WxSession};
 
 use crate::error::{ApiError, Result};
 use crate::jwt::encode_jwt;
 use crate::models::file::AvatarManager;
-use crate::models::user::wechat::{get_session_by_code, WxSession};
 use crate::models::user::{get_default_avatar, Authentication, Identity, Person, UserError};
 use crate::models::user::{LOGIN_BY_CAMPUS_WEB, LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
 use crate::models::CommonError;
@@ -46,7 +46,7 @@ pub async fn login(app: web::Data<AppState>, form: web::Form<AuthParameters>) ->
             wechat_code: Some(wechat_code),
             ..
         } => {
-            let wechat_token: WxSession = get_session_by_code(wechat_code.as_str()).await?;
+            let wechat_token: WxSession = app.wx_client.code2session(&wechat_code).await?;
             let auth: Authentication = Authentication::from_wechat(&wechat_token.openid);
             user = auth.wechat_login(&app.pool).await?;
         }
@@ -242,7 +242,7 @@ pub async fn bind_authentication(
             wechat_code: Some(wechat_code),
             ..
         } => {
-            let wechat_token: WxSession = get_session_by_code(wechat_code.as_str()).await?;
+            let wechat_token: WxSession = app.wx_client.code2session(&wechat_code).await?;
             let auth: Authentication = Authentication::from_wechat(&wechat_token.openid);
             user.update_authentication(&app.pool, &auth).await?;
         }
