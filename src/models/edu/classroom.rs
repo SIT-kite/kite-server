@@ -12,6 +12,8 @@ pub struct AvailClassroom {
     pub room: String,
     /// Busy time
     pub busy_time: i32,
+    /// Room seats
+    pub capacity: Option<i32>,
 }
 
 #[derive(serde::Serialize, sqlx::FromRow, Debug)]
@@ -37,7 +39,7 @@ pub async fn query_avail_classroom(
     page: &PageView,
 ) -> Result<Vec<AvailClassroom>> {
     let classrooms = sqlx::query_as(
-        "SELECT building, room, busy_time::int FROM edu.query_available_classrooms($1, $2, $3, $4, $5)
+        "SELECT building, room, busy_time::int, capacity::int FROM edu.query_available_classrooms($1, $2, $3, $4, $5)
         LIMIT $6 OFFSET $7;",
     )
     .bind(&query.campus)
