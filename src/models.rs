@@ -24,6 +24,8 @@ pub mod notice;
 pub mod pay;
 /// Search mod
 pub mod search;
+/// Telephone mod
+pub mod telephone;
 /// User management.
 pub mod user;
 

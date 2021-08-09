@@ -8,4 +8,5 @@ pub mod notice;
 pub mod pay;
 pub mod search;
 pub mod status;
+pub mod telephone;
 pub mod user;
