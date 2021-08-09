@@ -6,8 +6,6 @@ use sqlx::PgPool;
 
 #[derive(serde::Serialize, sqlx::FromRow)]
 pub struct AvailClassroom {
-    /// The building to the classroom
-    pub building: String,
     /// Room number
     pub room: String,
     /// Busy time
@@ -20,6 +18,8 @@ pub struct AvailClassroom {
 pub struct AvailClassroomQuery {
     /// The building to the classroom, for example, "一教"
     pub building: Option<String>,
+    /// The region to the classroom, for example, "A", "B"
+    pub region: Option<String>,
     /// Campus, for example, "徐汇校区" = 2 "奉贤校区" = 1
     pub campus: Option<i32>,
     /// Week index
@@ -39,11 +39,12 @@ pub async fn query_avail_classroom(
     page: &PageView,
 ) -> Result<Vec<AvailClassroom>> {
     let classrooms = sqlx::query_as(
-        "SELECT building, room, busy_time::int, capacity::int FROM edu.query_available_classrooms($1, $2, $3, $4, $5)
-        LIMIT $6 OFFSET $7;",
+        "SELECT room, busy_time::int, capacity::int FROM edu.query_available_classrooms($1, $2, $3, $4, $5, $6)
+        LIMIT $7 OFFSET $8;",
     )
     .bind(&query.campus)
     .bind(&query.building)
+    .bind(&query.region)
     .bind(query.week)
     .bind(query.day)
     .bind(query.want_time.unwrap_or(!0))

@@ -120,6 +120,7 @@ pub async fn query_course(
 #[derive(serde::Deserialize, sqlx::FromRow)]
 pub struct ClassroomQuery {
     pub building: Option<String>,
+    pub region: Option<String>,
     pub campus: Option<i32>,
     pub date: String,
     pub time: Option<String>,
@@ -146,6 +147,7 @@ pub async fn query_available_classrooms(
     let (term_week, week_day) = edu::transform_date(&query.date);
     let query = AvailClassroomQuery {
         building: query.building,
+        region: query.region,
         campus: Some(campus),
         week: term_week,
         day: week_day,
