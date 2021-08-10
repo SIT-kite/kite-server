@@ -88,7 +88,7 @@ pub async fn server_main() -> std::io::Result<()> {
 
 fn routes(app: &mut web::ServiceConfig) {
     use handlers::{
-        attachment, edu, event, freshman, mall, motto, notice, pay, search, status, telephone, user,
+        attachment, contact, edu, event, freshman, mall, motto, notice, pay, search, status, user,
     };
 
     app.service(
@@ -149,7 +149,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(mall::update_goods)
             .service(mall::delete_goods)
             // Address book
-            .service(telephone::query_all_telephone),
+            .service(contact::query_all_telephone),
     );
 }
 

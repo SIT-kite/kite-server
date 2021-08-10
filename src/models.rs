@@ -6,6 +6,8 @@ use thiserror::Error;
 
 use crate::error::ApiError;
 
+/// Telephone mod
+pub mod contact;
 /// Course and score management.
 pub mod edu;
 /// Event display, sign-in and statistics
@@ -24,8 +26,6 @@ pub mod notice;
 pub mod pay;
 /// Search mod
 pub mod search;
-/// Telephone mod
-pub mod telephone;
 /// User management.
 pub mod user;
 

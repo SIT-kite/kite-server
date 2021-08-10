@@ -1,4 +1,5 @@
 pub mod attachment;
+pub mod contact;
 pub mod edu;
 pub mod event;
 pub mod freshman;
@@ -8,5 +9,4 @@ pub mod notice;
 pub mod pay;
 pub mod search;
 pub mod status;
-pub mod telephone;
 pub mod user;
