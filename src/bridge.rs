@@ -1,15 +1,4 @@
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::sync::Arc;
-
-use serde::Serialize;
-use tokio::sync::{broadcast, mpsc, oneshot, Mutex};
-
-use model::AgentInfo;
-use protocol::{Request, Response};
-pub use protocol::{RequestPayload, ResponsePayload};
-
-pub mod host;
+mod host;
 mod model;
 mod protocol;
 
@@ -22,46 +11,14 @@ pub enum HostError {
     NoAgentAvailable = 120,
     #[error("请求超时")]
     Timeout = 121,
-    #[error("连接已关闭")]
-    Disconnected = 122,
-    #[error("当前代理节点不可用")]
-    AgentUnavailable = 123,
-    #[error("返回的响应与请求类型不一致")]
-    BadResponse = 124,
-    #[error("非法 Agent")]
-    InvalidAgent = 125,
-    #[error("Payload 过大")]
-    TooLargePayload = 126,
-}
-
-/// Request queue in agent cache. When response received, use this queue to found the requester.
-type RequestQueue = HashMap<u64, oneshot::Sender<Response>>;
-
-/// Agents
-type AgentMap = HashMap<SocketAddr, Agent>;
-
-struct HaltChannel {
-    sender: broadcast::Sender<()>,
-    receiver: broadcast::Receiver<()>,
 }
 
 /// Agent structure, for each client node.
 #[derive(Clone)]
-pub struct Agent {
-    /// Agent info reported by agent.
-    basic: AgentInfo,
-    /// Remote socket addr
-    addr: SocketAddr,
-    /// Request queue, used to callback when the response is received.
-    queue: Arc<Mutex<RequestQueue>>,
-    /// Request channel to sender loop.
-    channel: Option<mpsc::Sender<Request>>,
-    /// Halt channel
-    halt: Option<HaltChannel>,
-}
+pub struct Agent {}
 
 /// Agent state
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 pub struct AgentStatus {
     /// Agent name
     pub name: String,
@@ -77,6 +34,4 @@ pub struct AgentStatus {
 
 /// Local, host.
 #[derive(Clone)]
-pub struct AgentManager {
-    agents: Arc<Mutex<AgentMap>>,
-}
+pub struct AgentManager {}

@@ -11,7 +11,6 @@ use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
 use wechat_sdk::client::{WeChatClient, WeChatClientBuilder};
 
-use crate::bridge::AgentManager;
 use crate::config::CONFIG;
 
 mod auth;
@@ -22,7 +21,6 @@ mod response;
 #[derive(Clone)]
 pub struct AppState {
     pool: PgPool,
-    host: AgentManager,
     wx_client: WeChatClient,
 }
 
@@ -56,20 +54,7 @@ pub async fn server_main() -> std::io::Result<()> {
         .secret(&CONFIG.wechat.secret)
         .build();
 
-    // Websocket server.
-    let ws_host = AgentManager::new();
-
-    let app_state = AppState {
-        pool,
-        host: ws_host.clone(),
-        wx_client,
-    };
-
-    tokio::spawn(async move {
-        ws_host.agent_main().await.unwrap_or_else(|e| {
-            panic!("Failed to run websocket host: {}", e);
-        });
-    });
+    let app_state = AppState { pool, wx_client };
 
     // Run actix-web services.
     HttpServer::new(move || {
@@ -130,7 +115,7 @@ fn routes(app: &mut web::ServiceConfig) {
             // System status routes
             .service(status::get_timestamp)
             .service(status::get_system_status)
-            .service(status::get_agent_list)
+            // .service(status::get_agent_list)
             // Pay and room balance
             .service(pay::query_room_balance)
             .service(pay::query_room_bills_by_day)
