@@ -85,7 +85,7 @@ impl Authentication {
         self.uid = auth.uid;
 
         if auth.credential.eq(&self.credential) && auth.credential.is_some() {
-            return Person::get(&client, auth.uid).await;
+            return Person::get(client, auth.uid).await;
         }
         Err(ApiError::new(UserError::LoginFailed))
     }

@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::error::{ApiError, Result};
+use crate::error::Result;
 
 #[derive(serde::Serialize, sqlx::FromRow, Debug)]
 pub struct Contact {

@@ -85,7 +85,7 @@ pub async fn upload_file(
         manager.create(&attachment).await?;
         return Ok(HttpResponse::Ok().json(ApiResponse::normal(attachment)));
     }
-    return Err(ApiError::new(AttachmentError::NoPayload));
+    Err(ApiError::new(AttachmentError::NoPayload))
 }
 
 #[get("/attachment")]

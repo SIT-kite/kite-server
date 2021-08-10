@@ -71,7 +71,7 @@ where
                 if should_allow {
                     return Either::Left(self.service.call(req));
                 }
-            } else if let Ok(_) = Ipv6Addr::from_str(peer_addr) {
+            } else if Ipv6Addr::from_str(peer_addr).is_ok() {
                 // Allow ipv6 request unconditionally.
                 return Either::Left(self.service.call(req));
             }

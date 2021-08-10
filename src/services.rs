@@ -34,7 +34,7 @@ pub async fn server_main() -> std::io::Result<()> {
                 Ok(())
             })
         })
-        .connect(&CONFIG.server.db.as_ref())
+        .connect(CONFIG.server.db.as_ref())
         .await
         .expect("Could not create database pool");
 

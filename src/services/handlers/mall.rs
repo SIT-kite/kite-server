@@ -20,7 +20,7 @@ pub fn is_valid_isbn(isbn: &str) -> bool {
     if isbn.len() != 13 && isbn.len() != 10 {
         return false;
     }
-    if !is_numeric(&isbn) {
+    if !is_numeric(isbn) {
         return false;
     }
     true

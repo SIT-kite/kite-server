@@ -22,7 +22,7 @@ pub fn decode_jwt<T: DeserializeOwned>(token: &str) -> Option<T> {
         validate_exp: false,
         ..jsonwebtoken::Validation::default()
     };
-    let t = jsonwebtoken::decode::<T>(&token, &decoding_key, &option);
+    let t = jsonwebtoken::decode::<T>(token, &decoding_key, &option);
 
     if let Ok(token_data) = t {
         Some(token_data.claims)

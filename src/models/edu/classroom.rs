@@ -1,8 +1,8 @@
+use chrono::prelude::*;
+use sqlx::PgPool;
+
 use crate::error::Result;
 use crate::models::PageView;
-use chrono::prelude::*;
-use chrono::ParseResult;
-use sqlx::PgPool;
 
 #[derive(serde::Serialize, sqlx::FromRow)]
 pub struct AvailClassroom {
@@ -61,7 +61,7 @@ pub fn convert_time_string(s: &str) -> i32 {
 
     let check_time_index = |x: &str| -> i32 {
         if let Ok(x) = x.parse() {
-            if x >= 1 && x <= 11 {
+            if (1..=11).contains(&x) {
                 return x;
             }
         }
@@ -99,6 +99,7 @@ pub fn transform_date(s: &str) -> (i32, i32) {
 mod test {
     use super::convert_time_string;
     use super::transform_date;
+
     #[test]
     fn test_convert_time_string() {
         // Normal cases

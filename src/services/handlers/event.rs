@@ -1,12 +1,12 @@
 //! This module includes interfaces about the event and sign.
+use actix_web::{get, post, web, HttpResponse};
+
 use crate::error::{ApiError, Result};
 use crate::models::event::{Event, EventError};
 use crate::models::user::Person;
 use crate::models::{event, CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
-use actix_web::{get, post, web, HttpResponse};
-use serde::Deserialize;
 
 /**********************************************************************
     Interfaces in this module:

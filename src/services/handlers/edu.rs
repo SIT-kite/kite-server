@@ -9,7 +9,6 @@ use crate::models::edu::{self, AvailClassroomQuery, CourseBase, CourseClass, Maj
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
-use serde::de::value::StringDeserializer;
 
 const CAMPUS_XUHUI: i32 = 2;
 const CAMPUS_FENGXIAN: i32 = 1;
@@ -138,7 +137,7 @@ pub async fn query_available_classrooms(
     // See: model::edu::classroom::AvailClassroomQuery::want_time
     let want_time_bits = edu::convert_time_string(&want_time);
 
-    let campus = query.campus.unwrap_or_else(|| 0);
+    let campus = query.campus.unwrap_or(0);
     // Judge the campus weather it is true number
     if campus != CAMPUS_FENGXIAN && campus != CAMPUS_XUHUI {
         return Err(ApiError::new(CommonError::Parameter));

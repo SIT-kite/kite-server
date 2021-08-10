@@ -59,7 +59,7 @@ pub async fn get_goods_detail(db: &PgPool, goods_id: i32) -> Result<GoodsDetail>
 }
 
 pub async fn delete_goods(db: &PgPool, goods_id: i32) -> Result<i32> {
-    let result: (i32,) = sqlx::query_as("UPDATE mall.goods SET status = 0 WHERE id = $1;")
+    let _ = sqlx::query("UPDATE mall.goods SET status = 0 WHERE id = $1;")
         .bind(goods_id)
         .fetch_one(db)
         .await?;

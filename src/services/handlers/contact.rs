@@ -1,7 +1,6 @@
 use actix_web::{get, web, HttpResponse};
-use serde::{Deserialize, Serialize};
 
-use crate::error::{ApiError, Result};
+use crate::error::Result;
 use crate::models::contact;
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
