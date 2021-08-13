@@ -9,11 +9,10 @@ use crate::services::response::ApiResponse;
 pub async fn get_timestamp() -> Result<HttpResponse> {
     let ts = Utc::now().timestamp_millis();
 
-    #[derive(Serialize)]
-    struct Response {
-        pub ts: i64,
-    }
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(Response { ts })))
+    let response = serde_json::json!({
+        "ts": ts,
+    });
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
 
 // TODO: Consider to separate the interface to /status/cpu, /status/memory

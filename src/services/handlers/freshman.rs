@@ -3,7 +3,7 @@ use actix_web::{get, post, put, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
-use crate::models::freshman::{FreshmanAnalysis, FreshmanManager, NewMate, PeopleFamiliar};
+use crate::models::freshman::FreshmanManager;
 use crate::models::CommonError;
 use crate::services::{response::ApiResponse, AppState, JwtToken};
 
@@ -82,11 +82,6 @@ pub async fn get_roommate(
     let account = path.into_inner();
     let secret = secret.into_inner().secret;
 
-    #[derive(Serialize)]
-    struct Resp {
-        pub roommates: Vec<NewMate>,
-    }
-
     let freshman_manager = FreshmanManager::new(&app.pool);
     let roommates = freshman_manager
         .query(&account, &secret)
@@ -94,7 +89,10 @@ pub async fn get_roommate(
         .get_roommates(&app.pool)
         .await?;
 
-    Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { roommates })))
+    let response = serde_json::json!({
+        "roommates": roommates,
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[get("/freshman/{account}/familiar")]
@@ -108,19 +106,16 @@ pub async fn get_people_familiar(
     let account = path.into_inner();
     let secret = secret.into_inner().secret;
 
-    #[derive(Serialize)]
-    struct Resp {
-        pub people_familiar: Vec<PeopleFamiliar>,
-    }
-
     let freshman_manager = FreshmanManager::new(&app.pool);
     let people_familiar = freshman_manager
         .query(&account, &secret)
         .await?
         .get_people_familiar(&app.pool)
         .await?;
-
-    Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { people_familiar })))
+    let response = serde_json::json!({
+        "people_familiar": people_familiar,
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[get("/freshman/{account}/classmate")]
@@ -134,18 +129,16 @@ pub async fn get_classmate(
     let account = path.into_inner();
     let secret = secret.into_inner().secret;
 
-    #[derive(Serialize)]
-    struct Resp {
-        pub classmates: Vec<NewMate>,
-    }
     let freshman_manager = FreshmanManager::new(&app.pool);
     let classmates = freshman_manager
         .query(&account, &secret)
         .await?
         .get_classmates(&app.pool)
         .await?;
-
-    Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { classmates })))
+    let response = serde_json::json!({
+        "classmate": classmates,
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[get("/freshman/{account}/analysis")]
@@ -159,18 +152,16 @@ pub async fn get_analysis_data(
     let account = path.into_inner();
     let secret = secret.into_inner().secret;
 
-    #[derive(Serialize)]
-    struct Resp {
-        pub freshman: FreshmanAnalysis,
-    }
     let freshman_manager = FreshmanManager::new(&app.pool);
     let freshman = freshman_manager
         .query(&account, &secret)
         .await?
         .get_analysis(&app.pool)
         .await?;
-
-    Ok(HttpResponse::Ok().json(ApiResponse::normal(Resp { freshman })))
+    let response = serde_json::json!({
+        "freshman": freshman,
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[post("/freshman/{account}/analysis/log")]
@@ -182,10 +173,6 @@ pub async fn post_analysis_log(
     let account = path.into_inner();
     let secret = secret.into_inner().secret;
 
-    #[derive(Serialize)]
-    struct Resp {
-        pub freshman: FreshmanAnalysis,
-    }
     let freshman_manager = FreshmanManager::new(&app.pool);
     let freshman = freshman_manager.query(&account, &secret).await?;
     sqlx::query("INSERT INTO freshman.share_log (student_id) VALUES ($1)")
