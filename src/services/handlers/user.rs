@@ -82,17 +82,15 @@ pub async fn login(app: web::Data<AppState>, form: web::Form<AuthParameters>) ->
         return Err(ApiError::new(UserError::Disabled));
     }
 
-    #[derive(Serialize)]
-    struct LoginResponse {
-        token: String,
-        data: Person,
-    }
     let token = encode_jwt(&JwtToken {
         uid: user.uid,
         is_admin: user.is_admin,
     })?;
-    let resp = LoginResponse { token, data: user };
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(resp)))
+    let response = serde_json::json!({
+        "token": token,
+        "data": user,
+    });
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
 
 #[derive(Deserialize)]
@@ -117,7 +115,7 @@ pub async fn list_users(app: web::Data<AppState>, form: web::Query<ListUsers>) -
 
 #[derive(Deserialize)]
 pub struct SubmittedPerson {
-    /// Nickname. For users uses wechat to register, use wehcat name by default.
+    /// Nickname. For users uses wechat to register, use wechat name by default.
     #[serde(rename = "nickName")]
     pub nick_name: Option<String>,
     /// User avatar url.
@@ -140,40 +138,36 @@ pub async fn create_user(
     let parameters: SubmittedPerson = form.into_inner();
     let mut user: Person = Person::new();
 
-    if parameters.nick_name.is_none() {
+    /* Necessary items. */
+    user.nick_name = parameters.nick_name.unwrap_or_default();
+    user.avatar = parameters.avatar.unwrap_or_default();
+    if user.nick_name.is_empty() || !user.avatar.starts_with("https://") {
         return Err(ApiError::new(CommonError::Parameter));
     }
-    user.nick_name = parameters.nick_name.unwrap();
+
+    /* Optional parameters. */
     user.country = parameters.country;
     user.province = parameters.province;
     user.city = parameters.city;
     user.language = parameters.language;
 
-    if let Some(avatar_url) = parameters.avatar {
-        let avatar_storage = AvatarManager::new(&app.pool);
-
-        user.avatar = avatar_storage
-            .save(0, &avatar_url)
-            .await?
-            .url
-            .unwrap_or_else(|| get_default_avatar().to_string());
-    }
+    let avatar_storage = AvatarManager::new(&app.pool);
+    user.avatar = avatar_storage
+        .save(0, &user.avatar)
+        .await?
+        .url
+        .unwrap_or_else(|| get_default_avatar().to_string());
     user.register(&app.pool).await?;
 
-    #[derive(Serialize)]
-    struct CreateResponse {
-        uid: i32,
-        token: String,
-    }
-
-    let resp = CreateResponse {
-        uid: user.uid,
-        token: encode_jwt(&JwtToken {
+    let response = serde_json::json!({
+        "uid": user.uid,
+        "token": encode_jwt(&JwtToken {
             uid: user.uid,
             is_admin: user.is_admin,
-        })?,
-    };
-    Ok(HttpResponse::Ok().body(ApiResponse::normal(resp).to_string()))
+        })?
+    });
+
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[put("/user/{uid}")]
@@ -193,6 +187,9 @@ pub async fn update_user_detail(
     let form = form.into_inner();
 
     if let Some(nick_name) = form.nick_name {
+        if nick_name.is_empty() {
+            return Err(ApiError::new(CommonError::Parameter));
+        }
         person.nick_name = nick_name;
     }
     if let Some(city) = form.city {
@@ -205,6 +202,10 @@ pub async fn update_user_detail(
         person.country = Some(country);
     }
     if let Some(avatar_url) = form.avatar {
+        if !avatar_url.starts_with("https://") {
+            return Err(ApiError::new(CommonError::Parameter));
+        }
+
         let avatar_storage = AvatarManager::new(&app.pool);
         let stored_avatar = avatar_storage.query(&avatar_url).await;
         let final_url = match stored_avatar {
