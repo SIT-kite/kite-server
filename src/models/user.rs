@@ -20,8 +20,8 @@ pub const LOGIN_BY_CAMPUS_WEB: i32 = 2;
 pub enum UserError {
     #[error("账户已禁用")]
     Disabled = 50,
-    #[error("找不到用户")]
-    NoSuchUser = 51,
+    #[error("凭据无效")]
+    LoginFailed = 51,
     #[error("无法连接校园网完成认证")]
     OaNetworkFailed = 52,
     #[error("OA密码认证失败")]
@@ -30,8 +30,8 @@ pub enum UserError {
     InvalidIdNumber = 54,
     #[error("普通用户不允许使用用户名密码登录")]
     AuthTypeNotAllowed = 55,
-    #[error("凭据无效")]
-    LoginFailed = 56,
+    #[error("找不到用户")]
+    NoSuchUser = 56,
 }
 
 /* Models */

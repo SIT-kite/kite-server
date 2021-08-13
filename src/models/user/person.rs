@@ -81,7 +81,7 @@ impl Authentication {
         // If campus credential filled in database, return login success, even if the credential is
         // out of date. Because password error will be thrown out if backend function failed, when,
         // for example, loading course data...
-        let auth = auth.ok_or_else(|| ApiError::new(UserError::NoSuchUser))?;
+        let auth = auth.ok_or_else(|| ApiError::new(UserError::LoginFailed))?;
         self.uid = auth.uid;
 
         if auth.credential.eq(&self.credential) && auth.credential.is_some() {
