@@ -136,7 +136,7 @@ pub async fn get_classmate(
         .get_classmates(&app.pool)
         .await?;
     let response = serde_json::json!({
-        "classmate": classmates,
+        "classmates": classmates,
     });
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
