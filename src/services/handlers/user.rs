@@ -321,7 +321,7 @@ pub async fn get_user_identity(
 pub struct IdentityPost {
     /// Real name
     #[serde(rename = "realName")]
-    pub real_name: String,
+    pub real_name: Option<String>,
     /// Student id
     #[serde(rename = "studentId")]
     pub student_id: String,
@@ -349,7 +349,7 @@ pub async fn set_user_identity(
     let identity_post = data.into_inner();
     let mut identity = Identity {
         uid,
-        real_name: identity_post.real_name,
+        real_name: identity_post.real_name.unwrap_or_default(),
         student_id: identity_post.student_id,
         oa_secret: identity_post.oa_secret,
         oa_certified: false,
