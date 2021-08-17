@@ -10,6 +10,7 @@ use tokio_tower::multiplex::MultiplexTransport;
 use tower::{buffer::Buffer, Service, ServiceExt};
 
 use crate::bridge::protocol::Tagged;
+use crate::bridge::HostError;
 
 use super::protocol::{RequestFrame, ResponseResult, Tagger};
 
@@ -21,11 +22,6 @@ pub async fn ready<S: Service<RequestFrame>, RequestFrame>(svc: &mut S) -> Resul
     use futures_util::future::poll_fn;
 
     poll_fn(|cx| svc.poll_ready(cx)).await
-}
-
-pub struct Host {
-    bind_addr: String,
-    clients: Arc<RwLock<HashMap<String, Client>>>,
 }
 
 type BincodeStream =
@@ -40,7 +36,7 @@ type MultiplexClient = multiplex::Client<
 >;
 
 #[derive(Clone)]
-pub(crate) struct Client {
+struct Client {
     address: String,
     client: Buffer<MultiplexClient, Tagged<RequestFrame>>,
 }
@@ -51,8 +47,11 @@ impl Client {
         let transport: Transport = multiplex::MultiplexTransport::new(stream, Tagger::default());
         let client = multiplex::Client::with_error_handler(transport, on_service_error);
 
-        let c = Buffer::new(client, 1024);
-        Self { address, client: c }
+        let buffered_client = Buffer::new(client, 1024);
+        Self {
+            address,
+            client: buffered_client,
+        }
     }
 
     pub async fn request(&mut self, request: RequestFrame) -> Result<ResponseResult> {
@@ -68,10 +67,16 @@ impl Client {
     }
 }
 
-impl Host {
-    pub fn new(bind_addr: String) -> Self {
+#[derive(Clone)]
+pub struct AgentManager {
+    bind_addr: String,
+    clients: Arc<RwLock<HashMap<String, Client>>>,
+}
+
+impl AgentManager {
+    pub fn new(bind_addr: &str) -> Self {
         Self {
-            bind_addr,
+            bind_addr: bind_addr.to_string(),
             clients: Arc::new(RwLock::new(HashMap::new())),
         }
     }
@@ -114,7 +119,7 @@ impl Host {
         if let Some((_, mut client)) = client {
             client.request(request_frame).await
         } else {
-            Err(anyhow::anyhow!("无校园网连接"))
+            Err(HostError::NoAgentAvailable.into())
         }
     }
 }

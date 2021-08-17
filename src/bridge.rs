@@ -1,3 +1,5 @@
+pub use host::AgentManager;
+
 mod host;
 mod model;
 mod protocol;
@@ -13,10 +15,6 @@ pub enum HostError {
     Timeout = 121,
 }
 
-/// Agent structure, for each client node.
-#[derive(Clone)]
-pub struct Agent {}
-
 /// Agent state
 #[derive(serde::Serialize)]
 pub struct AgentStatus {
@@ -31,7 +29,3 @@ pub struct AgentStatus {
     /// Current queue length
     pub queue: u16,
 }
-
-/// Local, host.
-#[derive(Clone)]
-pub struct AgentManager {}

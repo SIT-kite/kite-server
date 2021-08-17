@@ -11,6 +11,7 @@ use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
 use wechat_sdk::client::{WeChatClient, WeChatClientBuilder};
 
+use crate::bridge::AgentManager;
 use crate::config::CONFIG;
 
 mod auth;
@@ -21,6 +22,7 @@ mod response;
 #[derive(Clone)]
 pub struct AppState {
     pool: PgPool,
+    agents: AgentManager,
     wx_client: WeChatClient,
 }
 
@@ -34,7 +36,7 @@ pub async fn server_main() -> std::io::Result<()> {
                 Ok(())
             })
         })
-        .connect(CONFIG.server.db.as_ref())
+        .connect(&CONFIG.server.db)
         .await
         .expect("Could not create database pool");
 
@@ -54,7 +56,17 @@ pub async fn server_main() -> std::io::Result<()> {
         .secret(&CONFIG.wechat.secret)
         .build();
 
-    let app_state = AppState { pool, wx_client };
+    let agents = AgentManager::new(&CONFIG.host.bind);
+    let _agents = agents.clone();
+    tokio::spawn(async move {
+        _agents.listen().await;
+    });
+
+    let app_state = AppState {
+        pool,
+        agents,
+        wx_client,
+    };
 
     // Run actix-web services.
     HttpServer::new(move || {
