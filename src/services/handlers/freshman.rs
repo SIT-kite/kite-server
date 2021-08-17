@@ -1,6 +1,6 @@
 //! This module includes interfaces about freshman queries.
 use actix_web::{get, post, put, web, HttpResponse};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::error::Result;
 use crate::models::freshman::FreshmanManager;

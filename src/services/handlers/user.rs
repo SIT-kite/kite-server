@@ -1,5 +1,5 @@
 use actix_web::{get, post, put, web, HttpResponse};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use wechat_sdk::wechat::{Login, WxSession};
 
 use crate::error::{ApiError, Result};
