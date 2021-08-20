@@ -126,7 +126,6 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(edu::query_available_classrooms)
             // System status routes
             .service(status::get_timestamp)
-            .service(status::get_system_status)
             .service(status::ping_agent)
             // Pay and room balance
             .service(pay::query_room_balance)
