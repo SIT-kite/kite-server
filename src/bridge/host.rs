@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicI64, AtomicU16, AtomicU32, Ordering};
 use std::sync::Arc;
 
 use anyhow::Result;
 use async_bincode::{AsyncBincodeStream, AsyncDestination};
-use chrono::Local;
+use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::RwLock;
 use tokio_tower::multiplex;
@@ -79,35 +79,38 @@ impl Client {
 
 #[derive(Clone)]
 pub struct AgentManager {
+    agent_seq: Arc<AtomicU16>,
     bind_addr: String,
-    clients: Arc<RwLock<HashMap<String, Client>>>,
+    clients: Arc<RwLock<HashMap<u16, Client>>>,
 }
 
 impl AgentManager {
     pub fn new(bind_addr: &str) -> Self {
         Self {
+            agent_seq: Arc::new(AtomicU16::default()),
             bind_addr: bind_addr.to_string(),
             clients: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
     async fn add_client(&self, client: Client) {
+        let last_agent_seq = self.agent_seq.fetch_add(1, Ordering::Acquire);
         let mut clients = self.clients.write().await;
-        clients.insert(client.address.clone(), client);
+        clients.insert(last_agent_seq, client);
     }
 
-    async fn remove_client(&self, address: String) {
+    async fn remove_client(&self, agent_seq: u16) {
         let mut clients = self.clients.write().await;
-        clients.remove(&address);
+        clients.remove(&agent_seq);
     }
 
-    async fn get_client(&self) -> Option<(String, Client)> {
+    async fn get_client(&self) -> Option<(u16, Client)> {
         use rand::{seq::IteratorRandom, thread_rng};
 
         let mut rng = thread_rng();
         let clients = self.clients.read().await;
-        if let Some((addr, client)) = clients.iter().choose(&mut rng) {
-            return Some((addr.clone(), client.clone()));
+        if let Some((seq, client)) = clients.iter().choose(&mut rng) {
+            return Some((*seq, client.clone()));
         }
         None
     }
@@ -116,11 +119,18 @@ impl AgentManager {
         let clients = self.clients.read().await;
         clients
             .iter()
-            .map(|(socket_address, client)| AgentStatus {
-                name: "".to_string(),
-                intranet_addr: "".to_string(),
-                external_addr: socket_address.clone(),
-                requests: client.count.load(Ordering::Acquire),
+            .map(|(&seq, client)| {
+                let last_use_utc =
+                    NaiveDateTime::from_timestamp(client.last_use.load(Ordering::Acquire) / 1000, 0);
+                let last_use = DateTime::from_utc(last_use_utc, FixedOffset::east(8 * 3600));
+                AgentStatus {
+                    seq,
+                    name: "".to_string(),
+                    intranet_addr: "".to_string(),
+                    external_addr: client.address.clone(),
+                    requests: client.count.load(Ordering::Acquire),
+                    last_use,
+                }
             })
             .collect()
     }
@@ -140,11 +150,11 @@ impl AgentManager {
     pub async fn request(&self, request_frame: RequestFrame) -> Result<ResponseResult> {
         let client = self.get_client().await;
 
-        if let Some((remote_addr, mut client)) = client {
+        if let Some((seq, mut client)) = client {
             let result = client.request(request_frame).await;
             // Remove client if error occurred in transport layer, like agent disconnection.
             if result.is_err() {
-                self.remove_client(remote_addr).await;
+                self.remove_client(seq).await;
             }
             result
         } else {

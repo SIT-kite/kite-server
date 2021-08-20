@@ -1,3 +1,5 @@
+use chrono::{DateTime, Local};
+
 pub use host::AgentManager;
 pub use protocol::{ErrorResponse, RequestFrame, RequestPayload, ResponsePayload, ResponseResult};
 
@@ -22,6 +24,7 @@ pub enum HostError {
 /// Agent state
 #[derive(serde::Serialize)]
 pub struct AgentStatus {
+    pub seq: u16,
     /// Agent name
     pub name: String,
     /// Intranet network address
@@ -32,4 +35,6 @@ pub struct AgentStatus {
     pub external_addr: String,
     /// Processed requests' count
     pub requests: u32,
+    /// Last use.
+    pub last_use: DateTime<Local>,
 }
