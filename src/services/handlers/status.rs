@@ -5,8 +5,9 @@ use serde::Deserialize;
 use crate::bridge;
 use crate::bridge::RequestPayload;
 use crate::error::Result;
+use crate::models::CommonError;
 use crate::services::response::ApiResponse;
-use crate::services::AppState;
+use crate::services::{AppState, JwtToken};
 
 #[get("/status/timestamp")]
 pub async fn get_timestamp() -> Result<HttpResponse> {
@@ -16,6 +17,20 @@ pub async fn get_timestamp() -> Result<HttpResponse> {
         "ts": ts,
     });
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
+}
+
+#[get("/status/agent/")]
+pub async fn get_agent_list(app: web::Data<AppState>, token: Option<JwtToken>) -> Result<HttpResponse> {
+    let token = token.ok_or_else(|| CommonError::LoginNeeded)?;
+    if !token.is_admin {
+        return Err(CommonError::Forbidden.into());
+    }
+
+    let agents = &app.agents;
+    let response = serde_json::json!({
+        "agents": agents.get_client_list().await,
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[derive(Deserialize)]
@@ -37,7 +52,7 @@ pub async fn ping_agent(
 
     let response = agents.request(request).await?;
     match response {
-        Ok(response) => Ok(HttpResponse::Ok().json(response)),
+        Ok(response) => Ok(HttpResponse::Ok().json(ApiResponse::normal(response))),
         Err(e) => Err(e.into()),
     }
 }

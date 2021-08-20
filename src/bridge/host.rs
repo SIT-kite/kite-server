@@ -1,18 +1,19 @@
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};
 use std::sync::Arc;
 
 use anyhow::Result;
 use async_bincode::{AsyncBincodeStream, AsyncDestination};
+use chrono::Local;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::RwLock;
 use tokio_tower::multiplex;
 use tokio_tower::multiplex::MultiplexTransport;
 use tower::{buffer::Buffer, Service, ServiceExt};
 
-use crate::bridge::protocol::Tagged;
-use crate::bridge::HostError;
-
+use super::protocol::Tagged;
 use super::protocol::{RequestFrame, ResponseResult, Tagger};
+use super::{AgentStatus, HostError};
 
 fn on_service_error(e: anyhow::Error) {
     eprintln!("error handling: {:?}", e);
@@ -38,6 +39,8 @@ type MultiplexClient = multiplex::Client<
 #[derive(Clone)]
 struct Client {
     address: String,
+    count: Arc<AtomicU32>,
+    last_use: Arc<AtomicI64>,
     client: Buffer<MultiplexClient, Tagged<RequestFrame>>,
 }
 
@@ -48,8 +51,12 @@ impl Client {
         let client = multiplex::Client::with_error_handler(transport, on_service_error);
 
         let buffered_client = Buffer::new(client, 1024);
+
+        let current_time = Local::now().timestamp_millis();
         Self {
             address,
+            count: Arc::new(AtomicU32::default()),
+            last_use: Arc::new(AtomicI64::new(current_time)),
             client: buffered_client,
         }
     }
@@ -63,6 +70,9 @@ impl Client {
             .await
             .map_err(|_| HostError::Timeout)?;
 
+        self.count.fetch_add(1, Ordering::SeqCst);
+        self.last_use
+            .store(Local::now().timestamp_millis(), Ordering::Release);
         Ok(response.v)
     }
 }
@@ -100,6 +110,19 @@ impl AgentManager {
             return Some((addr.clone(), client.clone()));
         }
         None
+    }
+
+    pub async fn get_client_list(&self) -> Vec<AgentStatus> {
+        let clients = self.clients.read().await;
+        clients
+            .iter()
+            .map(|(socket_address, client)| AgentStatus {
+                name: "".to_string(),
+                intranet_addr: "".to_string(),
+                external_addr: socket_address.clone(),
+                requests: client.count.load(Ordering::Acquire),
+            })
+            .collect()
     }
 
     pub async fn listen(&self) {

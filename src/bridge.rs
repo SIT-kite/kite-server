@@ -30,6 +30,6 @@ pub struct AgentStatus {
     /// External network address
     #[serde(rename = "externalAddr")]
     pub external_addr: String,
-    /// Current queue length
-    pub queue: u16,
+    /// Processed requests' count
+    pub requests: u32,
 }
