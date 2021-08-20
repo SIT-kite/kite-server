@@ -56,12 +56,12 @@ impl Client {
 
     pub async fn request(&mut self, request: RequestFrame) -> Result<ResponseResult> {
         let mut client = self.client.clone();
-        let ready_client = client.ready().await.unwrap();
+        let ready_client = client.ready().await.map_err(|_| HostError::Disconnected)?;
 
         let response = ready_client
             .call(Tagged::<RequestFrame>::from(request))
             .await
-            .unwrap();
+            .map_err(|_| HostError::Timeout)?;
 
         Ok(response.v)
     }
@@ -104,7 +104,9 @@ impl AgentManager {
 
     pub async fn listen(&self) {
         // Bind a server socket
-        let listener = TcpListener::bind(&self.bind_addr).await.unwrap();
+        let listener = TcpListener::bind(&self.bind_addr)
+            .await
+            .expect("Could not bind to server.");
 
         while let Ok((s, source_addr)) = listener.accept().await {
             let client = Client::new(source_addr.to_string(), s);
@@ -115,9 +117,13 @@ impl AgentManager {
     pub async fn request(&self, request_frame: RequestFrame) -> Result<ResponseResult> {
         let client = self.get_client().await;
 
-        // TODO: when the client is not available, remove it from clients.
-        if let Some((_, mut client)) = client {
-            client.request(request_frame).await
+        if let Some((remote_addr, mut client)) = client {
+            let result = client.request(request_frame).await;
+            // Remove client if error occurred in transport layer, like agent disconnection.
+            if result.is_err() {
+                self.remove_client(remote_addr).await;
+            }
+            result
         } else {
             Err(HostError::NoAgentAvailable.into())
         }

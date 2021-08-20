@@ -8,12 +8,15 @@ mod protocol;
 pub type Result<T> = anyhow::Result<T>;
 
 #[derive(Debug, ToPrimitive, thiserror::Error)]
+#[error("代理节点错误: {}")]
 /// Business error of web socket host
 pub enum HostError {
-    #[error("无可用的代理节点，无法连接到校园网")]
+    #[error("无可用的代理节点, 无法连接到校园网")]
     NoAgentAvailable = 120,
-    #[error("请求超时")]
+    #[error("Agent 节点请求超时, 请重试")]
     Timeout = 121,
+    #[error("Agent 节点丢失, 请重试")]
+    Disconnected = 122,
 }
 
 /// Agent state
