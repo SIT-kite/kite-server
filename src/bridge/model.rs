@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize)]
 pub struct AgentInfoRequest;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AgentInfo {
     pub name: String,
 }
@@ -24,7 +24,7 @@ pub struct ActivityDetailRequest {
 }
 
 /// Activity link, used for list recent activities.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Activity {
     pub title: String,
     pub id: String,
@@ -32,7 +32,7 @@ pub struct Activity {
 }
 
 /// Activity link, used for list recent activities.
-#[derive(serde::Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ActivityDetail {
     /// Activity id
     pub id: String,

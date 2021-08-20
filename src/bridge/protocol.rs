@@ -1,5 +1,6 @@
 use std::pin::Pin;
 
+use serde::{Deserialize, Serialize};
 use tokio_tower::multiplex;
 
 use crate::bridge::model::{
@@ -7,39 +8,49 @@ use crate::bridge::model::{
 };
 
 /// Response payload
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Serialize)]
 pub enum RequestPayload {
     None,
+    Ping(String),
     AgentInfo(AgentInfoRequest),
     ActivityList(ActivityListRequest),
     ActivityDetail(ActivityDetailRequest),
 }
 
 /// Response payload
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ResponsePayload {
     None,
+    Pong(String),
     Credential(AgentInfo),
     ActivityList(Vec<Activity>),
     ActivityDetail(Box<ActivityDetail>),
 }
 
 /// Error code and message to response
-#[derive(Debug, serde::Deserialize, thiserror::Error)]
+#[derive(Debug, Deserialize, thiserror::Error)]
 #[error("{} ({})", msg, code)]
 pub struct ErrorResponse {
     pub code: u16,
     pub msg: String,
 }
 
+/// It is a Result enum. Being Ok(ResponsePayload) when the operation completed successfully.
+/// Otherwise, an Err(ErrorResponse) representing an error occurred when executing the operation by agent.
 pub type ResponseResult = std::result::Result<ResponsePayload, ErrorResponse>;
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Serialize)]
 pub struct RequestFrame {
     payload: RequestPayload,
 }
 
-#[derive(Debug, serde::Deserialize)]
+impl RequestFrame {
+    pub fn new(payload: RequestPayload) -> Self {
+        Self { payload }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 struct ResponseFrame {
     payload: ResponseResult,
 }
@@ -62,7 +73,7 @@ impl<Request: core::fmt::Debug, Response: core::fmt::Debug>
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Tagged<T>
 where
     T: core::fmt::Debug,

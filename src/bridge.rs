@@ -1,4 +1,5 @@
 pub use host::AgentManager;
+pub use protocol::{ErrorResponse, RequestFrame, RequestPayload, ResponsePayload, ResponseResult};
 
 mod host;
 mod model;

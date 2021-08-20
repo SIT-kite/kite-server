@@ -9,6 +9,8 @@ use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlError;
 use wechat_sdk::WxClientError;
 
+use crate::bridge::ErrorResponse as AgentError;
+
 pub type Result<T> = std::result::Result<T, ApiError>;
 pub type Error = ApiError;
 
@@ -56,6 +58,16 @@ impl ApiError {
             code: sub_err.to_u16().unwrap(),
             inner_msg: None,
             error_msg: Some(sub_err.to_string()),
+        }
+    }
+}
+
+impl From<AgentError> for ApiError {
+    fn from(sub_err: AgentError) -> Self {
+        Self {
+            code: sub_err.code,
+            inner_msg: None,
+            error_msg: Some(sub_err.msg),
         }
     }
 }
