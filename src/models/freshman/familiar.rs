@@ -37,10 +37,11 @@ impl FreshmanBasic {
             LEFT JOIN public.person AS person
             ON stu.uid = person.uid
             INNER JOIN (
-                    SELECT building, room FROM freshman.students WHERE student_id = $1 LIMIT 1
+                    SELECT campus, building, room FROM freshman.students WHERE student_id = $1 LIMIT 1
                 ) self
             ON
                 stu.room = self.room
+                AND stu.campus = self.campus
                 AND stu.building = self.building
                 AND stu.student_id <> $1",
         )
@@ -59,12 +60,13 @@ impl FreshmanBasic {
             LEFT JOIN public.person AS person
             ON stu.uid = person.uid
             INNER JOIN (
-                    SELECT graduated_from, city, postcode FROM freshman.students WHERE student_id = $1 LIMIT 1
+                    SELECT campus, graduated_from, city, postcode FROM freshman.students WHERE student_id = $1 LIMIT 1
                 ) self
             ON
                 ((stu.graduated_from = self.graduated_from)
                 OR stu.city = self.city
                 OR stu.postcode / 1000 = self.postcode / 1000)
+                AND stu.campus = self.campus
                 AND stu.visible = true
                 AND stu.student_id <> $1
             LIMIT 20)
