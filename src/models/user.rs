@@ -14,7 +14,6 @@ mod person;
 /// Login Type.
 pub const LOGIN_BY_WECHAT: i32 = 0;
 pub const LOGIN_BY_PASSWORD: i32 = 1;
-pub const LOGIN_BY_CAMPUS_WEB: i32 = 2;
 
 #[derive(thiserror::Error, Debug, ToPrimitive)]
 pub enum UserError {
@@ -86,19 +85,13 @@ pub struct Person {
 pub struct Identity {
     /// Person uid
     pub uid: i32,
-    /// Real name
-    #[serde(rename = "realName")]
-    pub real_name: String,
     /// Student id
     #[serde(rename = "studentId")]
     pub student_id: String,
     /// OA secret(password)
     #[serde(rename = "oaSecret")]
-    pub oa_secret: Option<String>,
+    pub oa_secret: String,
     /// Whether OA certified or not
     #[serde(rename = "oaCertified")]
     pub oa_certified: bool,
-    /// ID card number
-    #[serde(rename = "identityNumber")]
-    pub identity_number: Option<String>,
 }

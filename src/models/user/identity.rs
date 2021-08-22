@@ -20,9 +20,4 @@ impl Identity {
         oa_password_check(student_id, oa_secret).await?;
         Ok(())
     }
-
-    pub fn validate_identity_number(identity_number: &str) -> bool {
-        let re = regex::Regex::new("[0-9]{5}[0-9X]").unwrap();
-        re.is_match(identity_number) && identity_number.len() == 6
-    }
 }

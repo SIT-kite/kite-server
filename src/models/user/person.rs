@@ -3,7 +3,6 @@ use sqlx::PgPool;
 
 use crate::error::ApiError;
 use crate::error::Result;
-use crate::models::user::LOGIN_BY_CAMPUS_WEB;
 
 use super::{Authentication, Identity, Person, UserError};
 use super::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
@@ -27,14 +26,6 @@ impl Authentication {
         }
     }
 
-    pub fn from_campus_auth(account: String, password: String) -> Self {
-        Authentication {
-            uid: 0,
-            login_type: LOGIN_BY_CAMPUS_WEB,
-            account,
-            credential: Some(password),
-        }
-    }
     /// Login by a password, return a Person structure if success. Otherwise, an UserError will be returned.
     pub async fn password_login(&self, client: &PgPool) -> Result<Person> {
         let user: Option<Person> = sqlx::query_as(
@@ -67,39 +58,6 @@ impl Authentication {
             Some(user) => Ok(user),
             None => Err(ApiError::new(UserError::LoginFailed)),
         }
-    }
-
-    pub async fn campus_login(&mut self, client: &PgPool) -> Result<Person> {
-        let auth: Option<Authentication> = sqlx::query_as(
-            "SELECT uid, login_type, account, credential FROM public.authentication
-                WHERE login_type = 2 AND account = $1 LIMIT 1",
-        )
-        .bind(&self.account)
-        .fetch_optional(client)
-        .await?;
-
-        // If campus credential filled in database, return login success, even if the credential is
-        // out of date. Because password error will be thrown out if backend function failed, when,
-        // for example, loading course data...
-        let auth = auth.ok_or_else(|| ApiError::new(UserError::LoginFailed))?;
-        self.uid = auth.uid;
-
-        if auth.credential.eq(&self.credential) && auth.credential.is_some() {
-            return Person::get(client, auth.uid).await;
-        }
-        Err(ApiError::new(UserError::LoginFailed))
-    }
-
-    pub async fn campus_update(&self, client: &PgPool) -> Result<()> {
-        sqlx::query(
-            "UPDATE public.authentication SET credential = $1
-                WHERE login_type = 2 AND account = $2",
-        )
-        .bind(&self.credential)
-        .bind(&self.account)
-        .execute(client)
-        .await?;
-        Ok(())
     }
 }
 
@@ -210,7 +168,7 @@ impl Person {
     /// Get identity info
     pub async fn get_identity(client: &PgPool, uid: i32) -> Result<Option<Identity>> {
         let identity: Option<Identity> = sqlx::query_as(
-            "SELECT uid, real_name, student_id, oa_secret, oa_certified, identity_number
+            "SELECT uid, student_id, oa_secret, oa_certified
             FROM public.identities WHERE uid = $1",
         )
         .bind(uid)
@@ -221,28 +179,21 @@ impl Person {
 
     /// Set identity info
     pub async fn set_identity(&self, client: &PgPool, identity: &mut Identity) -> Result<()> {
-        if let Some(id_number) = &identity.identity_number {
-            if !Identity::validate_identity_number(id_number.as_str()) {
-                return Err(ApiError::new(UserError::InvalidIdNumber));
-            }
-        }
-        if let Some(oa_secret) = &identity.oa_secret {
-            // Throw UserError::OaSecretFailed if password is wrong.
-            Identity::validate_oa_account(&identity.student_id, oa_secret).await?;
-            identity.oa_certified = true;
-        }
+        // Throw UserError::OaSecretFailed if password is wrong.
+        Identity::validate_oa_account(&identity.student_id, &identity.oa_secret).await?;
+        identity.oa_certified = true;
+
         let _ = sqlx::query(
-            "INSERT INTO public.identities (uid, real_name, student_id, oa_secret, oa_certified, identity_number)
-                VALUES ($1, $2, $3, $4, true, $5)
+            "INSERT INTO public.identities (uid, student_id, oa_secret, oa_certified)
+                VALUES ($1, $2, $3, true)
                 ON CONFLICT (uid)
-                DO UPDATE SET oa_secret = $4, oa_certified = true, identity_number = $5;")
-            .bind(self.uid)
-            .bind(&identity.real_name)
-            .bind(&identity.student_id)
-            .bind(&identity.oa_secret)
-            .bind(&identity.identity_number)
-            .execute(client)
-            .await?;
+                DO UPDATE SET student_id = $2, oa_secret = $3, oa_certified = true;",
+        )
+        .bind(self.uid)
+        .bind(&identity.student_id)
+        .bind(&identity.oa_secret)
+        .execute(client)
+        .await?;
         Ok(())
     }
 }
