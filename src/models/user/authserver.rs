@@ -1,5 +1,5 @@
 use actix_web::http::StatusCode;
-use awc::Client;
+use reqwest::{redirect::Policy, ClientBuilder};
 
 use crate::error::{ApiError, Result};
 
@@ -27,58 +27,48 @@ macro_rules! regex_find {
 }
 
 /// Login on campus official auth-server with student id and password.
-/// Return cookie string on `.sit.edu.cn`.
-pub async fn portal_login(user_name: &str, password: &str) -> Result<String> {
+/// Return error message on `.sit.edu.cn`.
+pub async fn verify_portal_login(user_name: &str, password: &str) -> Result<String> {
     // Create a http client, but, awc::Client may not support cookie store..
-    let client = Client::default();
+    let client = ClientBuilder::new()
+        .cookie_store(true)
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
 
     // Request login page to get encrypt key and so on.
-    let mut response = client
+    let response = client
         .get(LOGIN_URL)
         .send()
         .await
         .map_err(|_| ApiError::new(UserError::OaNetworkFailed))?;
-    let index_html = response.body().await.unwrap();
-    let cookie_string = response
-        .cookies()
-        .unwrap()
-        .iter()
-        .map(|x| format!("{}={}; ", x.name(), x.value()))
-        .collect::<Vec<String>>()
-        .join("");
+    let text = response.text().await.unwrap();
 
     // Get encrypt key.
-    let text = std::str::from_utf8(&index_html).unwrap();
-    let aes_key = regex_find!(text, r#"var pwdDefaultEncryptSalt = "(.*?)";"#).unwrap();
+    let aes_key = regex_find!(&text, r#"var pwdDefaultEncryptSalt = "(.*?)";"#).unwrap();
 
     // Submit user, password, and get final token in cookies.
     let response = client
         .post(LOGIN_URL)
-        .insert_header(("Content-Type", "application/x-www-form-urlencoded"))
-        .insert_header(("Referrer", LOGIN_URL))
-        .insert_header(("Cookie", cookie_string))
-        .send_body(&make_parameter!(
+        .header("Referrer", LOGIN_URL)
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(make_parameter!(
             "username" => user_name,
             "password" => &urlencoding::encode(&generate_passwd_string(&password.to_string(), &aes_key)),
             "dllt" => "userNamePasswordLogin",
             "execution" => "e1s1",
             "_eventId" => "submit",
             "rmShown" => "1",
-            "lt" => &regex_find!(text, r#"<input type="hidden" name="lt" value="(.*?)"/>"#).unwrap()
+            "lt" => &regex_find!(&text, r#"<input type="hidden" name="lt" value="(.*?)"/>"#).unwrap()
         ))
+        .send()
         .await
         .map_err(|_| ApiError::new(UserError::OaNetworkFailed))?;
     if response.status() != StatusCode::FOUND {
         return Err(ApiError::new(UserError::OaSecretFailed));
     }
-    let cookies = response.cookies().unwrap();
-    let cookie_string: String = cookies
-        .iter()
-        .filter(|x| x.domain().unwrap_or_default() == ".sit.edu.cn")
-        .map(|x| format!("{}={};", x.name(), x.value()))
-        .collect::<Vec<String>>()
-        .join(" ");
-    Ok(cookie_string)
+
+    Ok(String::from("OK"))
 }
 
 /// When submit password to `authserver.sit.edu.cn`, it's required to do AES and base64 algorithm with

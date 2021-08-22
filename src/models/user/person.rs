@@ -169,7 +169,7 @@ impl Person {
     pub async fn get_identity(client: &PgPool, uid: i32) -> Result<Option<Identity>> {
         let identity: Option<Identity> = sqlx::query_as(
             "SELECT uid, student_id, oa_secret, oa_certified
-            FROM public.identities WHERE uid = $1",
+            FROM public.identity WHERE uid = $1",
         )
         .bind(uid)
         .fetch_optional(client)
@@ -184,7 +184,7 @@ impl Person {
         identity.oa_certified = true;
 
         let _ = sqlx::query(
-            "INSERT INTO public.identities (uid, student_id, oa_secret, oa_certified)
+            "INSERT INTO public.identity (uid, student_id, oa_secret, oa_certified)
                 VALUES ($1, $2, $3, true)
                 ON CONFLICT (uid)
                 DO UPDATE SET student_id = $2, oa_secret = $3, oa_certified = true;",

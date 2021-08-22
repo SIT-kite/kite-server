@@ -36,9 +36,9 @@ impl<'a> AvatarManager<'a> {
     }
 
     async fn download(avatar_url: &str, path: &str) -> Result<usize> {
-        let client = awc::Client::new();
-        if let Ok(mut image) = client.get(avatar_url).send().await {
-            if let Ok(content) = image.body().await {
+        let client = reqwest::Client::default();
+        if let Ok(image) = client.get(avatar_url).send().await {
+            if let Ok(content) = image.bytes().await {
                 let size = content.len();
                 let mut file = tokio::fs::File::create(path).await?;
                 file.write_all(&content).await?;
