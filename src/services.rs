@@ -60,7 +60,7 @@ pub async fn server_main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(middlewares::Auth {})
-            .wrap(middlewares::Reject::new(&buffer))
+            //.wrap(middlewares::Reject::new(&buffer))
             .wrap(actix_web::middleware::Compress::default())
             .wrap(actix_web::middleware::Logger::new(log_string))
             .app_data(web::Data::new(app_state.clone()))
@@ -133,6 +133,14 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(mall::publish_goods)
             .service(mall::update_goods)
             .service(mall::delete_goods)
+            .service(mall::update_views)
+            .service(mall::publish_comment)
+            .service(mall::delete_comment)
+            .service(mall::get_comments)
+            .service(mall::update_num_like)
+            .service(mall::insert_wish)
+            .service(mall::cancel_wish)
+            .service(mall::get_wishes)
             // Address book
             .service(contact::query_all_telephone),
     );

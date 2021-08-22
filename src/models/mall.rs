@@ -26,6 +26,12 @@ pub enum MallError {
     InvalidISBN = 221,
     #[error("找不到该商品")]
     NoSuchGoods = 222,
+    #[error("缺少必要参数")]
+    MissingParam = 223,
+    #[error("长度超出规定范围")]
+    OutRange = 224,
+    #[error("用户输入错误或该用户无收藏")]
+    NoWish = 225
 }
 
 /* Model */
@@ -119,7 +125,7 @@ pub struct GoodsDetail {
     pub sort: i32,
 }
 
-#[derive(Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Serialize, Deserialize, sqlx::FromRow,Debug)]
 pub struct NewGoods {
     pub id: i32,
     /// Product name
@@ -201,4 +207,53 @@ pub struct Wishes {
     pub goods: i32,
     /// Favorite timestamp
     pub ts: DateTime<Local>,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct CoverInfo {
+    pub pub_code: String,
+    pub item_code: String,
+    pub views: i32,
+    pub item_name:String,
+    pub price: f64,
+    pub cover_image: String
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct DetailInfo {
+    pub item_name: String,
+    pub description: String,
+    pub price: f64,
+    pub images: String,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct Comment {
+    pub com_code: String,
+    pub user_code: i32,
+    pub content: String,
+    pub parent_code: String,
+    pub num_like: i32,
+}
+
+//用于父级评论整合子级评论
+#[derive(Serialize, sqlx::FromRow)]
+pub struct Comment_Uni {
+    pub com_code: String,
+    pub user_code: i32,
+    pub content: String,
+    pub parent_code: String,
+    pub num_like: i32,
+    pub children: Vec<Comment>,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct Wish {
+    pub pub_code: String,
+    pub item_code: String,
+    pub views: i32,
+    pub status: String,
+    pub item_name:String,
+    pub price: f64,
+    pub cover_image: String
 }
