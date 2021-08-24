@@ -45,7 +45,8 @@ pub async fn server_main() -> std::io::Result<()> {
     let log_string = "%a - - [%t] \"%r\" %s %b %D \"%{User-Agent}i\"";
 
     // Load white list
-    let mut file = std::fs::File::open("ip-whitelist.txt").unwrap();
+    let mut file = std::fs::File::open("ip-whitelist.txt")
+        .expect("Failed to open ip-whitelist.txt, you should copy one from ./deploy/");
     let mut buffer = String::new();
     file.read_to_string(&mut buffer).unwrap();
     drop(file);
@@ -72,7 +73,7 @@ pub async fn server_main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(middlewares::Auth {})
-            //.wrap(middlewares::Reject::new(&buffer))
+            .wrap(middlewares::Reject::new(&buffer))
             .wrap(actix_web::middleware::Compress::default())
             .wrap(actix_web::middleware::Logger::new(log_string))
             .app_data(web::Data::new(app_state.clone()))
