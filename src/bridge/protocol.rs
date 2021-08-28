@@ -5,6 +5,7 @@ use tokio_tower::multiplex;
 
 use crate::bridge::model::{
     Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, AgentInfo, AgentInfoRequest,
+    Course, Major, MajorRequest, SchoolYear, Semester, TimeTableRequest,
 };
 
 /// Response payload
@@ -15,6 +16,8 @@ pub enum RequestPayload {
     AgentInfo(AgentInfoRequest),
     ActivityList(ActivityListRequest),
     ActivityDetail(ActivityDetailRequest),
+    MajorList(MajorRequest),
+    TimeTable(TimeTableRequest),
 }
 
 /// Response payload
@@ -25,6 +28,8 @@ pub enum ResponsePayload {
     Credential(AgentInfo),
     ActivityList(Vec<Activity>),
     ActivityDetail(Box<ActivityDetail>),
+    MajorList(Vec<Major>),
+    TimeTable(Vec<Course>),
 }
 
 /// Error code and message to response

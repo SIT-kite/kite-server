@@ -59,3 +59,76 @@ pub struct ActivityDetail {
     /// Description in text[]
     pub description: Vec<String>,
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum SchoolYear {
+    AllYear,
+    SomeYear(i32),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum Semester {
+    All = 0,
+    FirstTerm = 1,
+    SecondTerm = 2,
+    MidTerm = 3,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct MajorRequest {
+    pub entrance_year: SchoolYear,
+    pub account: String,
+    pub passwd: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Major {
+    /// 入学年份
+    entrance_year: i32,
+    /// 专业代码
+    id: String,
+    /// 专业名称
+    name: String,
+    /// 专业内部标识
+    inner_id: String,
+    /// 专业方向内部表示
+    direction_id: String,
+    /// 专业方向
+    direction: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct TimeTableRequest {
+    pub account: String,
+    pub passwd: String,
+    pub school_year: SchoolYear,
+    pub semester: Semester,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Course {
+    /// 课程名称
+    pub(crate) course_name: String,
+    /// 星期
+    day: i32,
+    /// 节次
+    time_index: Vec<String>,
+    /// 周次
+    weeks: Vec<String>,
+    /// 教室
+    place: String,
+    /// 教师
+    teacher: Vec<String>,
+    /// 校区
+    campus: String,
+    /// 学分
+    credit: f32,
+    /// 学时
+    hours: f32,
+    /// 教学班
+    dyn_class_id: String,
+    /// 课程代码
+    course_id: String,
+    /// 陪课班
+    prefered_class: Vec<String>,
+}

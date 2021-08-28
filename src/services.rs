@@ -125,6 +125,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(edu::list_course_classes)
             .service(edu::query_course)
             .service(edu::query_available_classrooms)
+            .service(edu::timetable_agent)
             // System status routes
             .service(status::get_timestamp)
             .service(status::ping_agent)

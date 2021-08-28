@@ -46,6 +46,8 @@ pub enum CommonError {
     LoginNeeded = 4,
     #[error("请求的权限不足")]
     Forbidden = 5,
+    #[error("需要实名登入")]
+    NeedIdentity = 6,
 }
 
 impl From<CommonError> for ApiError {

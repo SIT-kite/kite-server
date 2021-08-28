@@ -4,11 +4,14 @@ use actix_web::{get, web, HttpResponse};
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
 
+use crate::bridge;
+use crate::bridge::{Course, RequestPayload, SchoolYear, Semester, TimeTableRequest};
 use crate::error::{ApiError, Result};
 use crate::models::edu::{self, AvailClassroomQuery, CourseBase, CourseClass, Major, PlannedCourse};
+use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
-use crate::services::AppState;
+use crate::services::{AppState, JwtToken};
 
 const CAMPUS_XUHUI: i32 = 2;
 const CAMPUS_FENGXIAN: i32 = 1;
@@ -154,4 +157,55 @@ pub async fn query_available_classrooms(
     };
     let result = edu::query_avail_classroom(&app.pool, &query, &page).await?;
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TimeTableQuery {
+    pub school_year: i32,
+    pub semester: i32,
+}
+
+#[get("/edu/timetable/student/{student_id}")]
+pub async fn timetable_agent(
+    student_id: web::Path<String>,
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    params: web::Query<TimeTableQuery>,
+) -> Result<HttpResponse> {
+    let params = params.into_inner();
+    let year = SchoolYear::SomeYear(params.school_year);
+
+    let semester = match params.semester {
+        1 => Semester::FirstTerm,
+        2 => Semester::SecondTerm,
+        3 => Semester::MidTerm,
+        _ => Semester::All,
+    };
+    if token.is_none() {
+        return Err(ApiError::new(CommonError::LoginNeeded));
+    }
+    let uid = token.unwrap().uid;
+
+    let passwd = Person::get_identity(&app.pool, uid).await?;
+    if passwd.is_none() {
+        return Err(ApiError::new(CommonError::NeedIdentity));
+    }
+    let password = passwd.unwrap().oa_secret;
+
+    let data = TimeTableRequest {
+        account: student_id.to_string(),
+        passwd: password,
+        school_year: year,
+        semester,
+    };
+
+    let agents = &app.agents;
+    let payload = RequestPayload::TimeTable(data);
+    let request = bridge::RequestFrame::new(payload);
+
+    let response = agents.request(request).await?;
+    match response {
+        Ok(response) => Ok(HttpResponse::Ok().json(ApiResponse::normal(response))),
+        Err(e) => Err(e.into()),
+    }
 }

@@ -1,8 +1,11 @@
 use chrono::{DateTime, Local};
 
 pub use host::AgentManager;
+pub use model::{
+    Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, AgentInfo, AgentInfoRequest,
+    Course, Major, MajorRequest, SchoolYear, Semester, TimeTableRequest,
+};
 pub use protocol::{ErrorResponse, RequestFrame, RequestPayload, ResponsePayload, ResponseResult};
-
 mod host;
 mod model;
 mod protocol;
