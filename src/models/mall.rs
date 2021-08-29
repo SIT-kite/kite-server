@@ -209,6 +209,7 @@ pub struct Wishes {
     pub ts: DateTime<Local>,
 }
 
+//首页商品信息
 #[derive(Serialize, sqlx::FromRow)]
 pub struct CoverInfo {
     pub pub_code: String,
@@ -219,6 +220,7 @@ pub struct CoverInfo {
     pub cover_image: String
 }
 
+//商品详情信息
 #[derive(Serialize, sqlx::FromRow)]
 pub struct DetailInfo {
     pub item_name: String,
@@ -227,6 +229,7 @@ pub struct DetailInfo {
     pub images: String,
 }
 
+//评论列表
 #[derive(Serialize, sqlx::FromRow)]
 pub struct Comment {
     pub com_code: String,
@@ -247,6 +250,7 @@ pub struct Comment_Uni {
     pub children: Vec<Comment>,
 }
 
+//收藏列表
 #[derive(Serialize, sqlx::FromRow)]
 pub struct Wish {
     pub pub_code: String,
@@ -256,4 +260,44 @@ pub struct Wish {
     pub item_name:String,
     pub price: f64,
     pub cover_image: String
+}
+
+//发布商品参数
+#[derive(Deserialize, sqlx::FromRow)]
+pub struct Publish {
+    pub item_name: String,
+    pub description: String,
+    pub price: f32,
+    pub images: String,
+    pub cover_image:String,
+    pub campus: String,
+    pub sort: i32
+}
+
+//更新商品参数
+#[derive(Deserialize, sqlx::FromRow)]
+pub struct UpdateGoods {
+    pub item_code: String,
+    pub item_name: String,
+    pub description: String,
+    pub price: f32,
+    pub images: String,
+    pub cover_image:String,
+    pub sort: i32
+}
+
+//查询商品列表参数
+#[derive(Deserialize, sqlx::FromRow)]
+pub struct SelectGoods {
+    pub sort: Option<i32>,
+    pub item_name: Option<String>,
+    pub page: Option<i32>,
+}
+
+//商品发布参数
+#[derive(Deserialize, sqlx::FromRow)]
+pub struct PubComment {
+    pub item_code: String,
+    pub content: String,
+    pub parent_code: Option<String>,
 }

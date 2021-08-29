@@ -1,7 +1,7 @@
 use actix_web::{get, post, web, HttpResponse, HttpRequest};
 
 use crate::error::{ApiError, Result};
-use crate::models::mall::{self, MallError, Comment_Uni, Comment};
+use crate::models::mall::{self, MallError, Comment_Uni, Comment, Publish, UpdateGoods, SelectGoods, PubComment};
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
@@ -57,7 +57,7 @@ pub struct QueryParams {
 #[post("/mall/goods_list")]
 pub async fn get_goods_list(
     app: web::Data<AppState>,
-    form: web::Json<Value>
+    form: web::Json<SelectGoods>,
 ) -> Result<HttpResponse> {
 
     let form = form.into_inner();
@@ -92,66 +92,44 @@ pub async fn get_goods_byid(
 #[post("/mall/insert_goods")]
 pub async fn publish_goods(
     app: web::Data<AppState>,
-    token: JwtToken,
-    form: web::Json<Value>,
+/*    token: JwtToken,*/
+    form: web::Json<mall::Publish>,
 ) -> Result<HttpResponse> {
 
     //拆包
     let form = form.into_inner();
 
-    //判断是否传递必要属性
-    if     form["item_name"].is_null()
-        || form["description"].is_null()
-        || form["price"].is_null()
-        || form["image"].is_null()
-        || form["cover_image"].is_null()
-        || form["campus"].is_null()
-        || form["sort"].is_null(){
-        return Err(ApiError::new(MallError::MissingParam));
-    }
-
     //判断是否超出长度
-    if form["description"].to_string().len() > 200 {
+    if form.description.len() > 200 {
         return Err(ApiError::new(MallError::OutRange));
     }
 
-    if form["item_name"].to_string().len() > 30 {
+    if form.item_name.len() > 30 {
         return Err(ApiError::new(MallError::OutRange));
     }
 
     //调用敏感文字检测
 
     //调用数据库
-    let insert_yn = mall::publish_goods(&app.pool, token.uid, &form).await?;
+    let item_code = mall::publish_goods(&app.pool, 1, &form).await?;
 
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal("success insert!")))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(item_code)))
 }
 
 #[post("/mall/update_goods")]
 pub async fn update_goods(
     app: web::Data<AppState>,
-    token: JwtToken,
-    form: web::Json<Value>,
+/*    token: JwtToken,*/
+    form: web::Json<UpdateGoods>,
 ) -> Result<HttpResponse> {
     let form = form.into_inner();
 
-        //判断是否传递必要属性
-    if  form["item_code"].is_null()
-        || form["item_name"].is_null()
-        || form["description"].is_null()
-        || form["price"].is_null()
-        || form["images"].is_null()
-        || form["cover_image"].is_null()
-        || form["sort"].is_null(){
-        return Err(ApiError::new(MallError::MissingParam));
-    }
-
     //判断是否超出长度
-    if form["description"].to_string().len() > 200 {
+    if form.description.len() > 200 {
         return Err(ApiError::new(MallError::OutRange));
     }
 
-    if form["item_name"].to_string().len() > 30 {
+    if form.item_name.len() > 30 {
         return Err(ApiError::new(MallError::OutRange));
     }
 
@@ -159,7 +137,7 @@ pub async fn update_goods(
 
     let goods_id = mall::update_goods(&app.pool, &form).await?;
 
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal("update success!")))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(&form.item_code)))
 }
 
 #[get("/mall/delete_goods/{pub_code}")]
@@ -189,21 +167,15 @@ pub async fn update_views(
 #[post("/mall/insert_comment")]
 pub async fn publish_comment(
     app: web::Data<AppState>,
-    token: JwtToken,
-    form: web::Json<Value>,
+/*    token: JwtToken,*/
+    form: web::Json<PubComment>,
 ) -> Result<HttpResponse> {
 
     //拆包
     let form = form.into_inner();
 
-    //判断是否传递必要属性
-    if     form["item_code"].is_null()
-        || form["content"].is_null() {
-        return Err(ApiError::new(MallError::MissingParam));
-    }
-
     //判断是否超出长度
-    if form["content"].to_string().len() > 200 {
+    if form.content.len() > 200 {
         return Err(ApiError::new(MallError::OutRange));
     }
 
@@ -211,9 +183,9 @@ pub async fn publish_comment(
 
 
     //调用数据库
-    let insert_status = mall::publish_comment(&app.pool, token.uid, &form).await?;
+    let com_code = mall::publish_comment(&app.pool, 1, &form).await?;
 
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal("success insert!")))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(com_code)))
 }
 
 #[get("/mall/delete_comment/{com_code}")]
@@ -309,23 +281,18 @@ pub async fn update_num_like(
     Ok(HttpResponse::Ok().json(&ApiResponse::normal("update num_like success!")))
 }
 
-#[post("/mall/insert_wish")]
+#[post("/mall/insert_wish/{pub_code}")]
 pub async fn insert_wish(
     app: web::Data<AppState>,
-    token: JwtToken,
-    form: web::Json<Value>,
+/*    token: JwtToken,*/
+    pub_code: web::Path<String>,
 ) -> Result<HttpResponse> {
 
     //拆包
-    let form = form.into_inner();
-
-    //判断是否传递必要属性
-    if     form["pub_code"].is_null() {
-        return Err(ApiError::new(MallError::MissingParam));
-    }
+    let pub_code = pub_code.into_inner();
 
     //调用数据库
-    let insert_status = mall::insert_wish(&app.pool, token.uid, &form).await?;
+    let insert_status = mall::insert_wish(&app.pool, 1, pub_code).await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal("success insert!")))
 }

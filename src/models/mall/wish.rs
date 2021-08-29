@@ -5,7 +5,7 @@ use chrono::Local;
 use crate::models::mall::{Wish};
 
 
-pub async fn insert_wish(db: &PgPool, uid: i32, new: &Value) -> Result<i32> {
+pub async fn insert_wish(db: &PgPool, uid: i32, pub_code: String) -> Result<i32> {
 
     let insert_publish:Option<(i32,)>  = sqlx::query_as(
         "
@@ -19,7 +19,7 @@ pub async fn insert_wish(db: &PgPool, uid: i32, new: &Value) -> Result<i32> {
         "
     )
         .bind(uid)
-        .bind(&new["pub_code"].as_str().unwrap())
+        .bind(pub_code)
         .bind(Local::now())
         .bind(Local::now())
         .fetch_optional(db)

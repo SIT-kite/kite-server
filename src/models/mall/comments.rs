@@ -1,12 +1,12 @@
 use sqlx::PgPool;
 
 use crate::error::Result;
-use crate::models::mall::{GoodsComment, NewComment, Comment};
+use crate::models::mall::{GoodsComment, NewComment, Comment, PubComment};
 use serde_json::Value;
 use chrono::{DateTime, Utc, Local};
 use rand::Rng;
 
-pub async fn publish_comment(db: &PgPool, uid: i32, new: &Value) -> Result<i32> {
+pub async fn publish_comment(db: &PgPool, uid: i32, new: &PubComment) -> Result<String> {
 
     //随机数
     let mut rng = rand::thread_rng();
@@ -17,13 +17,10 @@ pub async fn publish_comment(db: &PgPool, uid: i32, new: &Value) -> Result<i32> 
     //编号头+年月日秒+随机三位数构成编号
     let com_code = format!("C{}{}",code,rng.gen_range(100,999));
 
-    let parent_code;
-
-    if new["parent_code"].is_null() {
-        parent_code = "NULL"
-    }else {
-        parent_code = &new["parent_code"].as_str().unwrap();
-    }
+    let parent_code= match &new.parent_code {
+        Some(value) => value,
+        None => ""
+    };
 
     let insert_publish:Option<(i32,)>  = sqlx::query_as(
         "
@@ -41,10 +38,10 @@ pub async fn publish_comment(db: &PgPool, uid: i32, new: &Value) -> Result<i32> 
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9);
         ",
     )
-        .bind(com_code)
+        .bind(&com_code)
         .bind(uid)
-        .bind(&new["item_code"].as_str().unwrap())
-        .bind(&new["content"].as_str().unwrap())
+        .bind(&new.item_code)
+        .bind(&new.content)
         .bind(parent_code)
         .bind(0)
         .bind("Y")
@@ -53,7 +50,7 @@ pub async fn publish_comment(db: &PgPool, uid: i32, new: &Value) -> Result<i32> 
         .fetch_optional(db)
         .await?;
 
-    Ok(1)
+    Ok(com_code)
 }
 
 pub async fn delete_comment(db: &PgPool, com_code: String) -> Result<()> {

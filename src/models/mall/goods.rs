@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 
 use crate::error::{ApiError, Result};
-use crate::models::mall::{MallError, NewGoods, CoverInfo, DetailInfo};
+use crate::models::mall::{MallError, NewGoods, CoverInfo, DetailInfo, Publish, UpdateGoods, SelectGoods};
 use crate::models::PageView;
 
 use super::{GoodsDetail, SimpleGoods};
@@ -10,31 +10,22 @@ use serde_json::Value;
 use std::borrow::Borrow;
 use rand::Rng;
 
-pub async fn get_goods_list(db: &PgPool, form: &Value) -> Result<Vec<CoverInfo>> {
+pub async fn get_goods_list(db: &PgPool, form: &SelectGoods) -> Result<Vec<CoverInfo>> {
 
-    let sort;
-    let item_name;
-    let page;
+    let sort = match &form.sort{
+        Some(value) => value,
+        None => &0
+    };
 
-    //判断是否有传来的值
-    if form["sort"].is_null() {
-        sort = 0;
-    }else {
-        sort = form["sort"].as_i64().unwrap() as i32;
-    }
+    let item_name = match &form.item_name {
+        Some(value) => format!("%{}%",value),
+        None => "".to_string()
+    };
 
-    if form["item_name"].is_null() {
-        item_name = "".to_string();
-    }else {
-        item_name = format!("%{}%",form["item_name"].as_str().unwrap());
-    }
-
-    //每次提取10个数据未传值则page 为0
-    if form["page"].is_null(){
-        page = 0
-    }else {
-        page = form["page"].as_i64().unwrap() as i32;
-    }
+    let page = match &form.page {
+        Some(value) => value,
+        None => &0
+    };
 
     let goods = sqlx::query_as(
         "
@@ -123,7 +114,7 @@ pub async fn delete_goods(db: &PgPool, pub_code: String) -> Result<i32> {
     Ok(1)
 }
 
-pub async fn publish_goods(db: &PgPool, uid: i32, new: &Value) -> Result<i32> {
+pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<String> {
     //获取当前时间作为编号
     let mut rng = rand::thread_rng();
     let utc: DateTime<Utc> = Utc::now();
@@ -132,13 +123,6 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Value) -> Result<i32> {
     //编号头+年月日秒+随机三位数构成编号
     let pub_code = format!("P{}{}",code,rng.gen_range(100,999));
     let item_code = format!("G{}{}",code,rng.gen_range(100,999));
-
-/*
-    //根据key 提取Json 的Value时会导致存在”“
-    println!("{}",new["item_name"]);
-    //将提取值利用as_str转化为&str 后拆包即可得到无”“的值
-    println!("{}",new["item_name"].as_str().unwrap());
-*/
 
     let insert_publish:Option<(i32,)>  = sqlx::query_as(
         "
@@ -155,10 +139,10 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Value) -> Result<i32> {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8);
         ",
     )
-        .bind(pub_code)
+        .bind(&pub_code)
         .bind(uid)
         .bind(&item_code)
-        .bind(&new["campus"].as_str().unwrap())
+        .bind(&new.campus)
         .bind("Y")
         .bind(0)
         .bind(Local::now())
@@ -181,21 +165,21 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Value) -> Result<i32> {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);"
     )
         .bind(&item_code)
-        .bind(&new["item_name"].as_str().unwrap())
-        .bind(&new["description"].as_str().unwrap())
-        .bind(&new["price"].as_f64().unwrap())
-        .bind(&new["image"].as_str().unwrap())
-        .bind(&new["cover_image"].as_str().unwrap())
-        .bind(&new["sort"].as_i64().unwrap())
+        .bind(&new.item_name)
+        .bind(&new.description)
+        .bind(&new.price)
+        .bind(&new.images)
+        .bind(&new.cover_image)
+        .bind(&new.sort)
         .bind(Local::now())
         .bind(Local::now())
         .fetch_optional(db)
         .await?;
 
-    Ok(1)
+    Ok(item_code)
 }
 
-pub async fn update_goods(db: &PgPool, new: &Value) -> Result<i32> {
+pub async fn update_goods(db: &PgPool, new: &UpdateGoods) -> Result<i32> {
     let returning: Option<(i32,)> = sqlx::query_as(
         "
             UPDATE
@@ -212,14 +196,14 @@ pub async fn update_goods(db: &PgPool, new: &Value) -> Result<i32> {
                 item_code = $8
              "
     )
-        .bind(&new["item_name"].as_str().unwrap())
-        .bind(&new["description"].as_str().unwrap())
-        .bind(&new["price"].as_f64().unwrap())
-        .bind(&new["images"].as_str().unwrap())
-        .bind(&new["cover_image"].as_str().unwrap())
-        .bind(&new["sort"].as_i64().unwrap())
+        .bind(&new.item_name)
+        .bind(&new.description)
+        .bind(&new.price)
+        .bind(&new.images)
+        .bind(&new.cover_image)
+        .bind(&new.sort)
         .bind(Local::now())
-        .bind(&new["item_code"].as_str().unwrap())
+        .bind(&new.item_code)
         .fetch_optional(db)
         .await?;
 
