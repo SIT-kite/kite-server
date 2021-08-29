@@ -122,6 +122,7 @@ fn routes(app: &mut web::ServiceConfig) {
             // Edu management and course-related routes
             .service(edu::query_available_classrooms)
             .service(edu::query_timetable)
+            .service(edu::query_score)
             // System status routes
             .service(status::get_timestamp)
             .service(status::ping_agent)

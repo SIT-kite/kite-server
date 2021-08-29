@@ -132,3 +132,29 @@ pub struct Course {
     /// 陪课班
     prefered_class: Vec<String>,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ScoreRequest {
+    pub account: String,
+    pub passwd: String,
+    pub school_year: SchoolYear,
+    pub semester: Semester,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Score {
+    /// 成绩
+    score: f32,
+    /// 课程
+    course: String,
+    /// 课程代码
+    course_id: String,
+    /// 班级
+    class_id: String,
+    /// 学年
+    school_year: String,
+    /// 学期
+    semester: Semester,
+    /// 学分
+    credit: f32,
+}

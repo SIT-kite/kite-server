@@ -1,15 +1,11 @@
-use actix_web::{get, post, web, HttpResponse, HttpRequest};
+use actix_web::{get, post, web, HttpResponse};
 
 use crate::error::{ApiError, Result};
-use crate::models::mall::{self, MallError, Comment_Uni, Comment};
-use crate::models::{CommonError, PageView};
+use crate::models::mall::{self, Comment, Comment_Uni, MallError};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
 
-use chrono::prelude::*;
-use serde_json::{Value, to_string};
-use std::borrow::Borrow;
-
+use serde_json::Value;
 
 pub fn is_numeric(s: &str) -> bool {
     for ch in s.chars() {
@@ -48,18 +44,14 @@ pub async fn get_goods_sorts(app: web::Data<AppState>) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(sort_list)))
 }
 
-#[derive(serde::Deserialize,Debug)]
+#[derive(serde::Deserialize, Debug)]
 pub struct QueryParams {
     sort: Option<i32>,
     q: Option<String>,
 }
 
 #[post("/mall/goods_list")]
-pub async fn get_goods_list(
-    app: web::Data<AppState>,
-    form: web::Json<Value>
-) -> Result<HttpResponse> {
-
+pub async fn get_goods_list(app: web::Data<AppState>, form: web::Json<Value>) -> Result<HttpResponse> {
     let form = form.into_inner();
 
     let goods_list = mall::get_goods_list(&app.pool, &form).await?;
@@ -73,11 +65,11 @@ pub async fn get_goods_list(
 #[get("/mall/goods/{item_code}")]
 pub async fn get_goods_byid(
     app: web::Data<AppState>,
-    item_code: web::Path<String>
+    item_code: web::Path<String>,
 ) -> Result<HttpResponse> {
     let item_code = item_code.into_inner();
 
-    let goods_detail = mall::get_goods_detail(&app.pool,item_code).await?;
+    let goods_detail = mall::get_goods_detail(&app.pool, item_code).await?;
 
     //判断是否找到商品
     if goods_detail.is_empty() {
@@ -95,18 +87,18 @@ pub async fn publish_goods(
     token: JwtToken,
     form: web::Json<Value>,
 ) -> Result<HttpResponse> {
-
     //拆包
     let form = form.into_inner();
 
     //判断是否传递必要属性
-    if     form["item_name"].is_null()
+    if form["item_name"].is_null()
         || form["description"].is_null()
         || form["price"].is_null()
         || form["image"].is_null()
         || form["cover_image"].is_null()
         || form["campus"].is_null()
-        || form["sort"].is_null(){
+        || form["sort"].is_null()
+    {
         return Err(ApiError::new(MallError::MissingParam));
     }
 
@@ -135,14 +127,15 @@ pub async fn update_goods(
 ) -> Result<HttpResponse> {
     let form = form.into_inner();
 
-        //判断是否传递必要属性
-    if  form["item_code"].is_null()
+    //判断是否传递必要属性
+    if form["item_code"].is_null()
         || form["item_name"].is_null()
         || form["description"].is_null()
         || form["price"].is_null()
         || form["images"].is_null()
         || form["cover_image"].is_null()
-        || form["sort"].is_null(){
+        || form["sort"].is_null()
+    {
         return Err(ApiError::new(MallError::MissingParam));
     }
 
@@ -165,7 +158,7 @@ pub async fn update_goods(
 #[get("/mall/delete_goods/{pub_code}")]
 pub async fn delete_goods(
     app: web::Data<AppState>,
-    pub_code: web::Path<String>
+    pub_code: web::Path<String>,
 ) -> Result<HttpResponse> {
     let pub_code = pub_code.into_inner();
 
@@ -177,7 +170,7 @@ pub async fn delete_goods(
 #[get("/mall/update_views/{pub_code}")]
 pub async fn update_views(
     app: web::Data<AppState>,
-    pub_code: web::Path<String>
+    pub_code: web::Path<String>,
 ) -> Result<HttpResponse> {
     let pub_code = pub_code.into_inner();
 
@@ -192,13 +185,11 @@ pub async fn publish_comment(
     token: JwtToken,
     form: web::Json<Value>,
 ) -> Result<HttpResponse> {
-
     //拆包
     let form = form.into_inner();
 
     //判断是否传递必要属性
-    if     form["item_code"].is_null()
-        || form["content"].is_null() {
+    if form["item_code"].is_null() || form["content"].is_null() {
         return Err(ApiError::new(MallError::MissingParam));
     }
 
@@ -209,7 +200,6 @@ pub async fn publish_comment(
 
     //调用敏感文字检验
 
-
     //调用数据库
     let insert_status = mall::publish_comment(&app.pool, token.uid, &form).await?;
 
@@ -219,7 +209,7 @@ pub async fn publish_comment(
 #[get("/mall/delete_comment/{com_code}")]
 pub async fn delete_comment(
     app: web::Data<AppState>,
-    com_code: web::Path<String>
+    com_code: web::Path<String>,
 ) -> Result<HttpResponse> {
     let com_code = com_code.into_inner();
 
@@ -231,11 +221,11 @@ pub async fn delete_comment(
 #[get("/mall/comments/{item_code}")]
 pub async fn get_comments(
     app: web::Data<AppState>,
-    item_code: web::Path<String>
+    item_code: web::Path<String>,
 ) -> Result<HttpResponse> {
     let item_code = item_code.into_inner();
 
-    let comments = mall::get_comments(&app.pool,item_code).await?;
+    let comments = mall::get_comments(&app.pool, item_code).await?;
 
     //判断是否找到商品
     if comments.is_empty() {
@@ -247,21 +237,20 @@ pub async fn get_comments(
             优先筛选出父级评论，后根据将子级评论的parent_code进行匹配放入父级评论的child中
     */
 
-
     //存放所有父级评论Vec
-    let mut comment_uni =  vec![];
+    let mut comment_uni = vec![];
 
     //遍历所有该商品相关评论
     for comment in comments.iter() {
         //判断parent_code是否为NULL 以判断是否为父级评论
         if comment.parent_code == "NULL" {
-            let comment_parent = Comment_Uni{
+            let comment_parent = Comment_Uni {
                 com_code: comment.com_code.clone(),
                 user_code: comment.user_code.clone(),
                 content: comment.content.clone(),
                 parent_code: comment.parent_code.clone(),
                 num_like: comment.num_like.clone(),
-                children: vec![]
+                children: vec![],
             };
 
             //放入父级评论Vec 中
@@ -272,12 +261,12 @@ pub async fn get_comments(
     //再次遍历所有该商品相关评论
     for comment in comments.iter() {
         //筛选非父级评论，即parent_code 不为NULL
-        if comment.parent_code != "NULL"{
+        if comment.parent_code != "NULL" {
             //遍历父级评论Vec
-            for comment_parent in comment_uni.iter_mut(){
+            for comment_parent in comment_uni.iter_mut() {
                 //在父级评论Vec中 筛选出该子级评论的父级
-                if comment_parent.com_code == comment.parent_code{
-                    let comment_child = Comment{
+                if comment_parent.com_code == comment.parent_code {
+                    let comment_child = Comment {
                         com_code: comment.com_code.clone(),
                         user_code: comment.user_code.clone(),
                         content: comment.content.clone(),
@@ -300,7 +289,7 @@ pub async fn get_comments(
 #[get("/mall/update_num_like/{com_code}")]
 pub async fn update_num_like(
     app: web::Data<AppState>,
-    com_code: web::Path<String>
+    com_code: web::Path<String>,
 ) -> Result<HttpResponse> {
     let com_code = com_code.into_inner();
 
@@ -315,12 +304,11 @@ pub async fn insert_wish(
     token: JwtToken,
     form: web::Json<Value>,
 ) -> Result<HttpResponse> {
-
     //拆包
     let form = form.into_inner();
 
     //判断是否传递必要属性
-    if     form["pub_code"].is_null() {
+    if form["pub_code"].is_null() {
         return Err(ApiError::new(MallError::MissingParam));
     }
 
@@ -334,23 +322,20 @@ pub async fn insert_wish(
 pub async fn cancel_wish(
     app: web::Data<AppState>,
     token: JwtToken,
-    pub_code: web::Path<String>
+    pub_code: web::Path<String>,
 ) -> Result<HttpResponse> {
     let pub_code = pub_code.into_inner();
 
-    let delete_status = mall::cancel_wish(&app.pool, token.uid ,pub_code).await?;
+    let delete_status = mall::cancel_wish(&app.pool, token.uid, pub_code).await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal("delete success!")))
 }
 
 #[get("/mall/wish/{user_code}")]
-pub async fn get_wishes(
-    app: web::Data<AppState>,
-    user_code: web::Path<i32>
-) -> Result<HttpResponse> {
+pub async fn get_wishes(app: web::Data<AppState>, user_code: web::Path<i32>) -> Result<HttpResponse> {
     let user_code = user_code.into_inner();
 
-    let wish_list = mall::get_wishes(&app.pool,user_code).await?;
+    let wish_list = mall::get_wishes(&app.pool, user_code).await?;
 
     //判断是否找到商品
     if wish_list.is_empty() {

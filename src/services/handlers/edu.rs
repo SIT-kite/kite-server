@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::bridge::{
-    HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SchoolYear, Semester,
-    TimeTableRequest,
+    HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SchoolYear, ScoreRequest,
+    Semester, TimeTableRequest,
 };
 use crate::error::{ApiError, Result};
 use crate::models::edu::{self, AvailClassroomQuery};
@@ -98,6 +98,56 @@ pub async fn query_timetable(
     if let ResponsePayload::TimeTable(timetable) = response {
         let response = json!({
             "timeTable": timetable,
+        });
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ScoreQuery {
+    pub year: Option<i32>,
+    pub semester: i32,
+}
+
+#[get("/edu/score")]
+pub async fn query_score(
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    params: web::Query<ScoreQuery>,
+) -> Result<HttpResponse> {
+    let params = params.into_inner();
+
+    let year = match params.year {
+        Some(y) => SchoolYear::SomeYear(y),
+        None => SchoolYear::AllYear,
+    };
+
+    let semester = match params.semester {
+        1 => Semester::FirstTerm,
+        2 => Semester::SecondTerm,
+        _ => Semester::All,
+    };
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let identity = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+    let data = ScoreRequest {
+        account: identity.student_id,
+        passwd: identity.oa_secret,
+        school_year: year,
+        semester,
+    };
+
+    let agents = &app.agents;
+    let request = RequestFrame::new(RequestPayload::Score(data));
+    let response = agents.request(request).await??;
+    if let ResponsePayload::Score(score) = response {
+        let response = json!({
+            "Score": score,
         });
         Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
     } else {
