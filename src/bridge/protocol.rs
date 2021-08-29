@@ -5,7 +5,7 @@ use tokio_tower::multiplex;
 
 use crate::bridge::model::{
     Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, AgentInfo, AgentInfoRequest,
-    Course, Major, MajorRequest, SchoolYear, Semester, TimeTableRequest,
+    Course, Major, MajorRequest, TimeTableRequest,
 };
 
 /// Response payload

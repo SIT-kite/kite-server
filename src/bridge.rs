@@ -6,6 +6,7 @@ pub use model::{
     Course, Major, MajorRequest, SchoolYear, Semester, TimeTableRequest,
 };
 pub use protocol::{ErrorResponse, RequestFrame, RequestPayload, ResponsePayload, ResponseResult};
+
 mod host;
 mod model;
 mod protocol;
@@ -18,10 +19,12 @@ pub type Result<T> = anyhow::Result<T>;
 pub enum HostError {
     #[error("无可用的代理节点, 无法连接到校园网")]
     NoAgentAvailable = 120,
-    #[error("Agent 节点请求超时, 请重试")]
+    #[error("Agent 节点请求超时或异常, 请重试")]
     Timeout = 121,
     #[error("Agent 节点丢失, 请重试")]
     Disconnected = 122,
+    #[error("Agent 端响应不匹配")]
+    Mismatched = 123,
 }
 
 /// Agent state

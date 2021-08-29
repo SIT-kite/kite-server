@@ -68,7 +68,7 @@ impl Client {
         let response = ready_client
             .call(Tagged::<RequestFrame>::from(request))
             .await
-            .map_err(|e| HostError::Timeout)?;
+            .map_err(|_| HostError::Timeout)?;
 
         self.count.fetch_add(1, Ordering::SeqCst);
         self.last_use

@@ -1,13 +1,15 @@
 //! This module includes interfaces about course, major and score.
 
 use actix_web::{get, web, HttpResponse};
-use chrono::Datelike;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
-use crate::bridge;
-use crate::bridge::{Course, RequestPayload, SchoolYear, Semester, TimeTableRequest};
+use crate::bridge::{
+    HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SchoolYear, Semester,
+    TimeTableRequest,
+};
 use crate::error::{ApiError, Result};
-use crate::models::edu::{self, AvailClassroomQuery, CourseBase, CourseClass, Major, PlannedCourse};
+use crate::models::edu::{self, AvailClassroomQuery};
 use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
@@ -15,109 +17,6 @@ use crate::services::{AppState, JwtToken};
 
 const CAMPUS_XUHUI: i32 = 2;
 const CAMPUS_FENGXIAN: i32 = 1;
-
-#[derive(Debug, Deserialize)]
-pub struct ListMajor {
-    pub q: String,
-}
-
-#[get("/edu/major")]
-pub async fn query_major(
-    app: web::Data<AppState>,
-    query: web::Query<ListMajor>,
-) -> Result<HttpResponse> {
-    let parameters: ListMajor = query.into_inner();
-    let results = Major::query(&app.pool, &parameters.q).await?;
-
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(results)))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ListPlannedCourse {
-    pub year: Option<i16>,
-}
-
-#[get("/edu/major/{major_code}")]
-pub async fn get_planned_course(
-    app: web::Data<AppState>,
-    major_code: web::Path<String>,
-    query: web::Query<ListPlannedCourse>,
-) -> Result<HttpResponse> {
-    use chrono::Local;
-
-    // Get local current year as the default year.
-    let mut year = Local::today().naive_local().year() as i16;
-    // If user submit a year and it's valid, then use user defined year.
-    // This limit is to reduce possible unnecessary database queries
-    if let Some(input_year) = query.into_inner().year {
-        if (2017..=year).contains(&input_year) {
-            year = input_year;
-        }
-    }
-    let results = PlannedCourse::query(&app.pool, &major_code, year).await?;
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(results)))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ListClasses {
-    pub term: Option<String>,
-}
-
-#[get("/edu/course/{course_code}")]
-pub async fn list_course_classes(
-    app: web::Data<AppState>,
-    course_code: web::Path<String>,
-    query: web::Query<ListClasses>,
-) -> Result<HttpResponse> {
-    let term = query.into_inner().term;
-    // If term field exists, check it.
-    if let Some(term) = &term {
-        if !edu::is_valid_term(term.as_str()) {
-            return Err(CommonError::Parameter.into());
-        }
-    }
-    let term_string = term.unwrap_or_else(edu::get_current_term);
-    let course = CourseBase::get(&app.pool, &course_code, &term_string).await?;
-    if let Some(course) = course {
-        let classes = CourseClass::list(&app.pool, &course_code, &term_string).await?;
-        #[derive(Serialize)]
-        struct Response {
-            pub course: CourseBase,
-            pub classes: Vec<CourseClass>,
-        }
-        Ok(HttpResponse::Ok().json(&ApiResponse::normal(Response { course, classes })))
-    } else {
-        Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct SearchCourse {
-    pub q: String,
-    pub term: Option<String>,
-}
-
-#[get("/edu/course")]
-pub async fn query_course(
-    app: web::Data<AppState>,
-    query: web::Query<SearchCourse>,
-    page: web::Query<PageView>,
-) -> Result<HttpResponse> {
-    let parameters = query.into_inner();
-    let term = parameters.term;
-    // If term field exists, check it.
-    if let Some(term) = &term {
-        if !edu::is_valid_term(term.as_str()) {
-            return Err(CommonError::Parameter.into());
-        }
-    }
-    if parameters.q.is_empty() {
-        return Ok(HttpResponse::Ok().json(&ApiResponse::empty()));
-    }
-    let term_string = term.unwrap_or_else(edu::get_current_term);
-    let course = CourseBase::query(&app.pool, &parameters.q, &term_string, &page).await?;
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(course)))
-}
 
 #[derive(serde::Deserialize, sqlx::FromRow)]
 pub struct ClassroomQuery {
@@ -165,47 +64,82 @@ pub struct TimeTableQuery {
     pub semester: i32,
 }
 
-#[get("/edu/timetable/student/{student_id}")]
-pub async fn timetable_agent(
-    student_id: web::Path<String>,
+#[get("/edu/timetable")]
+pub async fn query_timetable(
     token: Option<JwtToken>,
     app: web::Data<AppState>,
     params: web::Query<TimeTableQuery>,
 ) -> Result<HttpResponse> {
     let params = params.into_inner();
-    let year = SchoolYear::SomeYear(params.school_year);
 
+    let year = SchoolYear::SomeYear(params.school_year);
     let semester = match params.semester {
         1 => Semester::FirstTerm,
         2 => Semester::SecondTerm,
         3 => Semester::MidTerm,
         _ => Semester::All,
     };
-    if token.is_none() {
-        return Err(ApiError::new(CommonError::LoginNeeded));
-    }
-    let uid = token.unwrap().uid;
-
-    let passwd = Person::get_identity(&app.pool, uid).await?;
-    if passwd.is_none() {
-        return Err(ApiError::new(CommonError::NeedIdentity));
-    }
-    let password = passwd.unwrap().oa_secret;
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let identity = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
 
     let data = TimeTableRequest {
-        account: student_id.to_string(),
-        passwd: password,
+        account: identity.student_id,
+        passwd: identity.oa_secret,
         school_year: year,
         semester,
     };
 
     let agents = &app.agents;
-    let payload = RequestPayload::TimeTable(data);
-    let request = bridge::RequestFrame::new(payload);
+    let request = RequestFrame::new(RequestPayload::TimeTable(data));
+    let response = agents.request(request).await??;
+    if let ResponsePayload::TimeTable(timetable) = response {
+        let response = json!({
+            "timeTable": timetable,
+        });
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
+}
 
-    let response = agents.request(request).await?;
-    match response {
-        Ok(response) => Ok(HttpResponse::Ok().json(ApiResponse::normal(response))),
-        Err(e) => Err(e.into()),
+#[derive(Debug, Deserialize, Serialize)]
+pub struct MajorQuery {
+    pub entrance_year: Option<i32>,
+    pub account: String,
+    pub passwd: String,
+}
+
+#[get("/edu/major")]
+pub async fn get_major_list(
+    params: web::Query<MajorQuery>,
+    app: web::Data<AppState>,
+) -> Result<HttpResponse> {
+    let params = params.into_inner();
+    let year = match params.entrance_year {
+        Some(year) => SchoolYear::SomeYear(year),
+        None => SchoolYear::AllYear,
+    };
+
+    // TODO: Use cached majorList by default, or use random account to fetch in agent.
+    let data = MajorRequest {
+        entrance_year: year,
+        account: params.account,
+        passwd: params.passwd,
+    };
+    let agents = &app.agents;
+
+    let request = RequestFrame::new(RequestPayload::MajorList(data));
+    let response = agents.request(request).await??;
+    if let ResponsePayload::MajorList(major_list) = response {
+        let response = json!({
+            "majorList": major_list,
+        });
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
     }
 }

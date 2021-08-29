@@ -1,5 +1,3 @@
-use serde::Serialize;
-
 pub use classroom::{convert_time_string, query_avail_classroom, transform_date};
 pub use classroom::{AvailClassroom, AvailClassroomQuery};
 pub use course::{get_current_term, is_valid_term};
@@ -10,8 +8,5 @@ mod classroom;
 mod course;
 mod major;
 
-#[derive(Debug, Serialize)]
-pub struct Course {}
-
-#[derive(Debug, Serialize)]
-pub struct CourseScore {}
+#[derive(Debug, thiserror::Error)]
+pub enum EduError {}

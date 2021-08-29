@@ -113,7 +113,7 @@ pub async fn get_people_familiar(
         .get_people_familiar(&app.pool)
         .await?;
     let response = serde_json::json!({
-        "people_familiar": people_familiar,
+        "people_familiar": people_familiar, // TODO: use peopleFamiliar
     });
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }

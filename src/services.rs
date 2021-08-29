@@ -120,12 +120,8 @@ fn routes(app: &mut web::ServiceConfig) {
             // Event and activity routes
             .service(event::list_events)
             // Edu management and course-related routes
-            .service(edu::get_planned_course)
-            .service(edu::query_major)
-            .service(edu::list_course_classes)
-            .service(edu::query_course)
             .service(edu::query_available_classrooms)
-            .service(edu::timetable_agent)
+            .service(edu::query_timetable)
             // System status routes
             .service(status::get_timestamp)
             .service(status::ping_agent)
