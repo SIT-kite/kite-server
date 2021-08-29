@@ -9,12 +9,13 @@ pub struct AvailClassroom {
     /// Room number
     pub room: String,
     /// Busy time
+    #[serde(rename = "busyTime")]
     pub busy_time: i32,
     /// Room seats
     pub capacity: Option<i32>,
 }
 
-#[derive(serde::Serialize, sqlx::FromRow, Debug)]
+#[derive(sqlx::FromRow, Debug)]
 pub struct AvailClassroomQuery {
     /// The building to the classroom, for example, "一教"
     pub building: Option<String>,

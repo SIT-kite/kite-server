@@ -66,7 +66,8 @@ pub enum SchoolYear {
     SomeYear(i32),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, serde_repr::Serialize_repr, PartialEq)]
+#[repr(u8)]
 pub enum Semester {
     All = 0,
     FirstTerm = 1,
@@ -82,6 +83,7 @@ pub struct MajorRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Major {
     /// 入学年份
     entrance_year: i32,
@@ -106,9 +108,10 @@ pub struct TimeTableRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Course {
     /// 课程名称
-    pub(crate) course_name: String,
+    course_name: String,
     /// 星期
     day: i32,
     /// 节次
@@ -142,6 +145,7 @@ pub struct ScoreRequest {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Score {
     /// 成绩
     score: f32,

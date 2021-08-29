@@ -55,7 +55,10 @@ pub async fn query_available_classrooms(
         want_time: Some(want_time_bits),
     };
     let result = edu::query_avail_classroom(&app.pool, &query, &page).await?;
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
+    let response = serde_json::json!({
+        "rooms": result,
+    });
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
 
 #[derive(Debug, Deserialize)]
