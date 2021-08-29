@@ -8,6 +8,6 @@ use crate::services::AppState;
 #[get("/contact")]
 pub async fn query_all_telephone(app: web::Data<AppState>) -> Result<HttpResponse> {
     let result = contact::get_all_contacts(&app.pool).await?;
-
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
+    let response = serde_json::json!({ "contacts": result });
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }

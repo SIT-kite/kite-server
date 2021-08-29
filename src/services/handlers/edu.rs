@@ -60,7 +60,7 @@ pub async fn query_available_classrooms(
 
 #[derive(Debug, Deserialize)]
 pub struct TimeTableQuery {
-    pub school_year: i32,
+    pub year: i32,
     pub semester: i32,
 }
 
@@ -72,11 +72,10 @@ pub async fn query_timetable(
 ) -> Result<HttpResponse> {
     let params = params.into_inner();
 
-    let year = SchoolYear::SomeYear(params.school_year);
+    let year = SchoolYear::SomeYear(params.year);
     let semester = match params.semester {
         1 => Semester::FirstTerm,
         2 => Semester::SecondTerm,
-        3 => Semester::MidTerm,
         _ => Semester::All,
     };
     let uid = token
