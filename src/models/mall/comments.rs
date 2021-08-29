@@ -1,28 +1,26 @@
+use chrono::{DateTime, Local, Utc};
+use rand::Rng;
 use sqlx::PgPool;
 
 use crate::error::Result;
-use crate::models::mall::{GoodsComment, NewComment, Comment, PubComment};
-use serde_json::Value;
-use chrono::{DateTime, Utc, Local};
-use rand::Rng;
+use crate::models::mall::{Comment, PubComment};
 
 pub async fn publish_comment(db: &PgPool, uid: i32, new: &PubComment) -> Result<String> {
-
-    //随机数
+    // 随机数
     let mut rng = rand::thread_rng();
-    //获取当前时间作为编号
+    // 获取当前时间作为编号
     let utc: DateTime<Utc> = Utc::now();
-    let code  = utc.format("%Y%m%d%S").to_string();
+    let code = utc.format("%Y%m%d%S").to_string();
 
-    //编号头+年月日秒+随机三位数构成编号
-    let com_code = format!("C{}{}",code,rng.gen_range(100,999));
+    // 编号头+年月日秒+随机三位数构成编号
+    let com_code = format!("C{}{}", code, rng.gen_range(100, 999));
 
-    let parent_code= match &new.parent_code {
+    let parent_code = match &new.parent_code {
         Some(value) => value,
-        None => ""
+        None => "",
     };
 
-    let insert_publish:Option<(i32,)>  = sqlx::query_as(
+    let _ = sqlx::query(
         "
             INSERT INTO mall.comment(
                  com_code
@@ -38,24 +36,23 @@ pub async fn publish_comment(db: &PgPool, uid: i32, new: &PubComment) -> Result<
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9);
         ",
     )
-        .bind(&com_code)
-        .bind(uid)
-        .bind(&new.item_code)
-        .bind(&new.content)
-        .bind(parent_code)
-        .bind(0)
-        .bind("Y")
-        .bind(Local::now())
-        .bind(Local::now())
-        .fetch_optional(db)
-        .await?;
+    .bind(&com_code)
+    .bind(uid)
+    .bind(&new.item_code)
+    .bind(&new.content)
+    .bind(parent_code)
+    .bind(0)
+    .bind("Y")
+    .bind(Local::now())
+    .bind(Local::now())
+    .fetch_one(db)
+    .await?;
 
     Ok(com_code)
 }
 
 pub async fn delete_comment(db: &PgPool, com_code: String) -> Result<()> {
-
-    let returning: Option<(i32,)> =  sqlx::query_as(
+    let _ = sqlx::query(
         "
             UPDATE
                 mall.comment
@@ -64,12 +61,12 @@ pub async fn delete_comment(db: &PgPool, com_code: String) -> Result<()> {
                 ,update_time = $1
              WHERE com_code = $2
                 OR parent_code = $2
-             "
+             ",
     )
-        .bind(Local::now())
-        .bind(com_code)
-        .fetch_optional(db)
-        .await?;
+    .bind(Local::now())
+    .bind(com_code)
+    .fetch_one(db)
+    .await?;
 
     Ok(())
 }
@@ -86,24 +83,25 @@ pub async fn get_comments(db: &PgPool, item_code: String) -> Result<Vec<Comment>
             FROM mall.comment
             WHERE status = 'Y'
                 AND item_code = $1;
-            "
+            ",
     )
-        .bind(item_code)
-        .fetch_all(db)
-        .await?;
+    .bind(item_code)
+    .fetch_all(db)
+    .await?;
 
     Ok(goods)
 }
 
-pub async fn update_num_like(db: &PgPool, com_code: String) -> Result<i32> {
-    //调用更新num_like的存储过程
-    let update:Option<(i32,)>  = sqlx::query_as(
+pub async fn update_num_like(db: &PgPool, com_code: String) -> Result<()> {
+    // 调用更新num_like的存储过程
+    let _ = sqlx::query(
         "
-                select update_num_like($1)
-            "
+                SELECT update_num_like($1);
+            ",
     )
-        .bind(com_code)
-        .fetch_optional(db)
-        .await?;
-    Ok(1)
+    .bind(com_code)
+    .fetch_one(db)
+    .await?;
+
+    Ok(())
 }

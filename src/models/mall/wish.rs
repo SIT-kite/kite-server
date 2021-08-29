@@ -1,13 +1,10 @@
 use sqlx::PgPool;
-use serde_json::Value;
-use crate::error::Result;
-use chrono::Local;
-use crate::models::mall::{Wish};
 
+use crate::error::{ApiError, Result};
+use crate::models::mall::{MallError, Wish};
 
-pub async fn insert_wish(db: &PgPool, uid: i32, pub_code: String) -> Result<i32> {
-
-    let insert_publish:Option<(i32,)>  = sqlx::query_as(
+pub async fn insert_wish(db: &PgPool, uid: i32, pub_code: String) -> Result<()> {
+    let _ = sqlx::query(
         "
             INSERT INTO mall.wish(
                 user_code
@@ -15,37 +12,34 @@ pub async fn insert_wish(db: &PgPool, uid: i32, pub_code: String) -> Result<i32>
                 ,insert_time
                 ,update_time
             )
-            VALUES ($1,$2,$3,$4);
-        "
+            VALUES ($1, $2, now(), now());
+        ",
     )
-        .bind(uid)
-        .bind(pub_code)
-        .bind(Local::now())
-        .bind(Local::now())
-        .fetch_optional(db)
-        .await?;
-
-    Ok(1)
-}
-
-pub async fn cancel_wish(db: &PgPool, uid: i32, pub_code: String) -> Result<()> {
-
-    let returning: Option<(i32,)> =  sqlx::query_as(
-        "
-            DELETE FROM mall.wish
-            WHERE user_code = $1
-                AND pub_code = $2
-             "
-    )
-        .bind(uid)
-        .bind(pub_code)
-        .fetch_optional(db)
-        .await?;
+    .bind(uid)
+    .bind(pub_code)
+    .fetch_optional(db)
+    .await?;
 
     Ok(())
 }
 
-pub async fn get_wishes(db: &PgPool, user_code: i32) -> Result<Vec<Wish>> {
+pub async fn cancel_wish(db: &PgPool, uid: i32, pub_code: String) -> Result<()> {
+    let _ = sqlx::query(
+        "
+            DELETE FROM mall.wish
+            WHERE user_code = $1
+                AND pub_code = $2
+             ",
+    )
+    .bind(uid)
+    .bind(pub_code)
+    .fetch_optional(db)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn get_user_wishes(db: &PgPool, user_code: i32) -> Result<Vec<Wish>> {
     let goods = sqlx::query_as(
         "
             SELECT
@@ -62,11 +56,15 @@ pub async fn get_wishes(db: &PgPool, user_code: i32) -> Result<Vec<Wish>> {
             LEFT JOIN mall.commodity C
                    ON B.item_code = C.item_code
             WHERE A.user_code = $1
-            "
+            ",
     )
-        .bind(user_code)
-        .fetch_all(db)
-        .await?;
+    .bind(user_code)
+    .fetch_all(db)
+    .await?;
 
-    Ok(goods)
+    if !goods.is_empty() {
+        Ok(goods)
+    } else {
+        Err(ApiError::new(MallError::NoWish))
+    }
 }

@@ -1,31 +1,15 @@
+use chrono::{DateTime, Local};
+use rand::Rng;
 use sqlx::PgPool;
 
 use crate::error::{ApiError, Result};
-use crate::models::mall::{MallError, NewGoods, CoverInfo, DetailInfo, Publish, UpdateGoods, SelectGoods};
+use crate::models::mall::{CoverInfo, DetailInfo, MallError, Publish, SelectGoods, UpdateGoods};
 use crate::models::PageView;
 
-use super::{GoodsDetail, SimpleGoods};
-use chrono::{DateTime, Utc, Local};
-use serde_json::Value;
-use std::borrow::Borrow;
-use rand::Rng;
+use super::SimpleGoods;
 
-pub async fn get_goods_list(db: &PgPool, form: &SelectGoods) -> Result<Vec<CoverInfo>> {
-
-    let sort = match &form.sort{
-        Some(value) => value,
-        None => &0
-    };
-
-    let item_name = match &form.item_name {
-        Some(value) => format!("%{}%",value),
-        None => "".to_string()
-    };
-
-    let page = match &form.page {
-        Some(value) => value,
-        None => &0
-    };
+pub async fn get_goods_list(db: &PgPool, form: &SelectGoods, page: PageView) -> Result<Vec<CoverInfo>> {
+    let like_clause = form.keyword.as_ref().map(|keyword| format!("%{}%", &keyword));
 
     let goods = sqlx::query_as(
         "
@@ -40,19 +24,18 @@ pub async fn get_goods_list(db: &PgPool, form: &SelectGoods) -> Result<Vec<Cover
             LEFT JOIN mall.commodity A1
                    ON A.item_code = A1.item_code
             WHERE A.status = 'Y'
-                  AND ($1 =  0 OR $1 <>  0 AND A1.sort = $1)
-                  AND ($2 = '' OR $2 <> '' AND A1.item_name LIKE $2)
+                  AND ($1 IS NULL OR A1.sort = $1)
+                  AND ($2 IS NULL OR A1.item_name LIKE $2)
             ORDER BY A.insert_time
             LIMIT $3 OFFSET $4;
-            "
+            ",
     )
-
-        .bind(sort)
-        .bind(item_name)
-        .bind(10)           //每次取10个
-        .bind(page * 10)    //从page*10 开始取
-        .fetch_all(db)
-        .await?;
+    .bind(&form.sort)
+    .bind(like_clause)
+    .bind(page.count(10u16) as i32) // 每次最大取 10 个
+    .bind(page.index() as i32)
+    .fetch_all(db)
+    .await?;
 
     Ok(goods)
 }
@@ -69,35 +52,36 @@ pub async fn query_goods(
         ORDER BY publish_time DESC
         LIMIT $3 OFFSET $4;",
     )
-        .bind(keyword)
-        .bind(sort)
-        .bind(page.count(20) as i16)
-        .bind(page.offset(20) as i16)
-        .fetch_all(db)
-        .await?;
+    .bind(keyword)
+    .bind(sort)
+    .bind(page.count(20) as i16)
+    .bind(page.offset(20) as i16)
+    .fetch_all(db)
+    .await?;
 
     Ok(goods)
 }
 
-pub async fn get_goods_detail(db: &PgPool, goods_id: String) -> Result<Vec<DetailInfo>> {
-    let goods = sqlx::query_as(
+pub async fn get_goods_detail(db: &PgPool, goods_id: String) -> Result<DetailInfo> {
+    let detail = sqlx::query_as(
         "SELECT
                 item_name
                 ,description
                 ,price
                 ,images
             FROM mall.commodity
-            WHERE item_code = $1;",
+            WHERE item_code = $1
+            LIMIT 1;",
     )
-        .bind(goods_id)
-        .fetch_all(db)
-        .await?;
+    .bind(goods_id)
+    .fetch_optional(db)
+    .await?;
 
-    Ok(goods)
+    detail.ok_or_else(|| ApiError::new(MallError::NoSuchGoods))
 }
 
 pub async fn delete_goods(db: &PgPool, pub_code: String) -> Result<i32> {
-    let delete:Option<(i32,)>  = sqlx::query_as(
+    let _ = sqlx::query(
         "
             UPDATE mall.publish
             SET
@@ -105,26 +89,26 @@ pub async fn delete_goods(db: &PgPool, pub_code: String) -> Result<i32> {
                 ,update_time = $1
             WHERE
                 pub_code = $2;
-            "
+            ",
     )
-        .bind(Local::now())
-        .bind(pub_code)
-        .fetch_optional(db)
-        .await?;
+    .bind(Local::now())
+    .bind(pub_code)
+    .fetch_one(db)
+    .await?;
     Ok(1)
 }
 
 pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<String> {
-    //获取当前时间作为编号
+    // 获取当前时间作为编号
     let mut rng = rand::thread_rng();
-    let utc: DateTime<Utc> = Utc::now();
-    let code  = utc.format("%Y%m%d%S").to_string();
+    let current_time: DateTime<Local> = Local::now();
+    let code = current_time.format("%Y%m%d%S").to_string();
 
     //编号头+年月日秒+随机三位数构成编号
-    let pub_code = format!("P{}{}",code,rng.gen_range(100,999));
-    let item_code = format!("G{}{}",code,rng.gen_range(100,999));
+    let pub_code = format!("P{}{}", code, rng.gen_range(100, 999));
+    let item_code = format!("G{}{}", code, rng.gen_range(100, 999));
 
-    let insert_publish:Option<(i32,)>  = sqlx::query_as(
+    let _ = sqlx::query(
         "
             INSERT INTO mall.publish(
                  pub_code
@@ -139,18 +123,18 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8);
         ",
     )
-        .bind(&pub_code)
-        .bind(uid)
-        .bind(&item_code)
-        .bind(&new.campus)
-        .bind("Y")
-        .bind(0)
-        .bind(Local::now())
-        .bind(Local::now())
-        .fetch_optional(db)
-        .await?;
+    .bind(&pub_code)
+    .bind(uid)
+    .bind(&item_code)
+    .bind(&new.campus)
+    .bind("Y")
+    .bind(0)
+    .bind(Local::now())
+    .bind(Local::now())
+    .fetch_one(db)
+    .await?;
 
-    let insert_commodity:Option<(i32,)>  = sqlx::query_as(
+    let _ = sqlx::query(
         "
             INSERT INTO mall.commodity(
                  item_code
@@ -162,25 +146,25 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
                 ,sort
                 ,insert_time
                 ,update_time)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);"
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);",
     )
-        .bind(&item_code)
-        .bind(&new.item_name)
-        .bind(&new.description)
-        .bind(&new.price)
-        .bind(&new.images)
-        .bind(&new.cover_image)
-        .bind(&new.sort)
-        .bind(Local::now())
-        .bind(Local::now())
-        .fetch_optional(db)
-        .await?;
+    .bind(&item_code)
+    .bind(&new.item_name)
+    .bind(&new.description)
+    .bind(&new.price)
+    .bind(&new.images)
+    .bind(&new.cover_image)
+    .bind(&new.sort)
+    .bind(Local::now())
+    .bind(Local::now())
+    .fetch_one(db)
+    .await?;
 
     Ok(item_code)
 }
 
-pub async fn update_goods(db: &PgPool, new: &UpdateGoods) -> Result<i32> {
-    let returning: Option<(i32,)> = sqlx::query_as(
+pub async fn update_goods(db: &PgPool, new: &UpdateGoods) -> Result<String> {
+    let item_code: Option<(String,)> = sqlx::query_as(
         "
             UPDATE
                 mall.commodity
@@ -194,31 +178,33 @@ pub async fn update_goods(db: &PgPool, new: &UpdateGoods) -> Result<i32> {
                 ,update_time = $7
              WHERE
                 item_code = $8
-             "
+             RETURNING (item_code);",
     )
-        .bind(&new.item_name)
-        .bind(&new.description)
-        .bind(&new.price)
-        .bind(&new.images)
-        .bind(&new.cover_image)
-        .bind(&new.sort)
-        .bind(Local::now())
-        .bind(&new.item_code)
-        .fetch_optional(db)
-        .await?;
+    .bind(&new.item_name)
+    .bind(&new.description)
+    .bind(&new.price)
+    .bind(&new.images)
+    .bind(&new.cover_image)
+    .bind(&new.sort)
+    .bind(Local::now())
+    .bind(&new.item_code)
+    .fetch_optional(db)
+    .await?;
 
-    Ok(1)
+    item_code
+        .map(|(item_code,)| item_code)
+        .ok_or_else(|| ApiError::new(MallError::NoSuchGoods))
 }
 
-pub async fn update_views(db: &PgPool, pub_code: String) -> Result<i32> {
+pub async fn update_views(db: &PgPool, pub_code: String) -> Result<()> {
     //调用更新views的存储过程
-    let update:Option<(i32,)>  = sqlx::query_as(
+    let _ = sqlx::query(
         "
-                select update_views($1)
-            "
+                SELECT update_views($1)
+            ",
     )
-        .bind(pub_code)
-        .fetch_optional(db)
-        .await?;
-    Ok(1)
+    .bind(pub_code)
+    .fetch_one(db)
+    .await?;
+    Ok(())
 }

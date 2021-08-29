@@ -31,7 +31,7 @@ pub enum MallError {
     #[error("长度超出规定范围")]
     OutRange = 224,
     #[error("用户输入错误或该用户无收藏")]
-    NoWish = 225
+    NoWish = 225,
 }
 
 /* Model */
@@ -125,7 +125,7 @@ pub struct GoodsDetail {
     pub sort: i32,
 }
 
-#[derive(Serialize, Deserialize, sqlx::FromRow,Debug)]
+#[derive(Serialize, Deserialize, sqlx::FromRow, Debug)]
 pub struct NewGoods {
     pub id: i32,
     /// Product name
@@ -215,9 +215,9 @@ pub struct CoverInfo {
     pub pub_code: String,
     pub item_code: String,
     pub views: i32,
-    pub item_name:String,
+    pub item_name: String,
     pub price: f64,
-    pub cover_image: String
+    pub cover_image: String,
 }
 
 //商品详情信息
@@ -241,7 +241,7 @@ pub struct Comment {
 
 //用于父级评论整合子级评论
 #[derive(Serialize, sqlx::FromRow)]
-pub struct Comment_Uni {
+pub struct CommentUni {
     pub com_code: String,
     pub user_code: i32,
     pub content: String,
@@ -257,9 +257,9 @@ pub struct Wish {
     pub item_code: String,
     pub views: i32,
     pub status: String,
-    pub item_name:String,
+    pub item_name: String,
     pub price: f64,
-    pub cover_image: String
+    pub cover_image: String,
 }
 
 //发布商品参数
@@ -269,9 +269,9 @@ pub struct Publish {
     pub description: String,
     pub price: f32,
     pub images: String,
-    pub cover_image:String,
+    pub cover_image: String,
     pub campus: String,
-    pub sort: i32
+    pub sort: i32,
 }
 
 //更新商品参数
@@ -282,16 +282,15 @@ pub struct UpdateGoods {
     pub description: String,
     pub price: f32,
     pub images: String,
-    pub cover_image:String,
-    pub sort: i32
+    pub cover_image: String,
+    pub sort: i32,
 }
 
 //查询商品列表参数
 #[derive(Deserialize, sqlx::FromRow)]
 pub struct SelectGoods {
     pub sort: Option<i32>,
-    pub item_name: Option<String>,
-    pub page: Option<i32>,
+    pub keyword: Option<String>,
 }
 
 //商品发布参数

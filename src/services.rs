@@ -140,7 +140,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(mall::query_textbook)
             .service(mall::get_goods_sorts)
             .service(mall::get_goods_list)
-            .service(mall::get_goods_byid)
+            .service(mall::get_goods_by_id)
             .service(mall::publish_goods)
             .service(mall::update_goods)
             .service(mall::delete_goods)
@@ -149,7 +149,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(mall::delete_comment)
             .service(mall::get_comments)
             .service(mall::update_num_like)
-            .service(mall::insert_wish)
+            .service(mall::append_wish)
             .service(mall::cancel_wish)
             .service(mall::get_wishes)
             // Address book
