@@ -112,9 +112,9 @@ pub struct Course {
     /// 星期
     day: i32,
     /// 节次
-    time_index: Vec<String>,
+    time_index: i32,
     /// 周次
-    weeks: Vec<String>,
+    week: i32,
     /// 教室
     place: String,
     /// 教师
