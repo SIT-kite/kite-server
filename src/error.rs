@@ -21,13 +21,12 @@ pub type Error = ApiError;
 /// Server error type, show internal library error with error code 1 and hide real error message.
 /// While show logical and business errors with (code, message).
 #[derive(Debug, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
 pub struct ApiError {
     pub code: u16,
     // TODO: Add inner error handler and the uncomment following line.
     #[serde(skip_serializing)]
     pub inner_msg: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "msg", skip_serializing_if = "Option::is_none")]
     pub error_msg: Option<String>,
 }
 
