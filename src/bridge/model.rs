@@ -127,13 +127,11 @@ pub struct Course {
     /// 学分
     credit: f32,
     /// 学时
-    hours: f32,
+    hours: i32,
     /// 教学班
     dyn_class_id: String,
     /// 课程代码
     course_id: String,
-    /// 陪课班
-    prefered_class: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
