@@ -18,7 +18,7 @@ pub async fn get_timestamp() -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
 
-#[get("/status/agent/")]
+#[get("/status/agent")]
 pub async fn get_agent_list(app: web::Data<AppState>, token: Option<JwtToken>) -> Result<HttpResponse> {
     let token = token.ok_or_else(|| ApiError::new(CommonError::LoginNeeded))?;
     if !token.is_admin {

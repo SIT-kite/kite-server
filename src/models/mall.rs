@@ -37,13 +37,13 @@ pub enum MallError {
 /* Model */
 /// Each predefined textbook
 #[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct TextBook {
     /// ISBN of the textbook
     pub isbn: Option<String>,
     /// Title
     pub title: String,
     /// Sub-title
-    #[serde(rename = "subTitle")]
     pub sub_title: Option<String>,
     /// Publisher's full name
     pub press: String,
@@ -56,7 +56,6 @@ pub struct TextBook {
     /// Edition
     pub edition: Option<String>,
     /// Publication year and month
-    #[serde(rename = "editionDate")]
     pub edition_date: Option<String>,
     /// Page count
     pub page: Option<i32>,
@@ -73,12 +72,12 @@ pub struct Sorts {
 }
 
 #[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct SimpleGoods {
     pub id: i32,
     /// Product name
     pub title: String,
     /// Cover image, used to show the whole picture
-    #[serde(rename = "coverImage")]
     pub cover_image: String,
     /// Tags, like '全新', '可议价'
     pub tags: Vec<String>,
@@ -89,6 +88,7 @@ pub struct SimpleGoods {
 }
 
 #[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct GoodsDetail {
     pub id: i32,
     /// Product name
@@ -99,12 +99,10 @@ pub struct GoodsDetail {
     /// Normal, Sold or disabled.
     pub status: i16,
     /// Cover image, used to show the whole picture
-    #[serde(rename = "coverImage")]
     pub cover_image: String,
     /// Campus name.
     pub campus: String,
     /// Product detailed picture introduction
-    #[serde(rename = "images")]
     pub images: Vec<String>,
     /// Tags, like '全新', '可议价'
     pub tags: Vec<String>,
@@ -115,7 +113,6 @@ pub struct GoodsDetail {
     /// Uid of the Publisher
     pub publisher: i32,
     /// Submit and publish time
-    #[serde(rename = "publishTime")]
     pub publish_time: DateTime<Local>,
     /// The count of person who want to buy and have gotten the contact of seller.
     pub wish: i16,
@@ -126,6 +123,7 @@ pub struct GoodsDetail {
 }
 
 #[derive(Serialize, Deserialize, sqlx::FromRow, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct NewGoods {
     pub id: i32,
     /// Product name
@@ -133,7 +131,6 @@ pub struct NewGoods {
     /// Product description and transaction requirements
     pub description: Option<String>,
     /// Cover image, used to show the whole picture
-    #[serde(rename = "coverImage")]
     pub cover_image: String,
     /// Campus name.
     pub campus: String,
@@ -153,12 +150,11 @@ pub struct NewGoods {
 
 /* Comments */
 #[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct GoodsComment {
     pub id: i32,
-    #[serde(rename = "goodsId")]
     pub goods_id: i32,
     /// Publisher's nick name
-    #[serde(rename = "publisherName")]
     pub publisher: String,
     /// A url to publisher avatar
     pub publisher_avatar: String,
@@ -167,9 +163,9 @@ pub struct GoodsComment {
 }
 
 #[derive(Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct NewComment {
     pub id: i32,
-    #[serde(rename = "goodsId")]
     pub goods_id: i32,
     /// Publisher's uid
     pub publisher: i32,

@@ -52,6 +52,7 @@ struct Applicant {
 
 /// A event which corresponds to one activity.
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Event {
     /// Event type.
     pub source: i32,
@@ -64,10 +65,8 @@ pub struct Event {
     /// The name of the event.
     pub title: String,
     /// Event start time, in UTC+8.
-    #[serde(rename = "startTime")]
     pub start_time: NaiveDateTime,
     /// Event end time, in UTC+8.
-    #[serde(rename = "endTime")]
     pub end_time: Option<NaiveDateTime>,
     /// Tags, used to mark club name, activity classification.
     pub tags: Option<Vec<String>>,
@@ -81,15 +80,14 @@ pub struct Event {
 
 /// Summary of event. See strcut Event for details.
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct EventSummary {
     pub source: i32,
     pub id: i32,
     pub publisher_uid: Option<i32>,
     pub publisher_name: Option<String>,
     pub title: String,
-    #[serde(rename = "startTime")]
     pub start_time: NaiveDateTime,
-    #[serde(rename = "endTime")]
     pub end_time: Option<NaiveDateTime>,
     pub tags: Option<Vec<String>>,
     pub place: String,

@@ -213,10 +213,10 @@ pub async fn get_comments(
         if comment.parent_code == "NULL" {
             let comment_parent = CommentUni {
                 com_code: comment.com_code.clone(),
-                user_code: comment.user_code.clone(),
+                user_code: comment.user_code,
                 content: comment.content.clone(),
                 parent_code: comment.parent_code.clone(),
-                num_like: comment.num_like.clone(),
+                num_like: comment.num_like,
                 children: vec![],
             };
             // 放入父级评论Vec 中
@@ -234,10 +234,10 @@ pub async fn get_comments(
                 if comment_parent.com_code == comment.parent_code {
                     let comment_child = Comment {
                         com_code: comment.com_code.clone(),
-                        user_code: comment.user_code.clone(),
+                        user_code: comment.user_code,
                         content: comment.content.clone(),
                         parent_code: comment.parent_code.clone(),
-                        num_like: comment.num_like.clone(),
+                        num_like: comment.num_like,
                     };
                     // 放入父级评论的child中
                     comment_parent.children.push(comment_child);

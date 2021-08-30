@@ -51,11 +51,11 @@ pub struct Authentication {
 
 /// Base information of each account.
 #[derive(sqlx::FromRow, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Person {
     /// Target user, key.
     pub uid: i32,
     /// Nickname. For users uses wechat to register, use wechat name by default.
-    #[serde(rename = "nickName")]
     pub nick_name: String,
     /// User avatar url.
     pub avatar: String,
@@ -63,7 +63,6 @@ pub struct Person {
     #[serde(skip_serializing)]
     pub is_disabled: bool,
     /// Is administrator. False by default.
-    #[serde(rename = "isAdmin")]
     pub is_admin: bool,
     /// Gender. 0 for unknown, 1 for male, 2 for female.
     pub gender: i16,
@@ -76,22 +75,19 @@ pub struct Person {
     #[serde(skip_serializing)]
     pub language: Option<String>,
     /// Account create time.
-    #[serde(rename = "createTime")]
     pub create_time: NaiveDateTime,
 }
 
 /// User real name and other personal information.
 #[derive(Default, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Identity {
     /// Person uid
     pub uid: i32,
     /// Student id
-    #[serde(rename = "studentId")]
     pub student_id: String,
     /// OA secret(password)
-    #[serde(rename = "oaSecret")]
     pub oa_secret: String,
     /// Whether OA certified or not
-    #[serde(rename = "oaCertified")]
     pub oa_certified: bool,
 }

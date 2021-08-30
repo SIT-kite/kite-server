@@ -41,6 +41,7 @@ pub struct AttachmentBasic {
 
 /// Attachment struct for the administrator.
 #[derive(Debug, Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Attachment {
     /// Attachment id.
     #[serde(skip_serializing)]
@@ -50,7 +51,6 @@ pub struct Attachment {
     /// UID of uploader.
     pub uploader: i32,
     /// Upload time.
-    #[serde(rename(serialize = "uploadTime"))]
     pub upload_time: NaiveDateTime,
     /// Storage path
     #[serde(skip_serializing)]

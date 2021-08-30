@@ -29,15 +29,14 @@ pub enum HostError {
 
 /// Agent state
 #[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentStatus {
     pub seq: u16,
     /// Agent name
     pub name: String,
     /// Intranet network address
-    #[serde(rename = "intranetAddr")]
     pub intranet_addr: String,
     /// External network address
-    #[serde(rename = "externalAddr")]
     pub external_addr: String,
     /// Processed requests' count
     pub requests: u32,

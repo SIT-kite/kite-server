@@ -5,11 +5,11 @@ use crate::error::Result;
 use crate::models::PageView;
 
 #[derive(serde::Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct AvailClassroom {
     /// Room number
     pub room: String,
     /// Busy time
-    #[serde(rename = "busyTime")]
     pub busy_time: i32,
     /// Room seats
     pub capacity: Option<i32>,

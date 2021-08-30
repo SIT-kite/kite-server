@@ -11,9 +11,9 @@ use crate::models::CommonError;
 use crate::services::{response::ApiResponse, AppState, JwtToken};
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthParameters {
     // Can be either _LOGIN_BY_WECHAT or _LOGIN_BY_PASSWORD
-    #[serde(rename = "loginType")]
     login_type: i32,
     // The code that provided by wechat wx.login()
     #[serde(rename = "wxCode")]
@@ -70,8 +70,8 @@ pub async fn login(app: web::Data<AppState>, form: web::Form<AuthParameters>) ->
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ListUsers {
-    #[serde(rename = "pageSize")]
     pub page_size: Option<u32>,
     pub index: Option<u32>,
 }
@@ -90,12 +90,11 @@ pub async fn list_users(app: web::Data<AppState>, form: web::Query<ListUsers>) -
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubmittedPerson {
     /// Nickname. For users uses wechat to register, use wechat name by default.
-    #[serde(rename = "nickName")]
     pub nick_name: Option<String>,
     /// User avatar url.
-    #[serde(rename = "avatarUrl")]
     pub avatar: Option<String>,
     /// Country from wechat
     pub country: Option<String>,
@@ -283,12 +282,11 @@ pub async fn get_user_identity(
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IdentityPost {
     /// Student id
-    #[serde(rename = "studentId")]
     pub student_id: String,
     /// OA secret(password)
-    #[serde(rename = "oaSecret")]
     pub oa_secret: String,
 }
 

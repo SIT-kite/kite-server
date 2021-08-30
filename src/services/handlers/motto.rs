@@ -8,10 +8,9 @@ use crate::services::response::ApiResponse;
 use crate::services::AppState;
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MottoRequest {
-    #[serde(rename = "minLength")]
     pub min_length: Option<u8>,
-    #[serde(rename = "maxLength")]
     pub max_length: Option<u8>,
 }
 

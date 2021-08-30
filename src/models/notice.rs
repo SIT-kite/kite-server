@@ -6,11 +6,11 @@ use crate::error::Result;
 
 /// WeChat Miniprogram home page notification.
 #[derive(sqlx::FromRow, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Notice {
     /// id
     pub id: i32,
     /// publish time of the notice
-    #[serde(rename = "publishTime")]
     pub publish_time: NaiveDateTime,
     /// Title
     pub title: String,

@@ -34,11 +34,11 @@ pub enum FreshmanError {
 /// for each new student.
 /// Note: This structure is used to query only.
 #[derive(sqlx::FromRow, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FreshmanBasic {
     pub name: String,
     pub uid: Option<i32>,
     /// student id.
-    #[serde(rename(serialize = "studentId"))]
     pub student_id: String,
     /// Secret. Usually it's the right 6 bits of id number.
     #[serde(skip_serializing)]
@@ -56,10 +56,8 @@ pub struct FreshmanBasic {
     /// like "101-1"
     pub bed: String,
     /// Counselor's name
-    #[serde(rename(serialize = "counselorName"))]
     pub counselor_name: String,
     /// Counselor's telephone
-    #[serde(rename(serialize = "counselorTel"))]
     pub counselor_tel: String,
     /// Allow people in the same city access one's contact details.
     pub visible: bool,
@@ -68,6 +66,7 @@ pub struct FreshmanBasic {
 /// This structure is of one student, which can be used in
 /// show their classmates, roommates and people they may recognize.
 #[derive(Debug, sqlx::FromRow, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NewMate {
     /// Freshman college
     pub college: String,
@@ -86,7 +85,6 @@ pub struct NewMate {
     /// Gender. 'M' for boys and 'F' for girls.
     pub gender: String,
     /// last time the user access freshman system.
-    #[serde(rename(serialize = "lastSeen"))]
     pub last_seen: Option<NaiveDateTime>,
     /// Avatar of the user
     pub avatar: Option<String>,
@@ -96,6 +94,7 @@ pub struct NewMate {
 
 /// Information about people you might know
 #[derive(sqlx::FromRow, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PeopleFamiliar {
     /// Name of the people may recognize.
     pub name: String,
@@ -106,7 +105,6 @@ pub struct PeopleFamiliar {
     /// Gender. 'M' for boys and 'F' for girls.
     pub gender: String,
     /// last time the user access freshman system.
-    #[serde(rename(serialize = "lastSeen"))]
     pub last_seen: Option<NaiveDateTime>,
     /// Avatar
     pub avatar: Option<String>,
@@ -122,14 +120,11 @@ pub struct GenderAnalysis {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FreshmanAnalysis {
-    #[serde(rename = "sameName")]
     pub same_name: i64,
-    #[serde(rename = "sameCity")]
     pub same_city: i64,
-    #[serde(rename = "sameHighSchool")]
     pub same_high_school: i64,
-    #[serde(rename = "collegeCount")]
     pub college_count: i64,
     pub major: GenderAnalysis,
 }
