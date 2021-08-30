@@ -95,7 +95,7 @@ pub struct SubmittedPerson {
     /// Nickname. For users uses wechat to register, use wechat name by default.
     pub nick_name: Option<String>,
     /// User avatar url.
-    pub avatar: Option<String>,
+    pub avatar_url: Option<String>,
     /// Country from wechat
     pub country: Option<String>,
     /// Province from wechat.
@@ -115,7 +115,7 @@ pub async fn create_user(
 
     /* Necessary items. */
     user.nick_name = parameters.nick_name.unwrap_or_default();
-    user.avatar = parameters.avatar.unwrap_or_default();
+    user.avatar = parameters.avatar_url.unwrap_or_default();
     if user.nick_name.is_empty() || !user.avatar.starts_with("https://") {
         return Err(ApiError::new(CommonError::Parameter));
     }
@@ -176,7 +176,7 @@ pub async fn update_user_detail(
     if let Some(country) = form.country {
         person.country = Some(country);
     }
-    if let Some(avatar_url) = form.avatar {
+    if let Some(avatar_url) = form.avatar_url {
         if !avatar_url.starts_with("https://") {
             return Err(ApiError::new(CommonError::Parameter));
         }
