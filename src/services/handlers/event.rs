@@ -1,12 +1,17 @@
 //! This module includes interfaces about the event and sign.
 use actix_web::{get, post, web, HttpResponse};
 
+use crate::bridge::{
+    Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, HostError, RequestFrame,
+    RequestPayload, ResponsePayload,
+};
 use crate::error::{ApiError, Result};
 use crate::models::event::{Event, EventError};
 use crate::models::user::Person;
 use crate::models::{event, CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
+use serde_json::json;
 
 /**********************************************************************
     Interfaces in this module:
@@ -61,4 +66,24 @@ pub async fn create_event(
     event.create(&app.pool).await?;
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(event)))
+}
+
+#[get("/event/sc/activitylist")]
+pub async fn query_activity_list(
+    app: web::Data<AppState>,
+    params: web::Query<ActivityListRequest>,
+) -> Result<HttpResponse> {
+    let params = params.into_inner();
+
+    let agents = &app.agents;
+    let request = RequestFrame::new(RequestPayload::ActivityList(params));
+    let response = agents.request(request).await??;
+    if let ResponsePayload::ActivityList(list) = response {
+        let response = json!({
+            "ActivityList": list,
+        });
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
 }

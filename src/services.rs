@@ -119,6 +119,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(motto::get_one_motto)
             // Event and activity routes
             .service(event::list_events)
+            .service(event::query_activity_list)
             // Edu management and course-related routes
             .service(edu::query_available_classrooms)
             .service(edu::query_timetable)

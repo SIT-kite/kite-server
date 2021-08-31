@@ -9,7 +9,7 @@ pub struct AgentInfo {
     pub name: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ActivityListRequest {
     /// Count of activities per page.
     pub count: u16,
@@ -17,7 +17,7 @@ pub struct ActivityListRequest {
     pub index: u16,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ActivityDetailRequest {
     /// Activity id in sc.sit.edu.cn
     pub id: String,
