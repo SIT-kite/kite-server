@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::result::Result;
 
 use actix_service::{Service, Transform};
@@ -14,6 +15,17 @@ use crate::jwt::*;
 use crate::models::CommonError;
 use crate::services::{get_auth_bearer_value, JwtToken};
 
+const URL_WHITE_LIST: [(&str, Method); 8] = [
+    ("/api/v1/", Method::GET),
+    ("/api/v1/session", Method::POST),
+    ("/api/v1/user", Method::POST),
+    ("/api/v1/event", Method::GET),
+    ("/api/v1/motto", Method::GET),
+    ("/api/v1/notice", Method::GET),
+    ("/api/v1/edu/schedule", Method::GET),
+    ("/api/v1/edu/calendar", Method::GET),
+];
+
 pub struct Auth;
 
 impl<S> Transform<S, ServiceRequest> for Auth
@@ -28,12 +40,21 @@ where
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        future::ok(AuthMiddleware { service })
+        let mut no_checking_urls = HashMap::new();
+
+        for (path, method) in URL_WHITE_LIST.iter() {
+            no_checking_urls.insert(path.clone(), method.clone());
+        }
+        future::ok(AuthMiddleware {
+            service,
+            no_checking_urls,
+        })
     }
 }
 
 pub struct AuthMiddleware<S> {
     service: S,
+    no_checking_urls: HashMap<&'static str, Method>,
 }
 
 impl<S> Service<ServiceRequest> for AuthMiddleware<S>
@@ -48,10 +69,11 @@ where
     actix_service::forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        // 检查请求的 path 和请求方法
-        // 对可匿名访问的页面予以放行
-        if check_anonymous_list(req.method(), req.path()) {
-            return Either::Left(self.service.call(req));
+        let url = req.path();
+        if let Some(method) = self.no_checking_urls.get(url) {
+            if method == req.method() {
+                return Either::Left(self.service.call(req));
+            }
         }
 
         // For logined users, they can access all of the resources, and then each module will check
@@ -66,28 +88,5 @@ where
             }
         }
         Either::Right(ok(req.error_response(ApiError::new(CommonError::LoginNeeded))))
-    }
-}
-
-fn check_anonymous_list(method: &Method, path: &str) -> bool {
-    // TODO: Use regex expression.
-    match path {
-        "/" => true,
-        "/api/v1/" => true,
-        "/api/v1/session" => method == Method::POST,
-        "/api/v1/user" => method == Method::POST,
-        "/api/v1/event" => method == Method::GET,
-        "/api/v1/motto" => method == Method::GET,
-        "/agent/" => true,
-        "/api/v1/notice" => true,
-        "/edu/schedule" => true,
-        "/edu/calendar" => true,
-        _ => {
-            method == Method::GET
-                && (path.starts_with("/static/")
-                    || path.starts_with("/console/")
-                    || path.starts_with("/api/v1/status/")
-                    || path.starts_with("/api/v1/search/"))
-        }
     }
 }
