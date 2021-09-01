@@ -1,7 +1,6 @@
 //! This module includes interfaces about course, major and score.
 
 use actix_web::{get, web, HttpResponse};
-use chrono::Date;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 

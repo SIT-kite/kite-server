@@ -111,27 +111,27 @@ pub struct TimeTableRequest {
 #[serde(rename_all = "camelCase")]
 pub struct Course {
     /// 课程名称
-    course_name: String,
+    pub course_name: String,
     /// 星期
-    day: i32,
+    pub day: i32,
     /// 节次
-    time_index: i32,
+    pub time_index: i32,
     /// 周次
-    week: i32,
+    pub week: i32,
     /// 教室
-    place: String,
+    pub place: String,
     /// 教师
-    teacher: Vec<String>,
+    pub teacher: Vec<String>,
     /// 校区
-    campus: String,
+    pub campus: String,
     /// 学分
-    credit: f32,
+    pub credit: f32,
     /// 学时
-    hours: i32,
+    pub hours: i32,
     /// 教学班
-    dyn_class_id: String,
+    pub dyn_class_id: String,
     /// 课程代码
-    course_id: String,
+    pub course_id: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

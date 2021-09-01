@@ -7,6 +7,7 @@ pub use major::{Major, PlannedCourse};
 mod classroom;
 mod course;
 mod major;
+mod timetable;
 
 #[derive(Debug, thiserror::Error)]
 pub enum EduError {}
