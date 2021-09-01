@@ -80,6 +80,8 @@ fn check_anonymous_list(method: &Method, path: &str) -> bool {
         "/api/v1/motto" => method == Method::GET,
         "/agent/" => true,
         "/api/v1/notice" => true,
+        "/edu/schedule" => true,
+        "/edu/calendar" => true,
         _ => {
             method == Method::GET
                 && (path.starts_with("/static/")

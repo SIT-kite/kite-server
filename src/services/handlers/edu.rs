@@ -1,6 +1,7 @@
 //! This module includes interfaces about course, major and score.
 
 use actix_web::{get, web, HttpResponse};
+use chrono::Date;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -156,6 +157,82 @@ pub async fn query_score(
     } else {
         Err(ApiError::new(HostError::Mismatched))
     }
+}
+
+#[get("/edu/calendar")]
+pub async fn get_school_start_date() -> Result<HttpResponse> {
+    use chrono::NaiveDate;
+
+    let date = NaiveDate::from_ymd(2021, 9, 6);
+    let response = json!({
+        "year": "2021-2022",
+        "semester": 1,
+        "start": date,
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+}
+
+#[get("/edu/schedule")]
+pub async fn get_school_schedule() -> Result<HttpResponse> {
+    let response = json!({
+       "奉贤校区": {
+            "default": [
+                ["8:20","9:05"],
+                ["9:10","9:55"],
+                ["10:15","11:00"],
+                ["11:05","11:50"],
+                ["13:00","13:45"],
+                ["13:50","14:35"],
+                ["14:55","15:40"],
+                ["15:45","16:30"],
+                ["18:00","18:45"],
+                ["18:50","19:35"],
+                ["19:40","20:25"],
+            ],
+            "一教": [
+                ["8:20","9:05"],
+                ["9:10","9:55"],
+                ["10:25","11:00"],
+                ["11:05","12:00"],
+                ["13:00","13:45"],
+                ["13:50","14:35"],
+                ["14:55","15:40"],
+                ["15:45","16:30"],
+                ["18:00","18:45"],
+                ["18:50","19:35"],
+                ["19:40","20:25"]
+            ],
+            "二教": [
+                ["8:20","9:05"],
+                ["9:10","9:55"],
+                ["10:15","11:00"],
+                ["11:05","11:45"],
+                ["13:00","13:45"],
+                ["13:50","14:35"],
+                ["14:55","15:40"],
+                ["15:45","16:30"],
+                ["18:00","18:45"],
+                ["18:50","19:35"],
+                ["19:40","20:25"]
+            ],
+        },
+        "徐汇校区": {
+            "default": [
+                ["8:00","8:45"],
+                ["8:50","9:35"],
+                ["9:55","10:40"],
+                ["10:45","11:30"],
+                ["13:00","13:45"],
+                ["13:50","14:35"],
+                ["14:55","15:40"],
+                ["15:45","16:30"],
+                ["18:00","18:45"],
+                ["18:50","19:35"],
+                ["19:40","20:25"]
+            ],
+        }
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
