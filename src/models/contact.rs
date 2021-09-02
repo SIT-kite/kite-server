@@ -16,7 +16,7 @@ pub struct Contact {
 
 pub async fn get_all_contacts(db: &PgPool) -> Result<Vec<Contact>> {
     let telephone =
-        sqlx::query_as("SELECT department, name, phone, description FROM contact.contact_view;")
+        sqlx::query_as("SELECT abbr AS department, name, phone, description FROM contact.contact_view;")
             .fetch_all(db)
             .await?;
 
