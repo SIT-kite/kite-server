@@ -1,9 +1,5 @@
 //! This module includes interfaces about course, major and score.
 
-use actix_web::{get, web, HttpResponse};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-
 use crate::bridge::{
     HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SchoolYear, ScoreRequest,
     Semester, TimeTableRequest,
@@ -14,6 +10,9 @@ use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
+use actix_web::{get, web, HttpResponse};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 const CAMPUS_XUHUI: i32 = 2;
 const CAMPUS_FENGXIAN: i32 = 1;
@@ -63,7 +62,7 @@ pub async fn query_available_classrooms(
 
 #[derive(Debug, Deserialize)]
 pub struct TimeTableQuery {
-    pub year: i32,
+    pub year: String,
     pub semester: i32,
 }
 
@@ -74,8 +73,8 @@ pub async fn query_timetable(
     params: web::Query<TimeTableQuery>,
 ) -> Result<HttpResponse> {
     let params = params.into_inner();
-
-    let year = SchoolYear::SomeYear(params.year);
+    let (first_year, _) = params.year.split_once("-").unwrap();
+    let year = SchoolYear::SomeYear(first_year.parse().unwrap());
     let semester = match params.semester {
         1 => Semester::FirstTerm,
         2 => Semester::SecondTerm,
