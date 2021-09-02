@@ -1072,11 +1072,11 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
 dependencies = [
-    "bytes",
-    "hyper",
-    "native-tls",
-    "tokio",
-    "tokio-native-tls",
+ "bytes",
+ "hyper",
+ "native-tls",
+ "tokio",
+ "tokio-native-tls",
 ]
 
 [[package]]
@@ -1091,9 +1091,9 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
 dependencies = [
-    "matches",
-    "unicode-bidi",
-    "unicode-normalization",
+ "matches",
+ "unicode-bidi",
+ "unicode-normalization",
 ]
 
 [[package]]
@@ -1158,27 +1158,27 @@ dependencies = [
  "actix-service",
  "actix-utils",
  "actix-web",
-    "aes",
-    "anyhow",
-    "async-bincode",
-    "base64 0.13.0",
-    "bincode",
-    "block-modes",
-    "chrono",
-    "fern",
-    "futures",
-    "futures-util",
-    "ics",
-    "jsonwebtoken",
-    "lazy_static",
-    "log",
-    "num-derive",
-    "num-traits",
-    "rand 0.7.3",
-    "regex",
-    "reqwest",
-    "serde",
-    "serde_json",
+ "aes",
+ "anyhow",
+ "async-bincode",
+ "base64 0.13.0",
+ "bincode",
+ "block-modes",
+ "chrono",
+ "fern",
+ "futures",
+ "futures-util",
+ "ics",
+ "jsonwebtoken",
+ "lazy_static",
+ "log",
+ "num-derive",
+ "num-traits",
+ "rand 0.7.3",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
  "serde_repr",
  "slab",
  "sqlx",

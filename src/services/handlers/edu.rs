@@ -150,7 +150,7 @@ pub async fn query_score(
     let response = agents.request(request).await??;
     if let ResponsePayload::Score(score) = response {
         let response = json!({
-            "Score": score,
+            "score": score,
         });
         Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
     } else {
