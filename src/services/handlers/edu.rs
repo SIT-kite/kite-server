@@ -73,7 +73,7 @@ pub async fn query_timetable(
     params: web::Query<TimeTableQuery>,
 ) -> Result<HttpResponse> {
     let params = params.into_inner();
-    let (first_year, _) = params.year.split_once("-").unwrap();
+    let (first_year, second_year) = params.year.split_once("-").unwrap();
     let year = SchoolYear::SomeYear(first_year.parse().unwrap());
     let semester = match params.semester {
         1 => Semester::FirstTerm,
