@@ -1,5 +1,9 @@
 //! This module includes interfaces about course, major and score.
 
+use actix_web::{get, web, HttpResponse};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+
 use crate::bridge::{
     HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SchoolYear, ScoreRequest,
     Semester, TimeTableRequest,
@@ -10,9 +14,6 @@ use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
-use actix_web::{get, web, HttpResponse};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 const CAMPUS_XUHUI: i32 = 2;
 const CAMPUS_FENGXIAN: i32 = 1;
@@ -63,6 +64,7 @@ pub async fn query_available_classrooms(
 #[derive(Debug, Deserialize)]
 pub struct TimeTableQuery {
     pub year: String,
+    // "2021-2022"
     pub semester: i32,
 }
 
@@ -73,8 +75,20 @@ pub async fn query_timetable(
     params: web::Query<TimeTableQuery>,
 ) -> Result<HttpResponse> {
     let params = params.into_inner();
-    let (first_year, _) = params.year.split_once("-").unwrap();
-    let year = SchoolYear::SomeYear(first_year.parse().unwrap());
+    let first_year = params
+        .year
+        .split_once("-")
+        .and_then(|(first, _)| {
+            let year = first.parse::<i32>().unwrap_or_default();
+            if (2015..2030).contains(&year) {
+                Some(year)
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| ApiError::new(CommonError::Parameter))?;
+
+    let year = SchoolYear::SomeYear(first_year);
     let semester = match params.semester {
         1 => Semester::FirstTerm,
         2 => Semester::SecondTerm,
@@ -102,6 +116,60 @@ pub async fn query_timetable(
             "timeTable": timetable,
         });
         Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
+}
+
+#[get("/edu/timetable/ics")]
+pub async fn export_timetable(
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    params: web::Query<TimeTableQuery>,
+) -> Result<HttpResponse> {
+    let params = params.into_inner();
+    let first_year = params
+        .year
+        .split_once("-")
+        .and_then(|(first, _)| {
+            let year = first.parse::<i32>().unwrap_or_default();
+            if (2015..2030).contains(&year) {
+                Some(year)
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| ApiError::new(CommonError::Parameter))?;
+
+    let year = SchoolYear::SomeYear(first_year);
+    let semester = match params.semester {
+        1 => Semester::FirstTerm,
+        2 => Semester::SecondTerm,
+        _ => Semester::All,
+    };
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let identity = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+
+    let data = TimeTableRequest {
+        account: identity.student_id,
+        passwd: identity.oa_secret,
+        school_year: year,
+        semester,
+    };
+
+    let agents = &app.agents;
+    let request = RequestFrame::new(RequestPayload::TimeTable(data));
+    let response = agents.request(request).await??;
+    if let ResponsePayload::TimeTable(timetable) = response {
+        let calendar_text = edu::export_course_list_to_calendar(&timetable);
+
+        Ok(HttpResponse::Ok()
+            .content_type("text/calendar")
+            .body(calendar_text))
     } else {
         Err(ApiError::new(HostError::Mismatched))
     }

@@ -3,6 +3,7 @@ pub use classroom::{AvailClassroom, AvailClassroomQuery};
 pub use course::{get_current_term, is_valid_term};
 pub use course::{CourseBase, CourseClass};
 pub use major::{Major, PlannedCourse};
+pub use timetable::export_course_list_to_calendar;
 
 mod classroom;
 mod course;
