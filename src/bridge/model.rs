@@ -33,6 +33,13 @@ pub struct ScScoreItem {
     pub amount: f32,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SaveScScore {
+    pub account: String,
+    pub activity_id: i32,
+    pub amount: f32,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ActivityListRequest {
     /// Count of activities per page.
