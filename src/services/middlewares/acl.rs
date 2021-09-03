@@ -43,7 +43,7 @@ where
         let mut no_checking_urls = HashMap::new();
 
         for (path, method) in URL_WHITE_LIST.iter() {
-            no_checking_urls.insert(path.clone(), method.clone());
+            no_checking_urls.insert(<&str>::clone(path), method.clone());
         }
         future::ok(AuthMiddleware {
             service,

@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 use std::ops::Add;
 
-use chrono::{
-    Date, DateTime, Duration, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc,
-};
+use chrono::{Date, DateTime, Duration, FixedOffset, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use ics::Event as CalEvent;
 
 use crate::bridge::Course;
@@ -262,7 +260,7 @@ fn add_course_to_calendar<'a>(calendar: &mut ics::ICalendar<'a>, course: &'a Cou
         });
 }
 
-pub fn export_course_list_to_calendar(course_list: &Vec<Course>) -> Vec<u8> {
+pub fn export_course_list_to_calendar(course_list: &[Course]) -> Vec<u8> {
     let mut calendar = ics::ICalendar::new(
         "2.0",
         "-//Yiban Station of Shanghai Institute of Technology//SIT-KITE//EN",
