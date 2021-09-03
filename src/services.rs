@@ -126,6 +126,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(edu::query_score)
             .service(edu::get_school_start_date)
             .service(edu::get_school_schedule)
+            .service(edu::export_timetable)
             // System status routes
             .service(status::get_timestamp)
             .service(status::ping_agent)

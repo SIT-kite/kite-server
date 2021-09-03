@@ -9,6 +9,30 @@ pub struct AgentInfo {
     pub name: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct PortalAuthRequest {
+    account: String,
+    credential: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub enum PortalAuthResponse {
+    Ok,
+    Err(String),
+}
+
+#[derive(Debug, Serialize)]
+pub struct ScScoreItemRequest {
+    pub account: String,
+    pub passwd: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ScScoreItem {
+    pub activity_id: i32,
+    pub amount: f32,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ActivityListRequest {
     /// Count of activities per page.

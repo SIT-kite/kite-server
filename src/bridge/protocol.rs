@@ -5,7 +5,8 @@ use tokio_tower::multiplex;
 
 use crate::bridge::model::{
     Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, AgentInfo, AgentInfoRequest,
-    Course, Major, MajorRequest, Score, ScoreRequest, TimeTableRequest,
+    Course, Major, MajorRequest, PortalAuthRequest, PortalAuthResponse, ScScoreItem, ScScoreItemRequest,
+    Score, ScoreRequest, TimeTableRequest,
 };
 
 /// Response payload
@@ -14,21 +15,25 @@ pub enum RequestPayload {
     None,
     Ping(String),
     AgentInfo(AgentInfoRequest),
+    PortalAuth(PortalAuthRequest),
     ActivityList(ActivityListRequest),
     ActivityDetail(ActivityDetailRequest),
+    ScScoreDetail(ScScoreItemRequest),
     MajorList(MajorRequest),
     TimeTable(TimeTableRequest),
     Score(ScoreRequest),
 }
 
 /// Response payload
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub enum ResponsePayload {
     None,
     Pong(String),
     Credential(AgentInfo),
+    PortalAuth(PortalAuthResponse),
     ActivityList(Vec<Activity>),
     ActivityDetail(Box<ActivityDetail>),
+    ScScoreDetail(Vec<ScScoreItem>),
     MajorList(Vec<Major>),
     TimeTable(Vec<Course>),
     Score(Vec<Score>),

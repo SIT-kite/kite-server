@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpResponse};
 use chrono::Local;
 use serde::Deserialize;
 
-use crate::bridge::{RequestFrame, RequestPayload};
+use crate::bridge::{HostError, RequestFrame, RequestPayload, ResponsePayload};
 use crate::error::{ApiError, Result};
 use crate::models::CommonError;
 use crate::services::response::ApiResponse;
@@ -49,9 +49,10 @@ pub async fn ping_agent(
     let payload = RequestPayload::Ping(message);
     let request = RequestFrame::new(payload);
 
-    let response = agents.request(request).await?;
-    match response {
-        Ok(response) => Ok(HttpResponse::Ok().json(ApiResponse::normal(response))),
-        Err(e) => Err(e.into()),
+    let response = agents.request(request).await??;
+    if let ResponsePayload::Pong(pong) = response {
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(pong)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
     }
 }
