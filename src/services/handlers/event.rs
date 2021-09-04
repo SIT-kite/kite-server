@@ -1,9 +1,14 @@
 //! This module includes interfaces about the event and sign.
+use crate::models::edu::{
+    self, get_sc_score_detail, query_current_sc_activity_list, query_current_sc_score_list,
+    save_sc_activity_list, save_sc_score_list,
+};
 use actix_web::{get, post, web, HttpResponse};
+use serde::Deserialize;
 
 use crate::bridge::{
-    Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, HostError, RequestFrame,
-    RequestPayload, ResponsePayload,
+    ActivityListRequest, HostError, RequestFrame, RequestPayload, ResponsePayload, SaveScActivity,
+    SaveScScore, ScActivityRequest, ScScoreItemRequest,
 };
 use crate::error::{ApiError, Result};
 use crate::models::event::{Event, EventError};
@@ -86,4 +91,66 @@ pub async fn query_activity_list(
     } else {
         Err(ApiError::new(HostError::Mismatched))
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ScDetailQuery {
+    pub force: bool,
+}
+
+#[get("/event/sc/score_detail")]
+pub async fn get_sc_score_list(
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    params: web::Query<ScDetailQuery>,
+) -> Result<HttpResponse> {
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let identity = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+    let account = identity.student_id;
+    let password = identity.oa_secret;
+    let params = params.into_inner();
+    if params.force {
+        let score_data = ScScoreItemRequest {
+            account: account.clone(),
+            passwd: password.clone(),
+        };
+
+        let agent = &app.agents;
+        let score_detail = query_current_sc_score_list(agent, score_data).await?;
+        let save_score_detail: Vec<SaveScScore> = score_detail
+            .into_iter()
+            .map(|e| SaveScScore {
+                account: account.clone(),
+                activity_id: e.activity_id,
+                amount: e.amount,
+            })
+            .collect();
+        save_sc_score_list(&app.pool, save_score_detail).await;
+
+        let activity_data = ScActivityRequest {
+            account: account.clone(),
+            passwd: password.clone(),
+        };
+        let activity_detail = query_current_sc_activity_list(agent, activity_data).await?;
+        let save_activity_detail: Vec<SaveScActivity> = activity_detail
+            .into_iter()
+            .map(|e| SaveScActivity {
+                account: account.clone(),
+                activity_id: e.activity_id,
+                time: e.time,
+                status: e.status,
+            })
+            .collect();
+        save_sc_activity_list(&app.pool, save_activity_detail).await;
+    }
+
+    let result = get_sc_score_detail(&app.pool, &account.clone()).await?;
+    let response = serde_json::json!({
+            "scdetail": result,
+    });
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }

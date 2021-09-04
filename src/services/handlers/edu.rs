@@ -5,13 +5,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::bridge::{
-    HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SaveScScore,
-    ScScoreItemRequest, SchoolYear, ScoreRequest, Semester, TimeTableRequest,
+    HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SchoolYear, ScoreRequest,
+    Semester, TimeTableRequest,
 };
 use crate::error::{ApiError, Result};
-use crate::models::edu::{
-    self, query_current_sc_score_list, save_sc_score_list, AvailClassroomQuery, EduError,
-};
+use crate::models::edu::{self, AvailClassroomQuery, EduError};
 use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
@@ -382,42 +380,5 @@ pub async fn get_major_list(
         Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
     } else {
         Err(ApiError::new(HostError::Mismatched))
-    }
-}
-
-pub async fn query_sc_score_list(
-    token: Option<JwtToken>,
-    app: web::Data<AppState>,
-    force: bool,
-) -> Result<()> {
-    if force {
-        let uid = token
-            .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
-            .map(|token| token.uid)?;
-        let identity = Person::get_identity(&app.pool, uid)
-            .await?
-            .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
-
-        let data = ScScoreItemRequest {
-            account: identity.student_id,
-            passwd: identity.oa_secret,
-        };
-        let student_id = (&data.account).to_string();
-        let agent = &app.agents;
-        let score_detail = query_current_sc_score_list(agent, data).await?;
-        let save_detail: Vec<SaveScScore> = score_detail
-            .into_iter()
-            .map(|e| SaveScScore {
-                account: student_id.clone(),
-                activity_id: e.activity_id,
-                amount: e.amount,
-            })
-            .collect();
-
-        save_sc_score_list(&app.pool, save_detail);
-        Ok(())
-    } else {
-        //todo get_sc_score_list
-        Ok(())
     }
 }

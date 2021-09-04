@@ -1,46 +1,86 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentInfoRequest;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentInfo {
     pub name: String,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PortalAuthRequest {
     account: String,
     credential: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum PortalAuthResponse {
     Ok,
     Err(String),
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScScoreItemRequest {
     pub account: String,
     pub passwd: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScScoreItem {
     pub activity_id: i32,
     pub amount: f32,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SaveScScore {
     pub account: String,
     pub activity_id: i32,
     pub amount: f32,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScActivityRequest {
+    pub account: String,
+    pub passwd: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScActivityItem {
+    pub activity_id: i32,
+    pub time: DateTime<Local>,
+    pub status: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SaveScActivity {
+    pub account: String,
+    pub activity_id: i32,
+    pub time: DateTime<Local>,
+    pub status: String,
+}
+
+#[derive(sqlx::FromRow, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScDetail {
+    pub activity_id: i32,
+    pub time: DateTime<Local>,
+    pub status: String,
+    pub amount: f32,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ActivityListRequest {
     /// Count of activities per page.
     pub count: u16,
@@ -49,6 +89,7 @@ pub struct ActivityListRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ActivityDetailRequest {
     /// Activity id in sc.sit.edu.cn
     pub id: String,
@@ -56,6 +97,7 @@ pub struct ActivityDetailRequest {
 
 /// Activity link, used for list recent activities.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Activity {
     pub title: String,
     pub id: String,
@@ -64,6 +106,7 @@ pub struct Activity {
 
 /// Activity link, used for list recent activities.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ActivityDetail {
     /// Activity id
     pub id: String,
