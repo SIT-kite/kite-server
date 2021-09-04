@@ -31,6 +31,8 @@ pub enum UserError {
     AuthTypeNotAllowed = 55,
     #[error("找不到用户")]
     NoSuchUser = 56,
+    #[error("请修改默认OA密码")]
+    DefaultSecretDenied = 57,
 }
 
 /* Models */
