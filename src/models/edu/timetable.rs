@@ -155,13 +155,7 @@ fn get_course_start_end_time(
     (time_array[0], time_array[1])
 }
 
-// Campus: 1-CAMPUS_FENGXIAN, 2-CAMPUS_XUHUI
-fn get_course_start_end_date_time<Tz: TimeZone>(
-    day: Date<Tz>,
-    campus: i32,
-    building: &str,
-    mut time_index: i32,
-) -> (DateTime<Tz>, DateTime<Tz>) {
+fn split_start_end_index(mut time_index: i32) -> (i32, i32) {
     // When time_index = (110) in binary, it represents 1-2 in day.
     let (mut index_start, mut index_end);
 
@@ -177,7 +171,17 @@ fn get_course_start_end_date_time<Tz: TimeZone>(
         index_end += 1;
         time_index >>= 1;
     }
+    (index_start, index_end)
+}
 
+// Campus: 1-CAMPUS_FENGXIAN, 2-CAMPUS_XUHUI
+fn get_course_start_end_date_time<Tz: TimeZone>(
+    day: Date<Tz>,
+    campus: i32,
+    building: &str,
+    time_index: (i32, i32),
+) -> (DateTime<Tz>, DateTime<Tz>) {
+    let (index_start, index_end) = time_index;
     let (a, b) = get_course_start_end_time(campus, building, index_start as usize, index_end as usize);
 
     (day.and_time(a).unwrap(), day.and_time(b).unwrap())
@@ -225,8 +229,8 @@ fn to_datetime_string<Tz: chrono::TimeZone>(date_time: &DateTime<Tz>) -> String 
     date_time.naive_utc().format("%Y%m%dT%H%M%SZ").to_string()
 }
 
-fn add_course_to_calendar<'a>(calendar: &mut ics::ICalendar<'a>, course: &'a Course) {
-    use ics::properties::*;
+fn add_course_to_calendar<'a>(calendar: &mut ics::ICalendar<'a>, course: &'a Course, alarm_offset: i32) {
+    use ics::{properties::*, Alarm};
 
     let semester_date = get_semester_start_date();
     let campus = campus_to_i32(&course.campus);
@@ -246,21 +250,44 @@ fn add_course_to_calendar<'a>(calendar: &mut ics::ICalendar<'a>, course: &'a Cou
             let mut event = CalEvent::new(uuid, ts.clone());
 
             let course_date = get_semester_day_offset(&semester_date, week, course.day);
+            let (index_start, index_end) = split_start_end_index(course.time_index);
             let (course_start, course_end) =
-                get_course_start_end_date_time(course_date, campus, &building, course.time_index);
+                get_course_start_end_date_time(course_date, campus, &building, (index_start, index_end));
 
-            event.push(Organizer::new(course.teacher.join(", ")));
+            let description = if index_start == index_end {
+                format!(
+                    "第 {} 节\\n{}\\n{}",
+                    index_start,
+                    course.place,
+                    course.teacher.join(", ")
+                )
+            } else {
+                format!(
+                    "第 {}-{} 节\\n{}\\n{}",
+                    index_start,
+                    index_end,
+                    course.place,
+                    course.teacher.join(", ")
+                )
+            };
             event.push(DtStart::new(to_datetime_string(&course_start)));
             event.push(DtEnd::new(to_datetime_string(&course_end)));
-            event.push(Status::confirmed());
             event.push(Location::new(&course.place));
             event.push(Summary::new(&course.course_name));
+            event.push(Description::new(description.clone()));
+            event.push(Status::confirmed());
 
+            if 0 != alarm_offset {
+                let alarm_time = course_start - chrono::Duration::seconds(alarm_offset as i64);
+                let trigger = Trigger::new(to_datetime_string(&alarm_time));
+                let alarm = Alarm::display(trigger, Description::new(description));
+                event.add_alarm(alarm);
+            }
             calendar.add_event(event);
         });
 }
 
-pub fn export_course_list_to_calendar(course_list: &[Course]) -> Vec<u8> {
+pub fn export_course_list_to_calendar(course_list: &[Course], alarm: i32) -> Vec<u8> {
     let mut calendar = ics::ICalendar::new(
         "2.0",
         "-//Yiban Station of Shanghai Institute of Technology//SIT-KITE//EN",
@@ -268,7 +295,7 @@ pub fn export_course_list_to_calendar(course_list: &[Course]) -> Vec<u8> {
     let mut result = Vec::<u8>::new();
 
     for course in course_list.iter() {
-        add_course_to_calendar(&mut calendar, course);
+        add_course_to_calendar(&mut calendar, course, alarm);
     }
     calendar.write(&mut result);
 

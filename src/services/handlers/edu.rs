@@ -123,20 +123,28 @@ pub async fn query_timetable(
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct AlarmOption {
+    pub alarm: Option<i32>,
+}
+
 #[get("/edu/timetable/ics")]
 pub async fn get_timetable_export_url(
     token: Option<JwtToken>,
     params: web::Query<TimeTableQuery>,
+    alarm: web::Query<AlarmOption>,
 ) -> Result<HttpResponse> {
     let uid = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
         .map(|token| token.uid)?;
+    let alarm = alarm.alarm.unwrap_or_default();
     let url = format!(
         "https://kite.sunnysab.cn/api/v1/edu/timetable/ics/content?\
-        uid={}&year={}&semester={}&sign={}",
+        uid={}&year={}&semester={}&alarm={}&sign={}",
         uid,
         params.year,
         params.semester,
+        alarm,
         edu::generate_sign(uid)
     );
     let response = json!({
@@ -144,6 +152,7 @@ pub async fn get_timetable_export_url(
         "semester": params.semester,
         "uid": uid,
         "url": url,
+        "alarm": alarm,
     });
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
@@ -158,6 +167,7 @@ pub struct TimeTableExportQuery {
 pub async fn export_timetable_as_calendar(
     app: web::Data<AppState>,
     params: web::Query<TimeTableQuery>,
+    alarm: web::Query<AlarmOption>,
     sign: web::Query<TimeTableExportQuery>,
 ) -> Result<HttpResponse> {
     let params = params.into_inner();
@@ -200,7 +210,8 @@ pub async fn export_timetable_as_calendar(
     let request = RequestFrame::new(RequestPayload::TimeTable(data));
     let response = agents.request(request).await??;
     if let ResponsePayload::TimeTable(timetable) = response {
-        let calendar_text = edu::export_course_list_to_calendar(&timetable);
+        let calendar_text =
+            edu::export_course_list_to_calendar(&timetable, alarm.alarm.unwrap_or_default());
 
         Ok(HttpResponse::Ok()
             .content_type("text/calendar")
