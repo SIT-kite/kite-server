@@ -22,7 +22,7 @@ pub async fn query_current_sc_score_list(
 pub async fn save_sc_score_list(db: &PgPool, data: Vec<SaveScScore>) -> Result<()> {
     for each_score in data {
         sqlx::query(
-            "INSERT INTO edu.sc_score_detail (student_id, activity_id, amount)
+            "INSERT INTO events.sc_score_detail (student_id, activity_id, amount)
             VALUES ($1, $2, $3)
             ON CONFLICT (student_id, activity_id, amount) DO NOTHING;",
         )
@@ -51,7 +51,7 @@ pub async fn query_current_sc_activity_list(
 pub async fn save_sc_activity_list(db: &PgPool, data: Vec<SaveScActivity>) -> Result<()> {
     for each_activity in data {
         sqlx::query(
-            "INSERT INTO edu.sc_activity_detail (student_id, activity_id, time, status)
+            "INSERT INTO events.sc_activity_detail (student_id, activity_id, time, status)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (student_id, activity_id, time) DO NOTHING;",
         )
@@ -67,7 +67,7 @@ pub async fn save_sc_activity_list(db: &PgPool, data: Vec<SaveScActivity>) -> Re
 
 pub async fn get_sc_score_detail(pool: &PgPool, query: &str) -> Result<Vec<ScDetail>> {
     let result = sqlx::query_as(
-        "select activity_id, time, status, amount from edu.sc_detail
+        "select activity_id, time, status, amount from events.sc_detail
         where student_id = $1;",
     )
     .bind(query)
