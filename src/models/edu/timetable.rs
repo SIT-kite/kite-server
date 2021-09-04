@@ -274,3 +274,11 @@ pub fn export_course_list_to_calendar(course_list: &[Course]) -> Vec<u8> {
 
     result
 }
+
+pub fn generate_sign(uid: i32) -> String {
+    use crate::config::CONFIG;
+
+    let s = format!("{}-5eb63bbbe01eeed0-{}", CONFIG.server.secret, uid);
+    let hashed_s = md5::compute(s);
+    format!("{:x}", hashed_s)
+}

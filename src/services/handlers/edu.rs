@@ -9,7 +9,9 @@ use crate::bridge::{
     ScScoreItemRequest, SchoolYear, ScoreRequest, Semester, TimeTableRequest,
 };
 use crate::error::{ApiError, Result};
-use crate::models::edu::{self, query_current_sc_score_list, save_sc_score_list, AvailClassroomQuery};
+use crate::models::edu::{
+    self, query_current_sc_score_list, save_sc_score_list, AvailClassroomQuery, EduError,
+};
 use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
@@ -122,12 +124,47 @@ pub async fn query_timetable(
 }
 
 #[get("/edu/timetable/ics")]
-pub async fn export_timetable(
+pub async fn get_timetable_export_url(
     token: Option<JwtToken>,
-    app: web::Data<AppState>,
     params: web::Query<TimeTableQuery>,
 ) -> Result<HttpResponse> {
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let url = format!(
+        "https://kite.sunnysab.cn/api/v1/edu/timetable/ics/content?\
+        uid={}&year={}&semester={}&sign={}",
+        uid,
+        params.year,
+        params.semester,
+        edu::generate_sign(uid)
+    );
+    let response = json!({
+        "year": params.year,
+        "semester": params.semester,
+        "uid": uid,
+        "url": url,
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TimeTableExportQuery {
+    pub uid: i32,
+    pub sign: String,
+}
+
+#[get("/edu/timetable/ics/content")]
+pub async fn export_timetable_as_calendar(
+    app: web::Data<AppState>,
+    params: web::Query<TimeTableQuery>,
+    sign: web::Query<TimeTableExportQuery>,
+) -> Result<HttpResponse> {
     let params = params.into_inner();
+    if edu::generate_sign(sign.uid) != sign.sign {
+        return Err(ApiError::new(EduError::SignFailure));
+    }
+
     let first_year = params
         .year
         .split_once("-")
@@ -147,10 +184,8 @@ pub async fn export_timetable(
         2 => Semester::SecondTerm,
         _ => Semester::All,
     };
-    let uid = token
-        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
-        .map(|token| token.uid)?;
-    let identity = Person::get_identity(&app.pool, uid)
+
+    let identity = Person::get_identity(&app.pool, sign.uid)
         .await?
         .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
 

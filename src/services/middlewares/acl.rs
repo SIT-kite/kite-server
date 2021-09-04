@@ -15,7 +15,7 @@ use crate::jwt::*;
 use crate::models::CommonError;
 use crate::services::{get_auth_bearer_value, JwtToken};
 
-const URL_WHITE_LIST: [(&str, Method); 8] = [
+const URL_WHITE_LIST: [(&str, Method); 9] = [
     ("/api/v1/", Method::GET),
     ("/api/v1/session", Method::POST),
     ("/api/v1/user", Method::POST),
@@ -24,6 +24,7 @@ const URL_WHITE_LIST: [(&str, Method); 8] = [
     ("/api/v1/notice", Method::GET),
     ("/api/v1/edu/schedule", Method::GET),
     ("/api/v1/edu/calendar", Method::GET),
+    ("/api/v1/edu/timetable/ics/content", Method::GET),
 ];
 
 pub struct Auth;
