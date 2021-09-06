@@ -73,7 +73,7 @@ pub async fn create_event(
     Ok(HttpResponse::Ok().json(ApiResponse::normal(event)))
 }
 
-#[get("/event/sc/activitylist")]
+#[get("/event/sc/activity")]
 pub async fn query_activity_list(
     app: web::Data<AppState>,
     params: web::Query<ActivityListRequest>,
@@ -85,7 +85,7 @@ pub async fn query_activity_list(
     let response = agents.request(request).await??;
     if let ResponsePayload::ActivityList(list) = response {
         let response = json!({
-            "ActivityList": list,
+            "activityList": list,
         });
         Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
     } else {
@@ -150,7 +150,7 @@ pub async fn get_sc_score_list(
 
     let result = get_sc_score_detail(&app.pool, &account.clone()).await?;
     let response = serde_json::json!({
-            "scdetail": result,
+            "detail": result,
     });
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }

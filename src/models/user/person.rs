@@ -6,6 +6,8 @@ use crate::error::Result;
 
 use super::{Authentication, Identity, Person, UserError};
 use super::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
+use crate::bridge::AgentManager;
+use crate::models::user::identity::validate_oa_account;
 
 impl Authentication {
     pub fn from_password(username: String, password: String) -> Self {
@@ -178,9 +180,14 @@ impl Person {
     }
 
     /// Set identity info
-    pub async fn set_identity(&self, client: &PgPool, identity: &mut Identity) -> Result<()> {
+    pub async fn set_identity(
+        &self,
+        client: &PgPool,
+        identity: &mut Identity,
+        agent: &AgentManager,
+    ) -> Result<()> {
         // Throw UserError::OaSecretFailed if password is wrong.
-        Identity::validate_oa_account(&identity.student_id, &identity.oa_secret).await?;
+        validate_oa_account(&identity.student_id, &identity.oa_secret, agent).await?;
         identity.oa_certified = true;
 
         let _ = sqlx::query(

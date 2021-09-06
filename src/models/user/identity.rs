@@ -2,6 +2,10 @@ use crate::error::{ApiError, Result};
 use crate::models::user::UserError;
 
 use super::Identity;
+use crate::bridge::{
+    AgentManager, HostError, PortalAuthRequest, PortalAuthResponse, RequestFrame, RequestPayload,
+    ResponsePayload,
+};
 
 impl Identity {
     pub fn new(uid: i32, student_id: String) -> Self {
@@ -11,20 +15,34 @@ impl Identity {
             ..Identity::default()
         }
     }
+}
 
-    pub async fn validate_oa_account(student_id: &str, oa_secret: &str) -> Result<()> {
-        if is_default_digit(oa_secret) {
-            return Err(ApiError::new(UserError::DefaultSecretDenied));
-        }
-        if !is_student_id(student_id) {
-            return Err(ApiError::new(UserError::NoSuchStudentNo));
-        }
-        if is_not_undergraduate(student_id) {
-            return Err(ApiError::new(UserError::NoSupport));
-        }
-        super::authserver::verify_portal_login(student_id, oa_secret).await?;
+async fn send_auth_request(student_id: &str, oa_secret: &str, agent: &AgentManager) -> Result<()> {
+    let data = PortalAuthRequest {
+        account: student_id.to_string(),
+        credential: oa_secret.to_string(),
+    };
+    let request = RequestFrame::new(RequestPayload::PortalAuth(data));
+    let response = agent.request(request).await??;
+    if let ResponsePayload::PortalAuth(_) = response {
         Ok(())
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
     }
+}
+
+pub async fn validate_oa_account(student_id: &str, oa_secret: &str, agent: &AgentManager) -> Result<()> {
+    if is_default_digit(oa_secret) {
+        return Err(ApiError::new(UserError::DefaultSecretDenied));
+    }
+    if !is_student_id(student_id) {
+        return Err(ApiError::new(UserError::NoSuchStudentNo));
+    }
+    if is_not_undergraduate(student_id) {
+        return Err(ApiError::new(UserError::NoSupport));
+    }
+
+    send_auth_request(student_id, oa_secret, agent).await
 }
 
 fn is_default_digit(secret: &str) -> bool {

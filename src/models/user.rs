@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 
 pub use person::get_default_avatar;
 
-mod authserver;
 mod identity;
 mod person;
 

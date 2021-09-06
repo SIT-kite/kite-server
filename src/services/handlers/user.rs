@@ -1,7 +1,4 @@
-use actix_web::{get, post, put, web, HttpResponse};
-use serde::Deserialize;
-use wechat_sdk::wechat::{Login, WxSession};
-
+use crate::bridge::{PortalAuthRequest, PortalAuthResponse};
 use crate::error::{ApiError, Result};
 use crate::jwt::encode_jwt;
 use crate::models::file::AvatarManager;
@@ -9,6 +6,9 @@ use crate::models::user::{get_default_avatar, Authentication, Identity, Person, 
 use crate::models::user::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
 use crate::models::CommonError;
 use crate::services::{response::ApiResponse, AppState, JwtToken};
+use actix_web::{get, post, put, web, HttpResponse};
+use serde::Deserialize;
+use wechat_sdk::wechat::{Login, WxSession};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -311,7 +311,7 @@ pub async fn set_user_identity(
         oa_certified: false,
     };
     let person = Person::get(&app.pool, uid).await?;
-    person.set_identity(&app.pool, &mut identity).await?;
+    person.set_identity(&app.pool, &mut identity, &app.agents).await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }

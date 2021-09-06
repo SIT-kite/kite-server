@@ -14,8 +14,8 @@ pub struct AgentInfo {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PortalAuthRequest {
-    account: String,
-    credential: String,
+    pub account: String,
+    pub credential: String,
 }
 
 #[derive(Debug, Deserialize)]
