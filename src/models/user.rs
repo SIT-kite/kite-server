@@ -35,6 +35,8 @@ pub enum UserError {
     DefaultSecretDenied = 57,
     #[error("学号格式不正确")]
     NoSuchStudentNo = 58,
+    #[error("暂不支持高职学院")]
+    NoSupport = 59,
 }
 
 /* Models */
