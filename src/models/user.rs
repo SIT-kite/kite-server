@@ -33,6 +33,8 @@ pub enum UserError {
     NoSuchUser = 56,
     #[error("请修改默认OA密码")]
     DefaultSecretDenied = 57,
+    #[error("学号格式不正确")]
+    NoSuchStudentNo = 58,
 }
 
 /* Models */
