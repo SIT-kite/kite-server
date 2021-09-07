@@ -86,6 +86,8 @@ pub struct ActivityListRequest {
     pub count: u16,
     /// Page index.
     pub index: u16,
+    /// Category Id
+    pub category: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,9 +101,8 @@ pub struct ActivityDetailRequest {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Activity {
-    pub title: String,
     pub id: String,
-    pub link: String,
+    pub category: i32,
 }
 
 /// Activity link, used for list recent activities.
