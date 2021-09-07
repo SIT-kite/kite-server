@@ -111,6 +111,8 @@ pub struct Activity {
 pub struct ActivityDetail {
     /// Activity id
     pub id: String,
+    /// Category id
+    pub category: i32,
     /// Activity title
     pub title: String,
     /// Activity start date time

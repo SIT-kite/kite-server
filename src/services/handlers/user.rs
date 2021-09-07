@@ -1,4 +1,3 @@
-use crate::bridge::{PortalAuthRequest, PortalAuthResponse};
 use crate::error::{ApiError, Result};
 use crate::jwt::encode_jwt;
 use crate::models::file::AvatarManager;

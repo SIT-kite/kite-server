@@ -1,8 +1,9 @@
 use sqlx::PgPool;
 
 use crate::bridge::{
-    AgentManager, HostError, RequestFrame, RequestPayload, ResponsePayload, SaveScActivity, SaveScScore,
-    ScActivityItem, ScActivityRequest, ScDetail, ScScoreItem, ScScoreItemRequest,
+    Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, AgentManager, HostError,
+    RequestFrame, RequestPayload, ResponsePayload, SaveScActivity, SaveScScore, ScActivityItem,
+    ScActivityRequest, ScDetail, ScScoreItem, ScScoreItemRequest,
 };
 use crate::error::{ApiError, Result};
 
@@ -75,4 +76,30 @@ pub async fn get_sc_score_detail(pool: &PgPool, query: &str) -> Result<Vec<ScDet
     .await?;
 
     Ok(result)
+}
+
+pub async fn query_activity_list(
+    agent: &AgentManager,
+    data: ActivityListRequest,
+) -> Result<Vec<Activity>> {
+    let request = RequestFrame::new(RequestPayload::ActivityList(data));
+    let response = agent.request(request).await??;
+    if let ResponsePayload::ActivityList(list) = response {
+        Ok(list)
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
+}
+
+pub async fn query_activity_detail(
+    agent: &AgentManager,
+    data: ActivityDetailRequest,
+) -> Result<Box<ActivityDetail>> {
+    let request = RequestFrame::new(RequestPayload::ActivityDetail(data));
+    let response = agent.request(request).await??;
+    if let ResponsePayload::ActivityDetail(detail) = response {
+        Ok(detail)
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
 }

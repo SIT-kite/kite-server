@@ -3,8 +3,7 @@ use crate::models::user::UserError;
 
 use super::Identity;
 use crate::bridge::{
-    AgentManager, HostError, PortalAuthRequest, PortalAuthResponse, RequestFrame, RequestPayload,
-    ResponsePayload,
+    AgentManager, HostError, PortalAuthRequest, RequestFrame, RequestPayload, ResponsePayload,
 };
 
 impl Identity {
