@@ -70,7 +70,7 @@ pub async fn server_main() -> std::io::Result<()> {
     };
 
     // Run actix-web services.
-    HttpServer::new(move || {
+    let mut server = HttpServer::new(move || {
         App::new()
             .wrap(middlewares::Auth {})
             .wrap(middlewares::Reject::new(&buffer))
@@ -78,10 +78,24 @@ pub async fn server_main() -> std::io::Result<()> {
             .wrap(actix_web::middleware::Logger::new(log_string))
             .app_data(web::Data::new(app_state.clone()))
             .configure(routes)
-    })
-    .bind(&CONFIG.server.bind.as_str())?
-    .run()
-    .await
+    });
+
+    // Unix socket address.
+    if CONFIG.server.bind.starts_with('/') {
+        #[cfg(unix)]
+        {
+            server = server.bind_uds(&CONFIG.server.bind);
+        }
+
+        #[cfg(not(unix))]
+        {
+            panic!("Could not bind unix socket on a not-unix machine.");
+        }
+    } else {
+        server = server.bind(&CONFIG.server.bind.as_str())?;
+    }
+
+    server.run().await
 }
 
 fn routes(app: &mut web::ServiceConfig) {
