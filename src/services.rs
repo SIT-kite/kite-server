@@ -70,7 +70,7 @@ pub async fn server_main() -> std::io::Result<()> {
     };
 
     // Run actix-web services.
-    let mut server = HttpServer::new(move || {
+    HttpServer::new(move || {
         App::new()
             .wrap(middlewares::Auth {})
             .wrap(middlewares::Reject::new(&buffer))
@@ -82,12 +82,12 @@ pub async fn server_main() -> std::io::Result<()> {
 
     // Unix socket address.
     if CONFIG.server.bind.starts_with('/') {
-        #[cfg(target_arch = "unix")]
+        #[cfg(unix)]
         {
-            server = server.bind_uds(&CONFIG.server.bind);
+            server = server.bind_uds(&CONFIG.server.bind)?;
         }
 
-        #[cfg(not(target_arch = "unix"))]
+        #[cfg(not(unix))]
         {
             panic!("Could not bind unix socket on a not-unix machine.");
         }
