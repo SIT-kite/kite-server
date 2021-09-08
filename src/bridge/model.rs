@@ -74,14 +74,13 @@ pub struct SaveScActivity {
 #[serde(rename_all = "camelCase")]
 pub struct ScDetail {
     pub activity_id: i32,
-    pub activity_title: String,
+    pub title: String,
     pub time: DateTime<Local>,
     pub status: String,
     pub amount: f32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Serialize, Clone)]
 pub struct ActivityListRequest {
     /// Count of activities per page.
     pub count: u16,
@@ -95,14 +94,14 @@ pub struct ActivityListRequest {
 #[serde(rename_all = "camelCase")]
 pub struct ActivityDetailRequest {
     /// Activity id in sc.sit.edu.cn
-    pub id: String,
+    pub id: i32,
 }
 
 /// Activity link, used for list recent activities.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Activity {
-    pub id: String,
+    pub id: i32,
     pub category: i32,
 }
 
@@ -237,4 +236,22 @@ pub struct Score {
     semester: Semester,
     /// 学分
     credit: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ScScoreSummary {
+    /// Total score.
+    pub total: f32,
+    /// Subject report.(主题报告)
+    pub theme_report: f32,
+    /// Social practice.(社会实践)
+    pub social_practice: f32,
+    /// Innovation, entrepreneurship and creativity.(创新创业创意)
+    pub creativity: f32,
+    /// Campus safety and civilization.(校园安全文明)
+    pub safety_civilization: f32,
+    /// Charity and Volunteer.(公益志愿)
+    pub charity: f32,
+    /// Campus culture.(校园文化)
+    pub campus_culture: f32,
 }

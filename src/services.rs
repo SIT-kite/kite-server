@@ -70,7 +70,7 @@ pub async fn server_main() -> std::io::Result<()> {
     };
 
     // Run actix-web services.
-    HttpServer::new(move || {
+    let mut server = HttpServer::new(move || {
         App::new()
             .wrap(middlewares::Auth {})
             .wrap(middlewares::Reject::new(&buffer))
@@ -134,6 +134,7 @@ fn routes(app: &mut web::ServiceConfig) {
             // Event and activity routes
             .service(event::list_events)
             .service(event::get_sc_score_list)
+            .service(event::get_sc_score)
             // Edu management and course-related routes
             .service(edu::query_available_classrooms)
             .service(edu::query_timetable)

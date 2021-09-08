@@ -8,10 +8,10 @@ use serde::Deserialize;
 
 use crate::bridge::{
     ActivityDetailRequest, ActivityListRequest, SaveScActivity, SaveScScore, ScActivityRequest,
-    ScScoreItemRequest,
+    ScScoreItemRequest, ScScoreSummary,
 };
 use crate::error::{ApiError, Result};
-use crate::models::event::{Event, EventError};
+use crate::models::event::{query_sc_score, Event, EventError, ScScore};
 use crate::models::user::Person;
 use crate::models::{event, CommonError, PageView};
 use crate::services::response::ApiResponse;
@@ -126,10 +126,84 @@ pub async fn get_sc_score_list(
             .collect();
         save_sc_activity_list(&app.pool, save_activity_detail).await?;
     }
-
+    println!("1");
     let result = get_sc_score_detail(&app.pool, &account.clone()).await?;
     let response = serde_json::json!({
             "detail": result,
     });
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
+}
+
+#[get("/event/sc/score")]
+pub async fn get_sc_score(token: Option<JwtToken>, app: web::Data<AppState>) -> Result<HttpResponse> {
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let identity = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+
+    let account = identity.student_id;
+    let sc_score = query_sc_score(&app.pool, &account).await?;
+    let result = add_score(sc_score);
+    let response = serde_json::json!({
+        "summary": result,
+    });
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
+}
+
+fn add_score(sc_score: Vec<ScScore>) -> ScScoreSummary {
+    let mut result = ScScoreSummary {
+        total: 0.0,
+        theme_report: 0.0,
+        social_practice: 0.0,
+        creativity: 0.0,
+        safety_civilization: 0.0,
+        charity: 0.0,
+        campus_culture: 0.0,
+    };
+
+    for each_score in sc_score {
+        match each_score.category {
+            1 => {
+                result.total += each_score.amount;
+                result.theme_report += each_score.amount;
+            }
+            2 => {
+                result.total += each_score.amount;
+                result.social_practice += each_score.amount;
+            }
+            3 => {
+                result.total += each_score.amount;
+                result.creativity += each_score.amount;
+            }
+            4 => {
+                result.total += each_score.amount;
+                result.safety_civilization += each_score.amount;
+            }
+            5 => {
+                result.total += each_score.amount;
+                result.charity += each_score.amount;
+            }
+            6 => {
+                result.total += each_score.amount;
+                result.campus_culture += each_score.amount;
+            }
+            7 => {
+                result.total += each_score.amount;
+                result.theme_report += each_score.amount;
+            }
+            8 => {
+                result.total += each_score.amount;
+                result.campus_culture += each_score.amount;
+            }
+            9 => {
+                result.total += each_score.amount;
+                result.safety_civilization += each_score.amount;
+            }
+            _ => {}
+        }
+    }
+
+    result
 }

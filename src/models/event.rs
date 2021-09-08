@@ -178,3 +178,25 @@ impl Event {
         }
     }
 }
+
+#[derive(sqlx::FromRow, Debug)]
+pub struct ScScore {
+    pub category: i32,
+    pub amount: f32,
+}
+
+pub async fn query_sc_score(db: &PgPool, query: &str) -> Result<Vec<ScScore>> {
+    let score = sqlx::query_as(
+        "SELECT category, sum(amount) as amount
+        FROM events.sc_events as event , events.sc_detail as detail
+        WHERE event.activity_id = detail.activity_id
+          AND status = '通过'
+          AND student_id = $1
+        GROUP BY category;",
+    )
+    .bind(query)
+    .fetch_all(db)
+    .await?;
+
+    Ok(score)
+}

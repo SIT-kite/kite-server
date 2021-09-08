@@ -4,8 +4,8 @@ pub use host::AgentManager;
 pub use model::{
     Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, AgentInfo, AgentInfoRequest,
     Course, Major, MajorRequest, PortalAuthRequest, PortalAuthResponse, SaveScActivity, SaveScScore,
-    ScActivityItem, ScActivityRequest, ScDetail, ScScoreItem, ScScoreItemRequest, SchoolYear, Score,
-    ScoreRequest, Semester, TimeTableRequest,
+    ScActivityItem, ScActivityRequest, ScDetail, ScScoreItem, ScScoreItemRequest, ScScoreSummary,
+    SchoolYear, Score, ScoreRequest, Semester, TimeTableRequest,
 };
 pub use protocol::{ErrorResponse, RequestFrame, RequestPayload, ResponsePayload, ResponseResult};
 

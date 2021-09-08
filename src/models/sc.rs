@@ -6,8 +6,6 @@ use crate::bridge::{
     ScActivityRequest, ScDetail, ScScoreItem, ScScoreItemRequest,
 };
 use crate::error::{ApiError, Result};
-use crate::services::AppState;
-use actix_web::web;
 
 pub async fn query_current_sc_score_list(
     agent: &AgentManager,
@@ -131,18 +129,51 @@ pub async fn save_sc_activity_detail(db: &PgPool, data: Box<ActivityDetail>) -> 
     Ok(())
 }
 
-pub async fn get_and_save_sc_activity_detail(
-    app: web::Data<AppState>,
-    params: web::Query<ActivityListRequest>,
+async fn update_activity_list_in_category(
+    pool: &PgPool,
+    agents: &AgentManager,
+    category: i32,
 ) -> Result<()> {
-    let params = params.into_inner();
-    let agent = &app.agents;
-    let activity_list = query_activity_list(agent, params).await?;
-    for each_activity in activity_list {
-        let data = ActivityDetailRequest { id: each_activity.id };
-        let mut activity_detail = query_activity_detail(agent, data).await?;
-        activity_detail.category = each_activity.category;
-        save_sc_activity_detail(&app.pool, activity_detail).await?;
+    let id: Option<(i32,)> = sqlx::query_as(
+        "SELECT activity_id FROM events.sc_events 
+        WHERE category = $1 ORDER BY activity_id DESC LIMIT 1;",
+    )
+    .bind(category)
+    .fetch_optional(pool)
+    .await?;
+    let id = id.map(|x| x.0).unwrap_or_default();
+
+    // 分页爬取
+    // 单页数量
+    let page_count = 50;
+    let mut last_index = 1;
+
+    loop {
+        let param = ActivityListRequest {
+            count: page_count,
+            index: last_index,
+            category,
+        };
+        let activity_list = query_activity_list(agents, param).await?;
+        let fetched_size = activity_list.len();
+
+        for each_activity in activity_list {
+            if id == each_activity.id {
+                break;
+            }
+            let data = ActivityDetailRequest { id: each_activity.id };
+
+            let mut activity_detail = query_activity_detail(agents, data).await?;
+
+            activity_detail.category = each_activity.category;
+
+            save_sc_activity_detail(&pool, activity_detail).await?;
+        }
+        if fetched_size < page_count as usize {
+            break;
+        }
+        last_index += 1;
     }
+
     Ok(())
 }
