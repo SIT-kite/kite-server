@@ -21,6 +21,7 @@ ExecStop=/bin/kill -2 $MAINPID
 PrivateTmp=true
 # Ref: http://www.jinbuguo.com/systemd/systemd.exec.html#WorkingDirectory=
 WorkingDirectory=/var/kite
+User=www-data
 
 [Install]
 Alias=kite

@@ -1,8 +1,12 @@
 # Server config
 [server]
 # HTTP API service address.
+# Unix socket is supported.
+# bind = "/var/kite/api.socket"
 bind = "0.0.0.0:80"
 # Postgresql connection string.
+# Unix socket is supported.
+# db = "postgresql:///database?host=/var/run/postgresql&user=www"
 db = "postgresql://user:password@address:port/database"
 # Token secret for API.
 secret = "secret"
