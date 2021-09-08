@@ -70,7 +70,7 @@ pub async fn server_main() -> std::io::Result<()> {
     };
 
     // Run actix-web services.
-    let mut server = HttpServer::new(move || {
+    HttpServer::new(move || {
         App::new()
             .wrap(middlewares::Auth {})
             .wrap(middlewares::Reject::new(&buffer))
