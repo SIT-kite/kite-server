@@ -6,6 +6,8 @@ use crate::bridge::{
     ScActivityRequest, ScDetail, ScScoreItem, ScScoreItemRequest,
 };
 use crate::error::{ApiError, Result};
+use crate::services::AppState;
+use actix_web::web;
 
 pub async fn query_current_sc_score_list(
     agent: &AgentManager,
@@ -68,8 +70,9 @@ pub async fn save_sc_activity_list(db: &PgPool, data: Vec<SaveScActivity>) -> Re
 
 pub async fn get_sc_score_detail(pool: &PgPool, query: &str) -> Result<Vec<ScDetail>> {
     let result = sqlx::query_as(
-        "select activity_id, time, status, amount from events.sc_detail
-        where student_id = $1;",
+        "SELECT detail.activity_id, event.title, time, status, amount 
+        FROM events.sc_detail as detail, events.sc_events as event
+        WHERE detail.activity_id = event.activity_id and student_id = $1;",
     )
     .bind(query)
     .fetch_all(pool)
@@ -102,4 +105,44 @@ pub async fn query_activity_detail(
     } else {
         Err(ApiError::new(HostError::Mismatched))
     }
+}
+
+pub async fn save_sc_activity_detail(db: &PgPool, data: Box<ActivityDetail>) -> Result<()> {
+    sqlx::query(
+        "INSERT INTO events.sc_events (activity_id, category, title, start_time, sign_time, end_time, place, duration, manager, contact, organizer, undertaker, description)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        ON CONFLICT (activity_id) DO NOTHING;"
+    )
+        .bind(data.id)
+        .bind(data.category)
+        .bind(data.title)
+        .bind(data.start_time)
+        .bind(data.sign_time)
+        .bind(data.end_time)
+        .bind(data.place)
+        .bind(data.duration)
+        .bind(data.manager)
+        .bind(data.contact)
+        .bind(data.organizer)
+        .bind(data.undertaker)
+        .bind(data.description)
+        .execute(db)
+        .await?;
+    Ok(())
+}
+
+pub async fn get_and_save_sc_activity_detail(
+    app: web::Data<AppState>,
+    params: web::Query<ActivityListRequest>,
+) -> Result<()> {
+    let params = params.into_inner();
+    let agent = &app.agents;
+    let activity_list = query_activity_list(agent, params).await?;
+    for each_activity in activity_list {
+        let data = ActivityDetailRequest { id: each_activity.id };
+        let mut activity_detail = query_activity_detail(agent, data).await?;
+        activity_detail.category = each_activity.category;
+        save_sc_activity_detail(&app.pool, activity_detail).await?;
+    }
+    Ok(())
 }

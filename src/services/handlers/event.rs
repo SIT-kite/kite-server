@@ -1,12 +1,15 @@
 //! This module includes interfaces about the event and sign.
 use crate::models::edu::{
-    get_sc_score_detail, query_current_sc_activity_list, query_current_sc_score_list,
-    save_sc_activity_list, save_sc_score_list,
+    get_sc_score_detail, query_activity_detail, query_activity_list, query_current_sc_activity_list,
+    query_current_sc_score_list, save_sc_activity_detail, save_sc_activity_list, save_sc_score_list,
 };
 use actix_web::{get, post, web, HttpResponse};
 use serde::Deserialize;
 
-use crate::bridge::{SaveScActivity, SaveScScore, ScActivityRequest, ScScoreItemRequest};
+use crate::bridge::{
+    ActivityDetailRequest, ActivityListRequest, SaveScActivity, SaveScScore, ScActivityRequest,
+    ScScoreItemRequest,
+};
 use crate::error::{ApiError, Result};
 use crate::models::event::{Event, EventError};
 use crate::models::user::Person;
@@ -105,7 +108,7 @@ pub async fn get_sc_score_list(
                 amount: e.amount,
             })
             .collect();
-        save_sc_score_list(&app.pool, save_score_detail).await;
+        save_sc_score_list(&app.pool, save_score_detail).await?;
 
         let activity_data = ScActivityRequest {
             account: account.clone(),
@@ -121,7 +124,7 @@ pub async fn get_sc_score_list(
                 status: e.status,
             })
             .collect();
-        save_sc_activity_list(&app.pool, save_activity_detail).await;
+        save_sc_activity_list(&app.pool, save_activity_detail).await?;
     }
 
     let result = get_sc_score_detail(&app.pool, &account.clone()).await?;

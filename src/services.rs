@@ -21,8 +21,8 @@ mod response;
 
 #[derive(Clone)]
 pub struct AppState {
-    pool: PgPool,
-    agents: AgentManager,
+    pub(crate) pool: PgPool,
+    pub(crate) agents: AgentManager,
     wx_client: WeChatClient,
 }
 

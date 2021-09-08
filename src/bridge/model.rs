@@ -74,6 +74,7 @@ pub struct SaveScActivity {
 #[serde(rename_all = "camelCase")]
 pub struct ScDetail {
     pub activity_id: i32,
+    pub activity_title: String,
     pub time: DateTime<Local>,
     pub status: String,
     pub amount: f32,
@@ -110,7 +111,7 @@ pub struct Activity {
 #[serde(rename_all = "camelCase")]
 pub struct ActivityDetail {
     /// Activity id
-    pub id: String,
+    pub id: i32,
     /// Category id
     pub category: i32,
     /// Activity title
