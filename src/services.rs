@@ -84,7 +84,7 @@ pub async fn server_main() -> std::io::Result<()> {
     if CONFIG.server.bind.starts_with('/') {
         #[cfg(unix)]
         {
-            server = server.bind_uds(&CONFIG.server.bind);
+            server = server.bind_uds(&CONFIG.server.bind)?;
         }
 
         #[cfg(not(unix))]
