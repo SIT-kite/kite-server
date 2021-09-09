@@ -64,10 +64,14 @@ pub async fn server_main() -> std::io::Result<()> {
     });
 
     let app_state = AppState {
-        pool,
-        agents,
+        pool: pool.clone(),
+        agents: agents.clone(),
         wx_client,
     };
+
+    // use crate::models::sc::activity_update_daemon;
+    //
+    // tokio::spawn(activity_update_daemon(pool, agents));
 
     // Run actix-web services.
     let mut server = HttpServer::new(move || {

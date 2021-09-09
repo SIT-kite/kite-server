@@ -105,9 +105,9 @@ impl AgentManager {
     }
 
     async fn get_client(&self) -> Option<(u16, Client)> {
-        use rand::{seq::IteratorRandom, thread_rng};
+        use rand::{rngs::StdRng, seq::IteratorRandom, SeedableRng};
 
-        let mut rng = thread_rng();
+        let mut rng = StdRng::from_entropy();
         let clients = self.clients.read().await;
         if let Some((seq, client)) = clients.iter().choose(&mut rng) {
             return Some((*seq, client.clone()));

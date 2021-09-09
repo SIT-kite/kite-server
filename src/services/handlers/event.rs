@@ -1,14 +1,13 @@
 //! This module includes interfaces about the event and sign.
 use crate::models::edu::{
-    get_sc_score_detail, query_activity_detail, query_activity_list, query_current_sc_activity_list,
-    query_current_sc_score_list, save_sc_activity_detail, save_sc_activity_list, save_sc_score_list,
+    get_sc_score_detail, query_current_sc_activity_list, query_current_sc_score_list,
+    save_sc_activity_list, save_sc_score_list,
 };
 use actix_web::{get, post, web, HttpResponse};
 use serde::Deserialize;
 
 use crate::bridge::{
-    ActivityDetailRequest, ActivityListRequest, SaveScActivity, SaveScScore, ScActivityRequest,
-    ScScoreItemRequest, ScScoreSummary,
+    SaveScActivity, SaveScScore, ScActivityRequest, ScScoreItemRequest, ScScoreSummary,
 };
 use crate::error::{ApiError, Result};
 use crate::models::event::{query_sc_score, Event, EventError, ScScore};

@@ -130,8 +130,8 @@ pub async fn save_sc_activity_detail(db: &PgPool, data: Box<ActivityDetail>) -> 
 }
 
 async fn update_activity_list_in_category(
-    pool: &PgPool,
-    agents: &AgentManager,
+    pool: PgPool,
+    agents: AgentManager,
     category: i32,
 ) -> Result<()> {
     let id: Option<(i32,)> = sqlx::query_as(
@@ -139,12 +139,10 @@ async fn update_activity_list_in_category(
         WHERE category = $1 ORDER BY activity_id DESC LIMIT 1;",
     )
     .bind(category)
-    .fetch_optional(pool)
+    .fetch_optional(&pool)
     .await?;
     let id = id.map(|x| x.0).unwrap_or_default();
 
-    // 分页爬取
-    // 单页数量
     let page_count = 50;
     let mut last_index = 1;
 
@@ -154,7 +152,7 @@ async fn update_activity_list_in_category(
             index: last_index,
             category,
         };
-        let activity_list = query_activity_list(agents, param).await?;
+        let activity_list = query_activity_list(&agents, param).await?;
         let fetched_size = activity_list.len();
 
         for each_activity in activity_list {
@@ -163,7 +161,7 @@ async fn update_activity_list_in_category(
             }
             let data = ActivityDetailRequest { id: each_activity.id };
 
-            let mut activity_detail = query_activity_detail(agents, data).await?;
+            let mut activity_detail = query_activity_detail(&agents, data).await?;
 
             activity_detail.category = each_activity.category;
 
@@ -174,6 +172,30 @@ async fn update_activity_list_in_category(
         }
         last_index += 1;
     }
+    Ok(())
+}
+
+async fn update_activity_list(pool: &PgPool, agents: &AgentManager) -> Result<()> {
+    let mut handlers = vec![];
+
+    // todo: 1~11
+    for i in 1..=11 {
+        let handle = tokio::spawn(update_activity_list_in_category(pool.clone(), agents.clone(), i));
+        handlers.push(handle);
+    }
+
+    // TODO: Wait handles. Must be updated.
+    for h in handlers {
+        let r = h.await;
+        println!("{:?}", r);
+    }
 
     Ok(())
+}
+
+pub async fn activity_update_daemon(pool: PgPool, agents: AgentManager) -> Result<()> {
+    loop {
+        tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
+        update_activity_list(&pool, &agents).await?;
+    }
 }
