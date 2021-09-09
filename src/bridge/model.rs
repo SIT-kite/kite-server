@@ -131,7 +131,7 @@ pub struct ActivityDetail {
     pub contact: Option<String>,
     /// Activity organizer
     pub organizer: Option<String>,
-    /// Acitvity undertaker
+    /// Activity undertaker
     pub undertaker: Option<String>,
     /// Description in text[]
     pub description: Vec<String>,

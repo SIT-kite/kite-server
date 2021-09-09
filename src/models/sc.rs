@@ -105,7 +105,7 @@ pub async fn query_activity_detail(
     }
 }
 
-pub async fn save_sc_activity_detail(db: &PgPool, data: Box<ActivityDetail>) -> Result<()> {
+pub async fn save_sc_activity_detail(db: &PgPool, data: &ActivityDetail) -> Result<()> {
     sqlx::query(
         "INSERT INTO events.sc_events (activity_id, category, title, start_time, sign_time, end_time, place, duration, manager, contact, organizer, undertaker, description)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -113,17 +113,17 @@ pub async fn save_sc_activity_detail(db: &PgPool, data: Box<ActivityDetail>) -> 
     )
         .bind(data.id)
         .bind(data.category)
-        .bind(data.title)
+        .bind(&data.title)
         .bind(data.start_time)
         .bind(data.sign_time)
         .bind(data.end_time)
-        .bind(data.place)
-        .bind(data.duration)
-        .bind(data.manager)
-        .bind(data.contact)
-        .bind(data.organizer)
-        .bind(data.undertaker)
-        .bind(data.description)
+        .bind(&data.place)
+        .bind(&data.duration)
+        .bind(&data.manager)
+        .bind(&data.contact)
+        .bind(&data.organizer)
+        .bind(&data.undertaker)
+        .bind(&data.description)
         .execute(db)
         .await?;
     Ok(())
@@ -165,7 +165,7 @@ async fn update_activity_list_in_category(
 
             activity_detail.category = each_activity.category;
 
-            save_sc_activity_detail(&pool, activity_detail).await?;
+            save_sc_activity_detail(&pool, activity_detail.as_ref()).await?;
         }
         if fetched_size < page_count as usize {
             break;
@@ -179,7 +179,7 @@ async fn update_activity_list(pool: &PgPool, agents: &AgentManager) -> Result<()
     let mut handlers = vec![];
 
     // todo: 1~11
-    for i in 1..=11 {
+    for i in 6..=6 {
         let handle = tokio::spawn(update_activity_list_in_category(pool.clone(), agents.clone(), i));
         handlers.push(handle);
     }
