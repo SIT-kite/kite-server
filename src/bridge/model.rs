@@ -238,6 +238,26 @@ pub struct Score {
     credit: f32,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ScoreDetailRequest {
+    pub account: String,
+    pub password: String,
+    pub school_year: SchoolYear,
+    pub semester: Semester,
+    pub class_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScoreDetail {
+    // 平时成绩
+    score_type: String,
+    // 期末成绩
+    percentage: String,
+    // 总评
+    score: f32,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ScScoreSummary {
     /// Total score.

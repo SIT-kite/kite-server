@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::bridge::{
-    HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SchoolYear, ScoreRequest,
-    Semester, TimeTableRequest,
+    HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SchoolYear,
+    ScoreDetailRequest, ScoreRequest, Semester, TimeTableRequest,
 };
 use crate::error::{ApiError, Result};
 use crate::models::edu::{self, AvailClassroomQuery, EduError};
@@ -243,12 +243,14 @@ pub async fn query_score(
         2 => Semester::SecondTerm,
         _ => Semester::All,
     };
+
     let uid = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
         .map(|token| token.uid)?;
     let identity = Person::get_identity(&app.pool, uid)
         .await?
         .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+
     let data = ScoreRequest {
         account: identity.student_id,
         passwd: identity.oa_secret,
@@ -262,6 +264,60 @@ pub async fn query_score(
     if let ResponsePayload::Score(score) = response {
         let response = json!({
             "score": score,
+        });
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ScoreDetailQuery {
+    pub year: Option<i32>,
+    pub semester: i32,
+    pub class_id: String,
+}
+
+#[get("/edu/score/detail")]
+pub async fn query_score_detail(
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    params: web::Query<ScoreDetailQuery>,
+) -> Result<HttpResponse> {
+    let params = params.into_inner();
+
+    let year = match params.year {
+        Some(y) => SchoolYear::SomeYear(y),
+        None => SchoolYear::AllYear,
+    };
+
+    let semester = match params.semester {
+        1 => Semester::FirstTerm,
+        2 => Semester::SecondTerm,
+        _ => Semester::All,
+    };
+
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let identity = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+
+    let data = ScoreDetailRequest {
+        account: identity.student_id,
+        password: identity.oa_secret,
+        school_year: year,
+        semester,
+        class_id: params.class_id,
+    };
+
+    let agents = &app.agents;
+    let request = RequestFrame::new(RequestPayload::ScoreDetail(data));
+    let response = agents.request(request).await??;
+    if let ResponsePayload::ScoreDetail(detail) = response {
+        let response = json!({
+            "score_detail": detail,
         });
         Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
     } else {
