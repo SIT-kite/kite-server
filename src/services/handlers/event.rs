@@ -125,7 +125,6 @@ pub async fn get_sc_score_list(
             .collect();
         save_sc_activity_list(&app.pool, save_activity_detail).await?;
     }
-    println!("1");
     let result = get_sc_score_detail(&app.pool, &account.clone()).await?;
     let response = serde_json::json!({
             "detail": result,
