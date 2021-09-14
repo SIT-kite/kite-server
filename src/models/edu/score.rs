@@ -3,6 +3,7 @@ use crate::bridge::{
     ScoreDetail, ScoreDetailRequest, ScoreRequest,
 };
 use crate::error::{ApiError, Result};
+use crate::models::CommonError;
 use serde_json::Value;
 use sqlx::PgPool;
 
@@ -30,6 +31,18 @@ pub async fn get_score_detail(
 }
 
 pub async fn save_score(db: &PgPool, account: String, data: Score) -> Result<()> {
+    let first_year = data
+        .school_year
+        .split_once("-")
+        .and_then(|(first, _)| {
+            let year = first.parse::<i32>().unwrap_or_default();
+            if (2015..2030).contains(&year) {
+                Some(year)
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| ApiError::new(CommonError::Parameter))?;
     sqlx::query(
         "INSERT INTO edu.score (student_id, score, course, course_id, class_id, school_year, semester, credit)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -40,7 +53,7 @@ pub async fn save_score(db: &PgPool, account: String, data: Score) -> Result<()>
         .bind(data.course)
         .bind(data.course_id)
         .bind(data.class_id)
-        .bind(data.school_year)
+        .bind(first_year)
         .bind(data.semester)
         .bind(data.credit)
         .execute(db)
