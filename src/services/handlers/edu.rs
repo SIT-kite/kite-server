@@ -5,11 +5,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::bridge::{
-    HostError, MajorRequest, RequestFrame, RequestPayload, ResponsePayload, SchoolYear,
-    ScoreDetailRequest, ScoreRequest, Semester, TimeTableRequest,
+    trans_to_semester, trans_to_year, HostError, MajorRequest, RequestFrame, RequestPayload,
+    ResponsePayload, SchoolYear, ScoreDetailRequest, ScoreRequest, Semester, TimeTableRequest,
 };
 use crate::error::{ApiError, Result};
-use crate::models::edu::{self, AvailClassroomQuery, EduError};
+use crate::models::edu::{
+    self, get_save_score, get_score, get_score_detail, save_detail, save_score, AvailClassroomQuery,
+    EduError,
+};
 use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
@@ -74,32 +77,17 @@ pub async fn query_timetable(
     app: web::Data<AppState>,
     params: web::Query<TimeTableQuery>,
 ) -> Result<HttpResponse> {
-    let params = params.into_inner();
-    let first_year = params
-        .year
-        .split_once("-")
-        .and_then(|(first, _)| {
-            let year = first.parse::<i32>().unwrap_or_default();
-            if (2015..2030).contains(&year) {
-                Some(year)
-            } else {
-                None
-            }
-        })
-        .ok_or_else(|| ApiError::new(CommonError::Parameter))?;
-
-    let year = SchoolYear::SomeYear(first_year);
-    let semester = match params.semester {
-        1 => Semester::FirstTerm,
-        2 => Semester::SecondTerm,
-        _ => Semester::All,
-    };
     let uid = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
         .map(|token| token.uid)?;
     let identity = Person::get_identity(&app.pool, uid)
         .await?
         .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+
+    let params = params.into_inner();
+
+    let year = trans_to_year(params.year)?;
+    let semester = trans_to_semester(params.semester);
 
     let data = TimeTableRequest {
         account: identity.student_id,
@@ -173,25 +161,9 @@ pub async fn export_timetable_as_calendar(
         return Err(ApiError::new(EduError::SignFailure));
     }
 
-    let first_year = params
-        .year
-        .split_once("-")
-        .and_then(|(first, _)| {
-            let year = first.parse::<i32>().unwrap_or_default();
-            if (2015..2030).contains(&year) {
-                Some(year)
-            } else {
-                None
-            }
-        })
-        .ok_or_else(|| ApiError::new(CommonError::Parameter))?;
+    let year = trans_to_year(params.year)?;
 
-    let year = SchoolYear::SomeYear(first_year);
-    let semester = match params.semester {
-        1 => Semester::FirstTerm,
-        2 => Semester::SecondTerm,
-        _ => Semester::All,
-    };
+    let semester = trans_to_semester(params.semester);
 
     let identity = Person::get_identity(&app.pool, sign.uid)
         .await?
@@ -221,7 +193,8 @@ pub async fn export_timetable_as_calendar(
 
 #[derive(Debug, Deserialize)]
 pub struct ScoreQuery {
-    pub year: Option<i32>,
+    pub force: bool,
+    pub year: String,
     pub semester: i32,
 }
 
@@ -231,49 +204,46 @@ pub async fn query_score(
     app: web::Data<AppState>,
     params: web::Query<ScoreQuery>,
 ) -> Result<HttpResponse> {
-    let params = params.into_inner();
-
-    let year = match params.year {
-        Some(y) => SchoolYear::SomeYear(y),
-        None => SchoolYear::AllYear,
-    };
-
-    let semester = match params.semester {
-        1 => Semester::FirstTerm,
-        2 => Semester::SecondTerm,
-        _ => Semester::All,
-    };
-
     let uid = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
         .map(|token| token.uid)?;
     let identity = Person::get_identity(&app.pool, uid)
         .await?
         .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+    let account = identity.student_id;
+    let password = identity.oa_secret;
 
-    let data = ScoreRequest {
-        account: identity.student_id,
-        passwd: identity.oa_secret,
-        school_year: year,
-        semester,
-    };
+    let params = params.into_inner();
 
-    let agents = &app.agents;
-    let request = RequestFrame::new(RequestPayload::Score(data));
-    let response = agents.request(request).await??;
-    if let ResponsePayload::Score(score) = response {
-        let response = json!({
-            "score": score,
-        });
-        Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
-    } else {
-        Err(ApiError::new(HostError::Mismatched))
+    if params.force {
+        let year = trans_to_year(params.year.clone())?;
+        let semester = trans_to_semester(params.semester);
+
+        let score_data = ScoreRequest {
+            account: account.clone(),
+            passwd: password,
+            school_year: year,
+            semester,
+        };
+
+        let agents = &app.agents;
+        let score = get_score(agents, score_data).await?;
+
+        for each_score in score {
+            save_score(&app.pool, account.clone(), each_score.clone()).await?;
+        }
     }
+
+    let result = get_save_score(&app.pool, account, params.year).await?;
+    let response = json!({
+            "score": result,
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ScoreDetailQuery {
-    pub year: Option<i32>,
+    pub year: String,
     pub semester: i32,
     pub class_id: String,
 }
@@ -284,19 +254,6 @@ pub async fn query_score_detail(
     app: web::Data<AppState>,
     params: web::Query<ScoreDetailQuery>,
 ) -> Result<HttpResponse> {
-    let params = params.into_inner();
-
-    let year = match params.year {
-        Some(y) => SchoolYear::SomeYear(y),
-        None => SchoolYear::AllYear,
-    };
-
-    let semester = match params.semester {
-        1 => Semester::FirstTerm,
-        2 => Semester::SecondTerm,
-        _ => Semester::All,
-    };
-
     let uid = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
         .map(|token| token.uid)?;
@@ -304,25 +261,28 @@ pub async fn query_score_detail(
         .await?
         .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
 
+    let params = params.into_inner();
+
+    let year = trans_to_year(params.year.clone())?;
+
+    let semester = trans_to_semester(params.semester);
+
     let data = ScoreDetailRequest {
         account: identity.student_id,
         password: identity.oa_secret,
         school_year: year,
         semester,
-        class_id: params.class_id,
+        class_id: params.class_id.clone(),
     };
-
     let agents = &app.agents;
-    let request = RequestFrame::new(RequestPayload::ScoreDetail(data));
-    let response = agents.request(request).await??;
-    if let ResponsePayload::ScoreDetail(detail) = response {
-        let response = json!({
-            "score_detail": detail,
-        });
-        Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
-    } else {
-        Err(ApiError::new(HostError::Mismatched))
-    }
+    let score_detail = get_score_detail(agents, data).await?;
+    let detail_json = json!(score_detail);
+    save_detail(&app.pool, detail_json, params.class_id).await?;
+
+    let response = json!({
+            "score_detail": score_detail,
+    });
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[get("/edu/calendar")]

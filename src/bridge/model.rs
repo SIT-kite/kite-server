@@ -1,5 +1,8 @@
+use crate::error::{ApiError, Result};
+use crate::models::CommonError;
 use chrono::{DateTime, Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -143,6 +146,22 @@ pub enum SchoolYear {
     SomeYear(i32),
 }
 
+pub fn trans_to_year(year: String) -> Result<SchoolYear> {
+    let first_year = year
+        .split_once("-")
+        .and_then(|(first, _)| {
+            let year = first.parse::<i32>().unwrap_or_default();
+            if (2015..2030).contains(&year) {
+                Some(year)
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| ApiError::new(CommonError::Parameter))?;
+
+    Ok(SchoolYear::SomeYear(first_year))
+}
+
 #[derive(Clone, Debug, Deserialize, serde_repr::Serialize_repr, PartialEq)]
 #[repr(u8)]
 pub enum Semester {
@@ -150,6 +169,15 @@ pub enum Semester {
     FirstTerm = 1,
     SecondTerm = 2,
     MidTerm = 3,
+}
+
+pub fn trans_to_semester(number: i32) -> Semester {
+    match number {
+        1 => Semester::FirstTerm,
+        2 => Semester::SecondTerm,
+        3 => Semester::MidTerm,
+        _ => Semester::All,
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -223,19 +251,19 @@ pub struct ScoreRequest {
 #[serde(rename_all = "camelCase")]
 pub struct Score {
     /// 成绩
-    score: f32,
+    pub(crate) score: f32,
     /// 课程
-    course: String,
+    pub(crate) course: String,
     /// 课程代码
-    course_id: String,
+    pub(crate) course_id: String,
     /// 班级
-    class_id: String,
+    pub(crate) class_id: String,
     /// 学年
-    school_year: String,
+    pub(crate) school_year: String,
     /// 学期
-    semester: Semester,
+    pub(crate) semester: i32,
     /// 学分
-    credit: f32,
+    pub(crate) credit: f32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -250,12 +278,32 @@ pub struct ScoreDetailRequest {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScoreDetail {
-    // 平时成绩
-    score_type: String,
-    // 期末成绩
-    percentage: String,
-    // 总评
-    score: f32,
+    // 成绩类型
+    pub(crate) score_type: String,
+    // 百分比
+    pub(crate) percentage: String,
+    // 成绩
+    pub(crate) score: f32,
+}
+
+#[derive(sqlx::FromRow, Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveScore {
+    pub(crate) score: f32,
+    /// 课程
+    pub(crate) course: String,
+    /// 课程代码
+    pub(crate) course_id: String,
+    /// 班级
+    pub(crate) class_id: String,
+    /// 学年
+    pub(crate) school_year: String,
+    /// 学期
+    pub(crate) semester: i32,
+    /// 学分
+    pub(crate) credit: f32,
+    /// 详情
+    pub(crate) detail: Option<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

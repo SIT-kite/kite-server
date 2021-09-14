@@ -91,6 +91,7 @@ pub async fn get_sc_score_list(
     let account = identity.student_id;
     let password = identity.oa_secret;
     let params = params.into_inner();
+
     if params.force {
         let score_data = ScScoreItemRequest {
             account: account.clone(),
@@ -129,7 +130,7 @@ pub async fn get_sc_score_list(
     let response = serde_json::json!({
             "detail": result,
     });
-    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
 #[get("/event/sc/score")]
