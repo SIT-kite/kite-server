@@ -236,7 +236,6 @@ pub async fn query_score(
 
         for each_score in score {
             save_score(&app.pool, account.clone(), each_score.clone()).await?;
-            println!("{:?}", each_score);
         }
     }
 
