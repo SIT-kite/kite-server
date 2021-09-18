@@ -43,10 +43,16 @@ pub async fn save_score(db: &PgPool, account: String, data: Score) -> Result<()>
             }
         })
         .ok_or_else(|| ApiError::new(CommonError::Parameter))?;
+
+    let mut evaluate = true;
+    if data.score < 0.0 {
+        evaluate = false;
+    }
+
     sqlx::query(
-        "INSERT INTO edu.score (student_id, score, course, course_id, class_id, school_year, semester, credit)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT (student_id, course_id, school_year, semester) DO NOTHING;",
+        "INSERT INTO edu.score (student_id, score, course, course_id, class_id, school_year, semester, credit, is_evaluated)
+        VALUES ($1, $2, $3, $4 , $5, $6, $7, $8, $9)
+        ON CONFLICT (student_id, course_id, school_year, semester) DO UPDATE SET score = $2, is_evaluated = $9;",
     )
         .bind(account)
         .bind(data.score)
@@ -56,6 +62,7 @@ pub async fn save_score(db: &PgPool, account: String, data: Score) -> Result<()>
         .bind(first_year)
         .bind(data.semester)
         .bind(data.credit)
+        .bind(evaluate)
         .execute(db)
         .await?;
 
@@ -77,7 +84,7 @@ pub async fn save_detail(db: &PgPool, data: Value, class_id: String) -> Result<(
 
 pub async fn get_save_score(pool: &PgPool, account: String, year: String) -> Result<Vec<SaveScore>> {
     let result = sqlx::query_as(
-        "SELECT score.score, course, course_id, class_id, school_year, semester, credit, detail
+        "SELECT score.score, course, course_id, class_id, school_year, semester, credit, detail, is_evaluated
         FROM edu.score
         WHERE student_id = $1 AND school_year = $2;",
     )

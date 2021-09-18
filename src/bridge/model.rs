@@ -304,6 +304,8 @@ pub struct SaveScore {
     pub(crate) credit: f32,
     /// 详情
     pub(crate) detail: Option<Value>,
+    /// 是否评教
+    pub(crate) is_evaluated: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
