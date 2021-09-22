@@ -2,11 +2,11 @@ use chrono::{DateTime, Local};
 
 pub use host::AgentManager;
 pub use model::{
-    trans_to_semester, trans_to_year, Activity, ActivityDetail, ActivityDetailRequest,
-    ActivityListRequest, AgentInfo, AgentInfoRequest, Course, Major, MajorRequest, PortalAuthRequest,
-    PortalAuthResponse, SaveScActivity, SaveScScore, SaveScore, ScActivityItem, ScActivityRequest,
-    ScDetail, ScScoreItem, ScScoreItemRequest, ScScoreSummary, SchoolYear, Score, ScoreDetail,
-    ScoreDetailRequest, ScoreRequest, Semester, TimeTableRequest,
+    trans_to_semester, trans_to_year, trans_year_to_i32, Activity, ActivityDetail,
+    ActivityDetailRequest, ActivityListRequest, AgentInfo, AgentInfoRequest, Course, Major,
+    MajorRequest, PortalAuthRequest, PortalAuthResponse, SaveScActivity, SaveScScore, SaveScore,
+    ScActivityItem, ScActivityRequest, ScDetail, ScScoreItem, ScScoreItemRequest, ScScoreSummary,
+    SchoolYear, Score, ScoreDetail, ScoreDetailRequest, ScoreRequest, Semester, TimeTableRequest,
 };
 pub use protocol::{ErrorResponse, RequestFrame, RequestPayload, ResponsePayload, ResponseResult};
 

@@ -210,18 +210,20 @@ pub async fn query_score(
     let identity = Person::get_identity(&app.pool, uid)
         .await?
         .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+
     let account = identity.student_id;
     let password = identity.oa_secret;
 
     let params = params.into_inner();
-    let mut s;
-    match params.force {
-        None => s = true,
-        Some(force) => s = force,
-    }
+
+    let s = match params.force {
+        None => true,
+        Some(force) => force,
+    };
+
     if s {
         let year = SchoolYear::SomeYear(params.year);
-        // let year = trans_to_year(params.year.to_string())?;
+        // let year = trans_to_year(params.year)?;
         let semester = trans_to_semester(params.semester);
 
         let score_data = ScoreRequest {
@@ -248,7 +250,7 @@ pub async fn query_score(
 
 #[derive(Debug, Deserialize)]
 pub struct ScoreDetailQuery {
-    pub year: i32,
+    pub year: String,
     pub semester: i32,
     pub class_id: String,
 }
@@ -268,7 +270,7 @@ pub async fn query_score_detail(
 
     let params = params.into_inner();
 
-    let year = trans_to_year(params.year.to_string())?;
+    let year = trans_to_year(params.year)?;
 
     let semester = trans_to_semester(params.semester);
 

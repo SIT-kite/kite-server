@@ -1,6 +1,6 @@
 use crate::error::{ApiError, Result};
 use crate::models::CommonError;
-use chrono::{DateTime, Local, NaiveDateTime};
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -119,11 +119,11 @@ pub struct ActivityDetail {
     /// Activity title
     pub title: String,
     /// Activity start date time
-    pub start_time: Option<NaiveDateTime>,
+    pub start_time: Option<DateTime<Local>>,
     /// Sign date time
-    pub sign_time: Option<NaiveDateTime>,
+    pub sign_time: Option<DateTime<Local>>,
     /// Activity end date time
-    pub end_time: Option<NaiveDateTime>,
+    pub end_time: Option<DateTime<Local>>,
     /// Place
     pub place: Option<String>,
     /// Duration
@@ -146,7 +146,7 @@ pub enum SchoolYear {
     SomeYear(i32),
 }
 
-pub fn trans_to_year(year: String) -> Result<SchoolYear> {
+pub fn trans_year_to_i32(year: String) -> Result<i32> {
     let first_year = year
         .split_once("-")
         .and_then(|(first, _)| {
@@ -158,6 +158,12 @@ pub fn trans_to_year(year: String) -> Result<SchoolYear> {
             }
         })
         .ok_or_else(|| ApiError::new(CommonError::Parameter))?;
+
+    Ok(first_year)
+}
+
+pub fn trans_to_year(year: String) -> Result<SchoolYear> {
+    let first_year = trans_year_to_i32(year)?;
 
     Ok(SchoolYear::SomeYear(first_year))
 }

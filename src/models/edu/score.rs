@@ -1,6 +1,6 @@
 use crate::bridge::{
-    AgentManager, HostError, RequestFrame, RequestPayload, ResponsePayload, SaveScore, Score,
-    ScoreDetail, ScoreDetailRequest, ScoreRequest,
+    trans_year_to_i32, AgentManager, HostError, RequestFrame, RequestPayload, ResponsePayload,
+    SaveScore, Score, ScoreDetail, ScoreDetailRequest, ScoreRequest,
 };
 use crate::error::{ApiError, Result};
 use crate::models::CommonError;
@@ -31,18 +31,7 @@ pub async fn get_score_detail(
 }
 
 pub async fn save_score(db: &PgPool, account: String, data: Score) -> Result<()> {
-    let first_year = data
-        .school_year
-        .split_once("-")
-        .and_then(|(first, _)| {
-            let year = first.parse::<i32>().unwrap_or_default();
-            if (2015..2030).contains(&year) {
-                Some(year)
-            } else {
-                None
-            }
-        })
-        .ok_or_else(|| ApiError::new(CommonError::Parameter))?;
+    let first_year = trans_year_to_i32(data.school_year)?;
 
     let mut evaluate = true;
     if data.score < 0.0 {
