@@ -9,25 +9,34 @@ use crate::models::PageView;
 use super::SimpleGoods;
 
 pub async fn get_goods_list(db: &PgPool, form: &SelectGoods, page: PageView) -> Result<Vec<CoverInfo>> {
-    let like_clause = form.keyword.as_ref().map(|keyword| format!("%{}%", &keyword));
+
+    let like_clause = format!("%{}%", form.keyword);
 
     let goods = sqlx::query_as(
         "
-            SELECT
-                A.pub_code
-                ,A.item_code
-                ,A.views
-                ,A1.item_name
-                ,A1.price
-                ,A1.cover_image
-            FROM mall.publish A
-            LEFT JOIN mall.commodity A1
-                   ON A.item_code = A1.item_code
-            WHERE A.status = 'Y'
+                SELECT
+                    A.pub_code
+                    ,A.item_code
+                    ,COALESCE(B.views,0) AS views
+                    ,A1.item_name
+                    ,A1.price
+                    ,A1.cover_image
+                FROM mall.publish A
+                LEFT JOIN mall.commodity A1
+                        ON A.item_code = A1.item_code
+                LEFT JOIN (
+                        SELECT
+                            item_code,
+                            count(item_code) AS views
+                        FROM mall.views
+                        GROUP BY item_code
+                    ) AS B
+                        ON A.item_code = B.item_code
+                WHERE A.status = 'Y'
                   AND ($1 IS NULL OR A1.sort = $1)
                   AND ($2 IS NULL OR A1.item_name LIKE $2)
-            ORDER BY A.insert_time
-            LIMIT $3 OFFSET $4;
+                ORDER BY A.insert_time
+                LIMIT $3 OFFSET $4;
             ",
     )
     .bind(&form.sort)
@@ -62,7 +71,9 @@ pub async fn query_goods(
     Ok(goods)
 }
 
-pub async fn get_goods_detail(db: &PgPool, goods_id: String) -> Result<DetailInfo> {
+pub async fn get_goods_detail(db: &PgPool, item_code: &String) -> Result<DetailInfo> {
+
+    //获取商品详情
     let detail = sqlx::query_as(
         "SELECT
                 item_name
@@ -73,7 +84,7 @@ pub async fn get_goods_detail(db: &PgPool, goods_id: String) -> Result<DetailInf
             WHERE item_code = $1
             LIMIT 1;",
     )
-    .bind(goods_id)
+    .bind(item_code)
     .fetch_optional(db)
     .await?;
 
@@ -93,7 +104,7 @@ pub async fn delete_goods(db: &PgPool, pub_code: String) -> Result<i32> {
     )
     .bind(Local::now())
     .bind(pub_code)
-    .fetch_one(db)
+    .fetch_optional(db)
     .await?;
     Ok(1)
 }
@@ -116,11 +127,10 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
                 ,item_code
                 ,campus
                 ,status
-                ,views
                 ,insert_time
                 ,update_time
             )
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8);
+            VALUES ($1,$2,$3,$4,$5,$6,$7);
         ",
     )
     .bind(&pub_code)
@@ -128,10 +138,9 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
     .bind(&item_code)
     .bind(&new.campus)
     .bind("Y")
-    .bind(0)
     .bind(Local::now())
     .bind(Local::now())
-    .fetch_one(db)
+    .fetch_optional(db)
     .await?;
 
     let _ = sqlx::query(
@@ -157,10 +166,33 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
     .bind(&new.sort)
     .bind(Local::now())
     .bind(Local::now())
-    .fetch_one(db)
+    .fetch_optional(db)
     .await?;
 
     Ok(item_code)
+}
+
+pub async fn check_goods(db: &PgPool, uid: i32, new: &UpdateGoods) -> Result<String> {
+
+    let pub_code: Option<(String,)> = sqlx::query_as(
+        "
+            SELECT pub_code
+            FROM mall.publish
+            WHERE publisher = $1
+              AND item_code = $2
+              AND status = 'Y'
+            LIMIT 1
+        ",
+    )
+    .bind(uid)
+    .bind(&new.item_code)
+    .fetch_optional(db)
+    .await?;
+
+
+    pub_code
+        .map(|(pub_code,)| pub_code)
+        .ok_or_else(|| ApiError::new(MallError::NoUserGood))
 }
 
 pub async fn update_goods(db: &PgPool, new: &UpdateGoods) -> Result<String> {
@@ -206,5 +238,25 @@ pub async fn update_views(db: &PgPool, pub_code: String) -> Result<()> {
     .bind(pub_code)
     .fetch_one(db)
     .await?;
+    Ok(())
+}
+
+pub async fn insert_view_log(db: &PgPool, uid: i32, item_code: &String) -> Result<()> {
+
+    let _ = sqlx::query(
+        "
+               INSERT INTO mall.views(
+                    user_code,
+                    item_code,
+                    view_time)
+               VALUES($1,$2,$3);
+            ",
+    )
+    .bind(uid)
+    .bind(item_code)
+    .bind(Local::now())
+    .execute(db)
+    .await?;
+
     Ok(())
 }

@@ -45,7 +45,7 @@ pub async fn publish_comment(db: &PgPool, uid: i32, new: &PubComment) -> Result<
     .bind("Y")
     .bind(Local::now())
     .bind(Local::now())
-    .fetch_one(db)
+    .fetch_optional(db)
     .await?;
 
     Ok(com_code)
@@ -65,7 +65,7 @@ pub async fn delete_comment(db: &PgPool, com_code: String) -> Result<()> {
     )
     .bind(Local::now())
     .bind(com_code)
-    .fetch_one(db)
+    .fetch_optional(db)
     .await?;
 
     Ok(())
