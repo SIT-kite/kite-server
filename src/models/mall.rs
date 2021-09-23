@@ -32,6 +32,8 @@ pub enum MallError {
     OutRange = 224,
     #[error("用户输入错误或该用户无收藏")]
     NoWish = 225,
+    #[error("该用户无相应商品")]
+    NoUserGood = 226,
 }
 
 /* Model */
@@ -210,7 +212,7 @@ pub struct Wishes {
 pub struct CoverInfo {
     pub pub_code: String,
     pub item_code: String,
-    pub views: i32,
+    pub views: i64,
     pub item_name: String,
     pub price: f64,
     pub cover_image: String,
@@ -251,7 +253,7 @@ pub struct CommentUni {
 pub struct Wish {
     pub pub_code: String,
     pub item_code: String,
-    pub views: i32,
+    pub views: i64,
     pub status: String,
     pub item_name: String,
     pub price: f64,
@@ -286,7 +288,7 @@ pub struct UpdateGoods {
 #[derive(Deserialize, sqlx::FromRow)]
 pub struct SelectGoods {
     pub sort: Option<i32>,
-    pub keyword: Option<String>,
+    pub keyword: String,
 }
 
 //商品发布参数
@@ -295,4 +297,10 @@ pub struct PubComment {
     pub item_code: String,
     pub content: String,
     pub parent_code: Option<String>,
+}
+
+//收藏表发布参数
+#[derive(Deserialize, sqlx::FromRow)]
+pub struct PubWish {
+    pub pub_code: String,
 }

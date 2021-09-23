@@ -1,7 +1,7 @@
-use actix_web::{delete, get, post, web, HttpResponse};
+use actix_web::{delete, get, post, put, web, HttpResponse};
 
 use crate::error::{ApiError, Result};
-use crate::models::mall::{self, Comment, CommentUni, MallError, PubComment, SelectGoods, UpdateGoods};
+use crate::models::mall::{self, Comment, CommentUni, MallError, PubComment, SelectGoods, UpdateGoods, PubWish};
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
@@ -52,10 +52,59 @@ pub struct QueryParams {
 #[get("/mall/goods")]
 pub async fn get_goods_list(
     app: web::Data<AppState>,
-    form: web::Query<SelectGoods>,
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
-    let form = form.into_inner();
+
+    let form = SelectGoods {
+        sort: None,
+        keyword: "".to_string(),
+    };
+    let goods_list = mall::get_goods_list(&app.pool, &form, page.into_inner()).await?;
+
+    let response = serde_json::json!({
+        "goods": goods_list,
+    });
+
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
+}
+
+#[get("/mall/goods/sort/{sort}")]
+pub async fn get_goods_list_by_sort(
+    app: web::Data<AppState>,
+    sort: web::Path<i32>,
+    page: web::Query<PageView>,
+) -> Result<HttpResponse> {
+
+    let sort = sort.into_inner();
+
+    let form = SelectGoods {
+        sort: sort.checked_abs(),
+        keyword: "".to_string(),
+    };
+
+    let goods_list = mall::get_goods_list(&app.pool, &form, page.into_inner()).await?;
+
+    let response = serde_json::json!({
+        "goods": goods_list,
+    });
+
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
+}
+
+#[get("/mall/goods/like/{keyword}")]
+pub async fn get_goods_list_by_keyword(
+    app: web::Data<AppState>,
+    keyword: web::Path<String>,
+    page: web::Query<PageView>,
+) -> Result<HttpResponse> {
+
+    let keyword = keyword.into_inner();
+
+    let form = SelectGoods {
+        sort: None,
+        keyword,
+    };
+
     let goods_list = mall::get_goods_list(&app.pool, &form, page.into_inner()).await?;
 
     let response = serde_json::json!({
@@ -68,10 +117,20 @@ pub async fn get_goods_list(
 #[get("/mall/goods/{item_code}")]
 pub async fn get_goods_by_id(
     app: web::Data<AppState>,
+    token: Option<JwtToken>,
     item_code: web::Path<String>,
 ) -> Result<HttpResponse> {
     let item_code = item_code.into_inner();
-    let detail = mall::get_goods_detail(&app.pool, item_code).await?;
+    let uid = token
+        .map(|token| token.uid)
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))?;
+
+    //获取商品详情
+    let detail = mall::get_goods_detail(&app.pool, &item_code).await?;
+
+    //插入观看日志
+    mall::insert_view_log(&app.pool,uid, &item_code).await?;
+
     let response = serde_json::json!({
         "detail": detail,
     });
@@ -79,7 +138,7 @@ pub async fn get_goods_by_id(
     Ok(HttpResponse::Ok().json(response))
 }
 
-#[post("/mall/insert_goods")]
+#[post("/mall/goods")]
 pub async fn publish_goods(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
@@ -102,16 +161,21 @@ pub async fn publish_goods(
     let response = serde_json::json!({
         "code": item_code,
     });
+
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
 
-#[post("/mall/goods")]
+#[put("/mall/goods")]
 pub async fn update_goods(
     app: web::Data<AppState>,
-    _token: Option<JwtToken>,
+    token: Option<JwtToken>,
     form: web::Json<UpdateGoods>,
 ) -> Result<HttpResponse> {
     let form = form.into_inner();
+
+    let uid = token
+    .map(|token| token.uid)
+    .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))?;
 
     // 判断是否超出长度
     if form.description.len() > 200 || form.item_name.len() > 30 {
@@ -119,7 +183,9 @@ pub async fn update_goods(
     }
 
     // TODO: 调用敏感文字检测
-    // TODO: 这里没有校验权限
+
+    // 权限校验
+    let pub_code = mall::check_goods(&app.pool,uid,&form).await?;
 
     let goods_id = mall::update_goods(&app.pool, &form).await?;
     let response = serde_json::json!({
@@ -140,16 +206,6 @@ pub async fn delete_goods(
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }
 
-#[post("/mall/goods/{pub_code}/view")]
-pub async fn update_views(
-    app: web::Data<AppState>,
-    pub_code: web::Path<String>,
-) -> Result<HttpResponse> {
-    let pub_code = pub_code.into_inner();
-
-    let _ = mall::update_views(&app.pool, pub_code).await?;
-    Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
-}
 
 #[post("/mall/comment")]
 pub async fn publish_comment(
@@ -252,7 +308,7 @@ pub async fn get_comments(
     Ok(HttpResponse::Ok().json(comment_uni))
 }
 
-#[get("/mall/comment/{com_code}/like")]
+#[put("/mall/comment/like/{com_code}")]
 pub async fn update_num_like(
     app: web::Data<AppState>,
     com_code: web::Path<String>,
@@ -264,21 +320,25 @@ pub async fn update_num_like(
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }
 
-#[post("/mall/wish/{pub_code}")]
+#[post("/mall/wish")]
 pub async fn append_wish(
     app: web::Data<AppState>,
     token: Option<JwtToken>,
-    pub_code: web::Path<String>,
+    form: web::Json<PubWish>,
 ) -> Result<HttpResponse> {
-    let pub_code = pub_code.into_inner();
+    let pub_code = form.into_inner().pub_code;
     let uid = token
         .map(|token| token.uid)
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))?;
 
-    // 调用数据库
-    let _ = mall::insert_wish(&app.pool, uid, pub_code).await?;
+    //校验商品信息是否存在
 
-    Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
+    let item_code = mall::check_publish(&app.pool, &pub_code).await?;
+
+    // 调用数据库
+    let _ = mall::insert_wish(&app.pool, uid, &pub_code).await?;
+
+    Ok(HttpResponse::Ok().json(item_code))
 }
 
 #[delete("/mall/wish/{pub_code}")]
@@ -297,7 +357,10 @@ pub async fn cancel_wish(
 }
 
 #[get("/mall/wish/{user_code}")]
-pub async fn get_wishes(app: web::Data<AppState>, user_code: web::Path<i32>) -> Result<HttpResponse> {
+pub async fn get_wishes(
+    app: web::Data<AppState>,
+    user_code: web::Path<i32>,
+) -> Result<HttpResponse> {
     let user_code = user_code.into_inner();
     let wish_list = mall::get_user_wishes(&app.pool, user_code).await?;
 
