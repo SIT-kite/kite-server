@@ -1,7 +1,9 @@
 use actix_web::{delete, get, post, put, web, HttpResponse};
 
 use crate::error::{ApiError, Result};
-use crate::models::mall::{self, Comment, CommentUni, MallError, PubComment, SelectGoods, UpdateGoods, PubWish};
+use crate::models::mall::{
+    self, Comment, CommentUni, MallError, PubComment, PubWish, SelectGoods, UpdateGoods,
+};
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
@@ -54,7 +56,6 @@ pub async fn get_goods_list(
     app: web::Data<AppState>,
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
-
     let form = SelectGoods {
         sort: None,
         keyword: "".to_string(),
@@ -74,7 +75,6 @@ pub async fn get_goods_list_by_sort(
     sort: web::Path<i32>,
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
-
     let sort = sort.into_inner();
 
     let form = SelectGoods {
@@ -97,13 +97,9 @@ pub async fn get_goods_list_by_keyword(
     keyword: web::Path<String>,
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
-
     let keyword = keyword.into_inner();
 
-    let form = SelectGoods {
-        sort: None,
-        keyword,
-    };
+    let form = SelectGoods { sort: None, keyword };
 
     let goods_list = mall::get_goods_list(&app.pool, &form, page.into_inner()).await?;
 
@@ -129,7 +125,7 @@ pub async fn get_goods_by_id(
     let detail = mall::get_goods_detail(&app.pool, &item_code).await?;
 
     //插入观看日志
-    mall::insert_view_log(&app.pool,uid, &item_code).await?;
+    mall::insert_view_log(&app.pool, uid, &item_code).await?;
 
     let response = serde_json::json!({
         "detail": detail,
@@ -174,8 +170,8 @@ pub async fn update_goods(
     let form = form.into_inner();
 
     let uid = token
-    .map(|token| token.uid)
-    .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))?;
+        .map(|token| token.uid)
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))?;
 
     // 判断是否超出长度
     if form.description.len() > 200 || form.item_name.len() > 30 {
@@ -185,7 +181,7 @@ pub async fn update_goods(
     // TODO: 调用敏感文字检测
 
     // 权限校验
-    let pub_code = mall::check_goods(&app.pool,uid,&form).await?;
+    let pub_code = mall::check_goods(&app.pool, uid, &form).await?;
 
     let goods_id = mall::update_goods(&app.pool, &form).await?;
     let response = serde_json::json!({
@@ -205,7 +201,6 @@ pub async fn delete_goods(
 
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }
-
 
 #[post("/mall/comment")]
 pub async fn publish_comment(
@@ -357,10 +352,7 @@ pub async fn cancel_wish(
 }
 
 #[get("/mall/wish/{user_code}")]
-pub async fn get_wishes(
-    app: web::Data<AppState>,
-    user_code: web::Path<i32>,
-) -> Result<HttpResponse> {
+pub async fn get_wishes(app: web::Data<AppState>, user_code: web::Path<i32>) -> Result<HttpResponse> {
     let user_code = user_code.into_inner();
     let wish_list = mall::get_user_wishes(&app.pool, user_code).await?;
 

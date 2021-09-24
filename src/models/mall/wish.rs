@@ -24,7 +24,6 @@ pub async fn insert_wish(db: &PgPool, uid: i32, pub_code: &String) -> Result<()>
 }
 
 pub async fn check_publish(db: &PgPool, pub_code: &String) -> Result<String> {
-
     let item_code: Option<(String,)> = sqlx::query_as(
         "
             SELECT item_code

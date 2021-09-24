@@ -9,7 +9,6 @@ use crate::models::PageView;
 use super::SimpleGoods;
 
 pub async fn get_goods_list(db: &PgPool, form: &SelectGoods, page: PageView) -> Result<Vec<CoverInfo>> {
-
     let like_clause = format!("%{}%", form.keyword);
 
     let goods = sqlx::query_as(
@@ -72,7 +71,6 @@ pub async fn query_goods(
 }
 
 pub async fn get_goods_detail(db: &PgPool, item_code: &String) -> Result<DetailInfo> {
-
     //获取商品详情
     let detail = sqlx::query_as(
         "SELECT
@@ -173,7 +171,6 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
 }
 
 pub async fn check_goods(db: &PgPool, uid: i32, new: &UpdateGoods) -> Result<String> {
-
     let pub_code: Option<(String,)> = sqlx::query_as(
         "
             SELECT pub_code
@@ -188,7 +185,6 @@ pub async fn check_goods(db: &PgPool, uid: i32, new: &UpdateGoods) -> Result<Str
     .bind(&new.item_code)
     .fetch_optional(db)
     .await?;
-
 
     pub_code
         .map(|(pub_code,)| pub_code)
@@ -242,7 +238,6 @@ pub async fn update_views(db: &PgPool, pub_code: String) -> Result<()> {
 }
 
 pub async fn insert_view_log(db: &PgPool, uid: i32, item_code: &String) -> Result<()> {
-
     let _ = sqlx::query(
         "
                INSERT INTO mall.views(

@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::bridge::{
-    trans_to_semester, trans_to_year, HostError, MajorRequest, RequestFrame, RequestPayload,
-    ResponsePayload, SchoolYear, ScoreDetailRequest, ScoreRequest, TimeTableRequest,
+    trans_to_semester, trans_to_year, trans_year_to_i32, HostError, MajorRequest, RequestFrame,
+    RequestPayload, ResponsePayload, SchoolYear, ScoreDetailRequest, ScoreRequest, TimeTableRequest,
 };
 use crate::error::{ApiError, Result};
 use crate::models::edu::{
@@ -194,7 +194,7 @@ pub async fn export_timetable_as_calendar(
 #[derive(Debug, Deserialize)]
 pub struct ScoreQuery {
     pub force: Option<bool>,
-    pub year: i32,
+    pub year: String,
     pub semester: i32,
 }
 
@@ -222,8 +222,15 @@ pub async fn query_score(
     };
 
     if s {
-        let year = SchoolYear::SomeYear(params.year);
-        // let year = trans_to_year(params.year)?;
+        // todo!() 为了兼容老版本，新版本上线后就改掉
+        let year;
+        if params.year.contains("-") {
+            year = trans_to_year(params.year.clone())?;
+        } else {
+            let first_year = params.year.parse().unwrap();
+            year = SchoolYear::SomeYear(first_year);
+        }
+
         let semester = trans_to_semester(params.semester);
 
         let score_data = ScoreRequest {
@@ -240,8 +247,15 @@ pub async fn query_score(
             save_score(&app.pool, account.clone(), each_score.clone()).await?;
         }
     }
+    // todo!() 新版本修改后修改
+    let get_year;
+    if params.year.contains("-") {
+        get_year = trans_year_to_i32(params.year)?.to_string();
+    } else {
+        get_year = params.year;
+    }
 
-    let result = get_save_score(&app.pool, account, params.year.to_string()).await?;
+    let result = get_save_score(&app.pool, account, get_year).await?;
     let response = json!({
             "score": result,
     });
