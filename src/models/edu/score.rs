@@ -71,16 +71,23 @@ pub async fn save_detail(db: &PgPool, data: Value, class_id: String) -> Result<(
     Ok(())
 }
 
-pub async fn get_save_score(pool: &PgPool, account: String, year: String) -> Result<Vec<SaveScore>> {
+pub async fn get_save_score(
+    pool: &PgPool,
+    account: String,
+    year: String,
+    semester: Option<i32>,
+) -> Result<Vec<SaveScore>> {
     let result = sqlx::query_as(
         "SELECT score.score, course, course_id, class_id, school_year, semester, credit, detail, is_evaluated
         FROM edu.score
-        WHERE student_id = $1 AND school_year = $2;",
+        WHERE student_id = $1 AND school_year = $2 
+        AND (semester = $3 OR $3 IS NULL);",
     )
-    .bind(account)
-    .bind(year)
-    .fetch_all(pool)
-    .await?;
+        .bind(account)
+        .bind(year)
+        .bind(semester)
+        .fetch_all(pool)
+        .await?;
 
     Ok(result)
 }

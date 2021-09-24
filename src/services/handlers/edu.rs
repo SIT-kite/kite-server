@@ -255,7 +255,14 @@ pub async fn query_score(
         get_year = params.year;
     }
 
-    let result = get_save_score(&app.pool, account, get_year).await?;
+    let semester_get: Option<i32>;
+    if params.semester == 0 {
+        semester_get = None;
+    } else {
+        semester_get = Some(params.semester);
+    }
+
+    let result = get_save_score(&app.pool, account, get_year, semester_get).await?;
     let response = json!({
             "score": result,
     });
