@@ -119,11 +119,11 @@ pub struct ActivityDetail {
     /// Activity title
     pub title: String,
     /// Activity start date time
-    pub start_time: Option<DateTime<Local>>,
+    pub start_time: DateTime<Local>,
     /// Sign date time
-    pub sign_time: Option<DateTime<Local>>,
+    pub sign_start_time: DateTime<Local>,
     /// Activity end date time
-    pub end_time: Option<DateTime<Local>>,
+    pub sign_end_time: DateTime<Local>,
     /// Place
     pub place: Option<String>,
     /// Duration
@@ -137,7 +137,16 @@ pub struct ActivityDetail {
     /// Activity undertaker
     pub undertaker: Option<String>,
     /// Description in text[]
-    pub description: Vec<String>,
+    pub description: String,
+    /// Image attachment.
+    pub images: Vec<ScImages>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ScImages {
+    pub new_name: String,
+    pub old_name: String,
+    pub content: Vec<u8>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

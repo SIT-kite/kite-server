@@ -107,7 +107,7 @@ pub async fn query_activity_detail(
 
 pub async fn save_sc_activity_detail(db: &PgPool, data: &ActivityDetail) -> Result<()> {
     sqlx::query(
-        "INSERT INTO events.sc_events (activity_id, category, title, start_time, sign_time, end_time, place, duration, manager, contact, organizer, undertaker, description)
+        "INSERT INTO events.sc_events (activity_id, category, title, start_time, sign_start_time, sign_end_time, place, duration, manager, contact, organizer, undertaker, description)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         ON CONFLICT (activity_id) DO NOTHING;"
     )
@@ -115,8 +115,8 @@ pub async fn save_sc_activity_detail(db: &PgPool, data: &ActivityDetail) -> Resu
         .bind(data.category)
         .bind(&data.title)
         .bind(data.start_time)
-        .bind(data.sign_time)
-        .bind(data.end_time)
+        .bind(data.sign_start_time)
+        .bind(data.sign_end_time)
         .bind(&data.place)
         .bind(&data.duration)
         .bind(&data.manager)
