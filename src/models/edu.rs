@@ -21,3 +21,8 @@ pub enum EduError {
     #[error("签名校验失败")]
     SignFailure = 310,
 }
+
+// 奉贤校区
+pub const CAMPUS_FENGXIAN: i32 = 1;
+// 徐汇校区
+pub const CAMPUS_XUHUI: i32 = 2;
