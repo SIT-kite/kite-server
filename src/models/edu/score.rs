@@ -3,7 +3,6 @@ use crate::bridge::{
     SaveScore, Score, ScoreDetail, ScoreDetailRequest, ScoreRequest,
 };
 use crate::error::{ApiError, Result};
-use crate::models::CommonError;
 use serde_json::Value;
 use sqlx::PgPool;
 

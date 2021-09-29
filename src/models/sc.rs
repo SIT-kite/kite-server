@@ -1,11 +1,16 @@
 use sqlx::PgPool;
+use tokio::io::AsyncWriteExt;
 
 use crate::bridge::{
     Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, AgentManager, HostError,
     RequestFrame, RequestPayload, ResponsePayload, SaveScActivity, SaveScScore, ScActivityItem,
-    ScActivityRequest, ScDetail, ScScoreItem, ScScoreItemRequest,
+    ScActivityRequest, ScDetail, ScImages, ScScoreItem, ScScoreItemRequest,
 };
+use crate::config::CONFIG;
 use crate::error::{ApiError, Result};
+use crate::models::file::AvatarImage;
+
+static URL_PREFIX: &str = "https://kite.sunnysab.cn/sc/image/";
 
 pub async fn query_current_sc_score_list(
     agent: &AgentManager,
@@ -105,10 +110,55 @@ pub async fn query_activity_detail(
     }
 }
 
-pub async fn save_sc_activity_detail(db: &PgPool, data: &ActivityDetail) -> Result<()> {
+pub async fn save_image_as_file(data: &Vec<ScImages>) -> Result<(Vec<AvatarImage>, Vec<String>)> {
+    let mut result = Vec::new();
+    let mut image_uuid = Vec::new();
+    for image in data {
+        let path = format!("{}/image/{}", &CONFIG.server.attachment, image.new_name);
+        let mut file = tokio::fs::File::create(&path).await?;
+        file.write_all(&image.content).await?;
+        let (file_name, _) = image.new_name.split_once(".").unwrap_or_default();
+        image_uuid.push(file_name.to_string());
+        let image_uuid = file_name.parse().unwrap();
+        let size = image.content.len();
+        let avatar =
+            AvatarImage::with_id(image_uuid)
+                .set_uploader(0)
+                .set_file(URL_PREFIX, path, size as i32);
+        result.push(avatar);
+    }
+
+    Ok((result, image_uuid))
+}
+
+pub async fn save_image(db: &PgPool, data: Vec<AvatarImage>) -> Result<()> {
+    for each_image in data {
+        sqlx::query(
+            "INSERT INTO public.attachments (id, path, uploader, upload_time, size, url)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id",
+        )
+        .bind(each_image.id)
+        .bind(&each_image.path)
+        .bind(&each_image.uploader)
+        .bind(&each_image.upload_time)
+        .bind(&each_image.size)
+        .bind(&each_image.url)
+        .execute(db)
+        .await?;
+    }
+
+    Ok(())
+}
+
+pub async fn save_sc_activity_detail(
+    db: &PgPool,
+    data: &ActivityDetail,
+    image_uuid: Vec<String>,
+) -> Result<()> {
     sqlx::query(
-        "INSERT INTO events.sc_events (activity_id, category, title, start_time, sign_start_time, sign_end_time, place, duration, manager, contact, organizer, undertaker, description)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        "INSERT INTO events.sc_events (activity_id, category, title, start_time, sign_start_time, sign_end_time, place, duration, manager, contact, organizer, undertaker, description, image)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         ON CONFLICT (activity_id) DO NOTHING;"
     )
         .bind(data.id)
@@ -124,6 +174,7 @@ pub async fn save_sc_activity_detail(db: &PgPool, data: &ActivityDetail) -> Resu
         .bind(&data.organizer)
         .bind(&data.undertaker)
         .bind(&data.description)
+        .bind(image_uuid)
         .execute(db)
         .await?;
     Ok(())
@@ -165,7 +216,11 @@ async fn update_activity_list_in_category(
 
             activity_detail.category = each_activity.category;
 
-            save_sc_activity_detail(&pool, activity_detail.as_ref()).await?;
+            // Save the image
+            let (image_message, image_uuid) = save_image_as_file(&activity_detail.images).await?;
+
+            save_image(&pool, image_message).await?;
+            save_sc_activity_detail(&pool, activity_detail.as_ref(), image_uuid).await?;
         }
         if fetched_size < page_count as usize {
             break;
