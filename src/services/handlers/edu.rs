@@ -13,13 +13,11 @@ use crate::models::edu::{
     self, get_save_score, get_score, get_score_detail, save_detail, save_score, AvailClassroomQuery,
     EduError,
 };
+use crate::models::edu::{CAMPUS_FENGXIAN, CAMPUS_XUHUI};
 use crate::models::user::Person;
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
-
-const CAMPUS_XUHUI: i32 = 2;
-const CAMPUS_FENGXIAN: i32 = 1;
 
 #[derive(serde::Deserialize, sqlx::FromRow)]
 pub struct ClassroomQuery {
