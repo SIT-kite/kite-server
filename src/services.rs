@@ -139,6 +139,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(event::list_events)
             .service(event::get_sc_score_list)
             .service(event::get_sc_score)
+            .service(event::get_sc_event_list)
             // Edu management and course-related routes
             .service(edu::query_available_classrooms)
             .service(edu::query_timetable)

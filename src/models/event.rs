@@ -1,9 +1,10 @@
 //! This module provides the ability to create, update and delete events, records and other about signs.
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::error::Result;
+use crate::models::PageView;
 
 /// Event that imported from OA.
 const EVENT_TYPE_OA: i32 = 0;
@@ -199,4 +200,27 @@ pub async fn query_sc_score(db: &PgPool, query: &str) -> Result<Vec<ScScore>> {
     .await?;
 
     Ok(score)
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct ScActivityList {
+    pub activity_id: i32,
+    pub title: String,
+    pub start_time: DateTime<Local>,
+    pub duration: String,
+}
+
+pub async fn get_sc_activity_list(pool: &PgPool, page: &PageView) -> Result<Vec<ScActivityList>> {
+    let result = sqlx::query_as(
+        "SELECT activity_id, title, start_time, duration 
+        FROM events.sc_events
+        LIMIT $1 OFFSET $2;",
+    )
+    .bind(page.count(20) as i32)
+    .bind(page.offset(20) as i32)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(result)
 }

@@ -1,8 +1,4 @@
 //! This module includes interfaces about the event and sign.
-use crate::models::edu::{
-    get_sc_score_detail, query_current_sc_activity_list, query_current_sc_score_list,
-    save_sc_activity_list, save_sc_score_list,
-};
 use actix_web::{get, post, web, HttpResponse};
 use serde::Deserialize;
 
@@ -10,7 +6,11 @@ use crate::bridge::{
     SaveScActivity, SaveScScore, ScActivityRequest, ScScoreItemRequest, ScScoreSummary,
 };
 use crate::error::{ApiError, Result};
-use crate::models::event::{query_sc_score, Event, EventError, ScScore};
+use crate::models::edu::{
+    get_sc_score_detail, query_current_sc_activity_list, query_current_sc_score_list,
+    save_sc_activity_list, save_sc_score_list,
+};
+use crate::models::event::{get_sc_activity_list, query_sc_score, Event, EventError, ScScore};
 use crate::models::user::Person;
 use crate::models::{event, CommonError, PageView};
 use crate::services::response::ApiResponse;
@@ -205,4 +205,26 @@ fn add_score(sc_score: Vec<ScScore>) -> ScScoreSummary {
     }
 
     result
+}
+
+#[get("/event/sc")]
+pub async fn get_sc_event_list(
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    page: web::Query<PageView>,
+) -> Result<HttpResponse> {
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+
+    let _ = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+
+    let result = get_sc_activity_list(&app.pool, &page).await?;
+    let response = serde_json::json!({
+        "activityList": result,
+    });
+
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
