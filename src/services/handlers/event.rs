@@ -10,7 +10,9 @@ use crate::models::edu::{
     get_sc_score_detail, query_current_sc_activity_list, query_current_sc_score_list,
     save_sc_activity_list, save_sc_score_list,
 };
-use crate::models::event::{get_sc_activity_list, query_sc_score, Event, EventError, ScScore};
+use crate::models::event::{
+    get_sc_activity_detail, get_sc_activity_list, query_sc_score, Event, EventError, ScScore,
+};
 use crate::models::user::Person;
 use crate::models::{event, CommonError, PageView};
 use crate::services::response::ApiResponse;
@@ -224,6 +226,29 @@ pub async fn get_sc_event_list(
     let result = get_sc_activity_list(&app.pool, &page).await?;
     let response = serde_json::json!({
         "activityList": result,
+    });
+
+    Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+}
+
+#[get("/event/sc/{activity_id}")]
+pub async fn get_sc_event_detail(
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    path: web::Path<i32>,
+) -> Result<HttpResponse> {
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+
+    let _ = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+
+    let activity_id = path.into_inner();
+    let result = get_sc_activity_detail(&app.pool, activity_id).await?;
+    let response = serde_json::json!({
+        "activityDetail": result,
     });
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))

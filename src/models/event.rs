@@ -208,7 +208,26 @@ pub struct ScActivityList {
     pub activity_id: i32,
     pub title: String,
     pub start_time: DateTime<Local>,
-    pub duration: String,
+    pub duration: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct ScActivityDetail {
+    pub activity_id: i32,
+    pub category: i32,
+    pub title: String,
+    pub start_time: DateTime<Local>,
+    pub sign_start_time: DateTime<Local>,
+    pub sign_end_time: DateTime<Local>,
+    pub place: Option<String>,
+    pub duration: Option<String>,
+    pub manager: Option<String>,
+    pub contact: Option<String>,
+    pub organizer: Option<String>,
+    pub undertaker: Option<String>,
+    pub description: String,
+    pub image: Vec<String>,
 }
 
 pub async fn get_sc_activity_list(pool: &PgPool, page: &PageView) -> Result<Vec<ScActivityList>> {
@@ -219,6 +238,20 @@ pub async fn get_sc_activity_list(pool: &PgPool, page: &PageView) -> Result<Vec<
     )
     .bind(page.count(20) as i32)
     .bind(page.offset(20) as i32)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(result)
+}
+
+pub async fn get_sc_activity_detail(pool: &PgPool, activity_id: i32) -> Result<Vec<ScActivityDetail>> {
+    let result = sqlx::query_as(
+        "SELECT activity_id, title, start_time, sign_start_time, sign_end_time, place, duration,
+         manager, contact, organizer, undertaker, description, image, category
+        FROM events.sc_events
+        WHERE activity_id = $1;",
+    )
+    .bind(activity_id)
     .fetch_all(pool)
     .await?;
 
