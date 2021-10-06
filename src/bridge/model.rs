@@ -3,6 +3,8 @@ use crate::models::CommonError;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
+use strum_macros::EnumString;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -339,4 +341,160 @@ pub struct ScScoreSummary {
     pub charity: f32,
     /// Campus culture.(校园文化)
     pub campus_culture: f32,
+}
+
+/// 搜索方式
+#[derive(Debug, Serialize, Deserialize, EnumString)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum SearchWay {
+    /// 按任意词查询
+    Any,
+    /// 标题名
+    Title,
+    /// 正题名：一本书的主要名称
+    TitleProper,
+    /// ISBN号
+    Isbn,
+    /// 著者
+    Author,
+    /// 主题词
+    SubjectWord,
+    /// 分类号
+    ClassNo,
+    /// 控制号
+    CtrlNo,
+    /// 订购号
+    OrderNo,
+    /// 出版社
+    Publisher,
+    /// 索书号
+    CallNo,
+}
+
+/// 排序规则
+#[derive(Debug, Serialize, Deserialize, EnumString)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum SortWay {
+    /// 匹配度
+    MatchScore,
+    /// 出版日期
+    PublishDate,
+    /// 主题词
+    Subject,
+    /// 标题名
+    Title,
+    /// 作者
+    Author,
+    /// 索书号
+    CallNo,
+    /// 标题名拼音
+    Pinyin,
+    /// 借阅次数
+    LoanCount,
+    /// 续借次数
+    RenewCount,
+    /// 题名权重
+    TitleWeight,
+    /// 正题名权重
+    TitleProperWeight,
+    /// 卷册号
+    Volume,
+}
+
+#[derive(Debug, Serialize, Deserialize, EnumString)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum SortOrder {
+    /// 升序排序
+    Asc,
+    /// 降序排序
+    Desc,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchLibraryRequest {
+    /// 搜索关键字
+    pub keyword: String,
+    /// 搜索结果数量
+    pub rows: u16,
+    /// 搜索分页号
+    pub page: u32,
+    /// 搜索方式
+    pub search_way: SearchWay,
+    /// 搜索结果的排序方式
+    pub sort_way: SortWay,
+    /// 搜索结果的升降序方式
+    pub sort_order: SortOrder,
+}
+
+/// 馆藏信息检索
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BookHoldingRequest {
+    pub book_id_list: Vec<String>,
+}
+
+/// 图书信息
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Book {
+    /// 图书号
+    pub book_id: String,
+    /// ISBN号
+    pub isbn: String,
+    /// 图书标题
+    pub title: String,
+    /// 图书作者
+    pub author: String,
+    /// 出版社
+    pub publisher: String,
+    /// 出版日期
+    pub publish_date: String,
+    /// 索书号
+    pub call_no: String,
+}
+
+/// 检索结果
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchLibraryResult {
+    /// 检索总结果数(所有页面的结果总数)
+    pub result_count: u32,
+    /// 检索用时
+    pub use_time: f32,
+    /// 当前页号
+    pub current_page: u32,
+    /// 总页数
+    pub total_pages: u32,
+    /// 当前页面图书列表
+    pub book_list: Vec<Book>,
+}
+
+/// 馆藏信息预览
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HoldingPreviews {
+    /// 馆藏信息预览
+    pub holding_previews: HashMap<String, Vec<HoldingPreview>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HoldingPreview {
+    /// 索书号
+    pub call_no: String,
+    /// 所在馆代号
+    pub library_code: String,
+    /// 所在馆藏地点
+    pub library_name: String,
+    /// 所在馆藏地点代号
+    pub location: String,
+    /// 所在馆藏地点名
+    pub location_name: String,
+    /// 馆藏总数
+    pub total: u32,
+    /// 可借阅的数目
+    pub loanable_count: u32,
+    /// 书架号
+    pub shelf_no: String,
+    /// 条码号
+    pub barcode: String,
 }

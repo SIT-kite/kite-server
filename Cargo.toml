@@ -49,6 +49,8 @@ bincode = "1.3"
 async-bincode = "0.6"
 toml = "0.5"
 ics = "0.5"
+strum = { version = "0.21", features = ["derive"] }
+strum_macros = "0.21"
 
 # Web tools.
 jsonwebtoken = "7"

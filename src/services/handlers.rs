@@ -3,6 +3,7 @@ pub mod contact;
 pub mod edu;
 pub mod event;
 pub mod freshman;
+pub mod library;
 pub mod mall;
 pub mod motto;
 pub mod notice;
