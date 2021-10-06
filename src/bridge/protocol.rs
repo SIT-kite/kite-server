@@ -3,12 +3,7 @@ use std::pin::Pin;
 use serde::{Deserialize, Serialize};
 use tokio_tower::multiplex;
 
-use crate::bridge::model::{
-    Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, AgentInfo, AgentInfoRequest,
-    Course, Major, MajorRequest, PortalAuthRequest, PortalAuthResponse, ScActivityItem,
-    ScActivityRequest, ScScoreItem, ScScoreItemRequest, Score, ScoreDetail, ScoreDetailRequest,
-    ScoreRequest, TimeTableRequest,
-};
+use crate::bridge::model::*;
 
 /// Response payload
 #[derive(Debug, Serialize)]
@@ -25,6 +20,8 @@ pub enum RequestPayload {
     TimeTable(TimeTableRequest),
     Score(ScoreRequest),
     ScoreDetail(ScoreDetailRequest),
+    SearchLibrary(SearchLibraryRequest),
+    BookHoldingInfo(BookHoldingRequest),
 }
 
 /// Response payload
@@ -42,6 +39,8 @@ pub enum ResponsePayload {
     TimeTable(Vec<Course>),
     Score(Vec<Score>),
     ScoreDetail(Vec<ScoreDetail>),
+    SearchLibrary(SearchLibraryResult),
+    BookHoldingInfo(HoldingPreviews),
 }
 
 /// Error code and message to response

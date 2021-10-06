@@ -104,7 +104,8 @@ pub async fn server_main() -> std::io::Result<()> {
 
 fn routes(app: &mut web::ServiceConfig) {
     use handlers::{
-        attachment, contact, edu, event, freshman, mall, motto, notice, pay, search, status, user,
+        attachment, contact, edu, event, freshman, library, mall, motto, notice, pay, search, status,
+        user,
     };
 
     app.service(
@@ -181,7 +182,11 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(mall::cancel_wish)
             .service(mall::get_wishes)
             // Address book
-            .service(contact::query_all_telephone),
+            .service(contact::query_all_telephone)
+            // Library
+            .service(library::query_books)
+            .service(library::query_book_holding)
+            .service(library::query_book_detail),
     );
 }
 
