@@ -78,7 +78,7 @@ pub struct ScDetailQuery {
     pub force: bool,
 }
 
-#[get("/event/sc/score_detail")]
+#[get("/event/sc/score")]
 pub async fn get_sc_score_list(
     token: Option<JwtToken>,
     app: web::Data<AppState>,
@@ -135,7 +135,7 @@ pub async fn get_sc_score_list(
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }
 
-#[get("/event/sc/score")]
+#[get("/event/sc/score/summary")]
 pub async fn get_sc_score(token: Option<JwtToken>, app: web::Data<AppState>) -> Result<HttpResponse> {
     let uid = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))

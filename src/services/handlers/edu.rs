@@ -306,7 +306,7 @@ pub async fn query_score_detail(
     save_detail(&app.pool, detail_json, params.class_id).await?;
 
     let response = json!({
-            "score_detail": score_detail,
+            "scoreDetail": score_detail,
     });
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
 }

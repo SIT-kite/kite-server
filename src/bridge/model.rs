@@ -1,10 +1,12 @@
-use crate::error::{ApiError, Result};
-use crate::models::CommonError;
+use std::collections::HashMap;
+
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
 use strum_macros::EnumString;
+
+use crate::error::{ApiError, Result};
+use crate::models::CommonError;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -326,6 +328,7 @@ pub struct SaveScore {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScScoreSummary {
     /// Total score.
     pub total: f32,
