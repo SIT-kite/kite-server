@@ -244,7 +244,7 @@ pub async fn get_sc_activity_list(pool: &PgPool, page: &PageView) -> Result<Vec<
     Ok(result)
 }
 
-pub async fn get_sc_activity_detail(pool: &PgPool, activity_id: i32) -> Result<Vec<ScActivityDetail>> {
+pub async fn get_sc_activity_detail(pool: &PgPool, activity_id: i32) -> Result<ScActivityDetail> {
     let result = sqlx::query_as(
         "SELECT activity_id, title, start_time, sign_start_time, sign_end_time, place, duration,
          manager, contact, organizer, undertaker, description, image, category
@@ -252,7 +252,7 @@ pub async fn get_sc_activity_detail(pool: &PgPool, activity_id: i32) -> Result<V
         WHERE activity_id = $1;",
     )
     .bind(activity_id)
-    .fetch_all(pool)
+    .fetch_one(pool)
     .await?;
 
     Ok(result)
