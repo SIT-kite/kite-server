@@ -268,6 +268,7 @@ pub async fn query_score(
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScoreDetailQuery {
     pub year: String,
     pub semester: i32,
