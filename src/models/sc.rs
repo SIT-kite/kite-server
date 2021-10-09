@@ -193,8 +193,8 @@ async fn update_activity_list_in_category(
     .bind(category)
     .fetch_optional(&pool)
     .await?;
-    let id = id.map(|x| x.0).unwrap_or_default();
 
+    let id = id.map(|x| x.0).unwrap_or_default();
     let page_count = 50;
     let mut last_index = 1;
 
@@ -207,27 +207,45 @@ async fn update_activity_list_in_category(
         let activity_list = query_activity_list(&agents, param).await?;
         let fetched_size = activity_list.len();
 
-        for each_activity in activity_list {
-            if id == each_activity.id {
-                break;
-            }
-            let data = ActivityDetailRequest { id: each_activity.id };
+        update_activity_in_category(id, &pool, activity_list, &agents).await?;
 
-            let mut activity_detail = query_activity_detail(&agents, data).await?;
-
-            activity_detail.category = each_activity.category;
-
-            // Save the image
-            let (image_message, image_uuid) = save_image_as_file(&activity_detail.images).await?;
-
-            save_image(&pool, image_message).await?;
-            save_sc_activity_detail(&pool, activity_detail.as_ref(), image_uuid).await?;
-        }
         if fetched_size < page_count as usize {
             break;
         }
         last_index += 1;
     }
+    Ok(())
+}
+
+async fn update_activity_in_category(
+    id: i32,
+    pool: &PgPool,
+    activity_list: Vec<Activity>,
+    agents: &AgentManager,
+) -> Result<()> {
+    for each_activity in activity_list {
+        if id == each_activity.id {
+            break;
+        }
+        let data = ActivityDetailRequest { id: each_activity.id };
+
+        let mut activity_detail = query_activity_detail(agents, data).await;
+        let mut detail;
+        match activity_detail {
+            Ok(d) => {
+                detail = d;
+                detail.category = each_activity.category;
+
+                // Save the image
+                let (image_message, image_uuid) = save_image_as_file(&detail.images).await?;
+
+                save_image(&pool, image_message).await?;
+                save_sc_activity_detail(&pool, detail.as_ref(), image_uuid).await?;
+            }
+            _ => {}
+        }
+    }
+
     Ok(())
 }
 
@@ -250,8 +268,9 @@ async fn update_activity_list(pool: &PgPool, agents: &AgentManager) -> Result<()
 }
 
 pub async fn activity_update_daemon(pool: PgPool, agents: AgentManager) -> Result<()> {
-    loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
-        update_activity_list(&pool, &agents).await?;
-    }
+    // loop {
+    tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
+    update_activity_list(&pool, &agents).await?;
+    // }
+    Ok(())
 }
