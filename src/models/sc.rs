@@ -177,6 +177,7 @@ pub async fn save_sc_activity_detail(
         .bind(image_uuid)
         .execute(db)
         .await?;
+
     Ok(())
 }
 
@@ -234,7 +235,7 @@ async fn update_activity_list(pool: &PgPool, agents: &AgentManager) -> Result<()
     let mut handlers = vec![];
 
     // todo: 1~11
-    for i in 6..=6 {
+    for i in 1..=11 {
         let handle = tokio::spawn(update_activity_list_in_category(pool.clone(), agents.clone(), i));
         handlers.push(handle);
     }

@@ -208,7 +208,8 @@ pub struct ScActivityList {
     pub activity_id: i32,
     pub title: String,
     pub start_time: DateTime<Local>,
-    pub duration: Option<String>,
+    pub sign_end_time: DateTime<Local>,
+    pub category: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
@@ -232,8 +233,9 @@ pub struct ScActivityDetail {
 
 pub async fn get_sc_activity_list(pool: &PgPool, page: &PageView) -> Result<Vec<ScActivityList>> {
     let result = sqlx::query_as(
-        "SELECT activity_id, title, start_time, duration 
+        "SELECT activity_id, title, start_time, sign_end_time, category
         FROM events.sc_events
+        ORDER BY start_time DESC
         LIMIT $1 OFFSET $2;",
     )
     .bind(page.count(20) as i32)
