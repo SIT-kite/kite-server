@@ -75,7 +75,8 @@ pub async fn get_sc_score_detail(pool: &PgPool, query: &str) -> Result<Vec<ScDet
     let result = sqlx::query_as(
         "SELECT detail.activity_id, event.title, time, status, amount, category
         FROM events.sc_detail as detail, events.sc_events as event
-        WHERE detail.activity_id = event.activity_id and student_id = $1;",
+        WHERE detail.activity_id = event.activity_id and student_id = $1
+        ORDER BY time DESC;",
     )
     .bind(query)
     .fetch_all(pool)
@@ -253,7 +254,7 @@ async fn update_activity_list(pool: &PgPool, agents: &AgentManager) -> Result<()
     let mut handlers = vec![];
 
     // todo: 1~11
-    for i in 3..=3 {
+    for i in 1..=11 {
         let handle = tokio::spawn(update_activity_list_in_category(pool.clone(), agents.clone(), i));
         handlers.push(handle);
     }
