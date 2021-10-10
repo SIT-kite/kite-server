@@ -85,6 +85,7 @@ pub struct ScDetail {
     pub time: DateTime<Local>,
     pub status: String,
     pub amount: f32,
+    pub category: i32,
 }
 
 #[derive(Debug, Serialize, Clone)]
