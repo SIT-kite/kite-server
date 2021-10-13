@@ -230,48 +230,33 @@ async fn update_activity_in_category(
         }
         let data = ActivityDetailRequest { id: each_activity.id };
 
-        let mut activity_detail = query_activity_detail(agents, data).await;
-        let mut detail;
-        match activity_detail {
-            Ok(d) => {
-                detail = d;
-                detail.category = each_activity.category;
+        let mut activity_detail = query_activity_detail(agents, data).await?;
+        activity_detail.category = each_activity.category;
 
-                // Save the image
-                let (image_message, image_uuid) = save_image_as_file(&detail.images).await?;
+        // Save the image
+        let (image_message, image_uuid) = save_image_as_file(&activity_detail.images).await?;
 
-                save_image(&pool, image_message).await?;
-                save_sc_activity_detail(&pool, detail.as_ref(), image_uuid).await?;
-            }
-            _ => {}
-        }
+        save_image(&pool, image_message).await?;
+        save_sc_activity_detail(&pool, activity_detail.as_ref(), image_uuid).await?;
     }
 
     Ok(())
 }
 
-async fn update_activity_list(pool: &PgPool, agents: &AgentManager) -> Result<()> {
-    let mut handlers = vec![];
-
-    // todo: 1~11
-    for i in 1..=11 {
-        let handle = tokio::spawn(update_activity_list_in_category(pool.clone(), agents.clone(), i));
-        handlers.push(handle);
-    }
+async fn update_activity_list(pool: &PgPool, agents: &AgentManager, cat: i32) -> Result<()> {
+    let handle = update_activity_list_in_category(pool.clone(), agents.clone(), cat).await;
 
     // TODO: Wait handles. Must be updated.
-    for h in handlers {
-        let r = h.await;
-        println!("{:?}", r);
-    }
+    println!("{:?}", handle);
 
     Ok(())
 }
 
 pub async fn activity_update_daemon(pool: PgPool, agents: AgentManager) -> Result<()> {
-    // loop {
     tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
-    update_activity_list(&pool, &agents).await?;
-    // }
+    for i in 1..=11 {
+        update_activity_list(&pool, &agents, i).await?;
+    }
+
     Ok(())
 }
