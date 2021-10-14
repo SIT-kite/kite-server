@@ -7,6 +7,8 @@ use crate::models::mall::{
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
+use crate::models::user;
+use wechat_sdk::wechat::Check;
 
 pub fn is_numeric(s: &str) -> bool {
     for ch in s.chars() {
@@ -140,7 +142,7 @@ pub async fn publish_goods(
     token: Option<JwtToken>,
     form: web::Json<mall::Publish>,
 ) -> Result<HttpResponse> {
-    let form = form.into_inner();
+    let mut form = form.into_inner();
     let uid = token
         .map(|token| token.uid)
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))?;
@@ -150,7 +152,17 @@ pub async fn publish_goods(
         return Err(ApiError::new(MallError::OutRange));
     }
 
-    // TODO: 调用敏感文字检测
+    //获取openid
+    let openid = user::get_open_id(&app.pool,uid).await?;
+    //拼接验证内容(item_name + description)
+    let content = format!("{}{}",form.item_name,form.description);
+
+    //内容违规检测
+    let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,content).await?;
+
+    //向form中添加内容验证结果
+    form.suggest = Some(check_response.result.suggest.clone());
+    form.label = Some(check_response.result.label.clone());
 
     // 请求添加新商品
     let item_code = mall::publish_goods(&app.pool, uid, &form).await?;
@@ -167,7 +179,7 @@ pub async fn update_goods(
     token: Option<JwtToken>,
     form: web::Json<UpdateGoods>,
 ) -> Result<HttpResponse> {
-    let form = form.into_inner();
+    let mut form = form.into_inner();
 
     let uid = token
         .map(|token| token.uid)
@@ -178,14 +190,30 @@ pub async fn update_goods(
         return Err(ApiError::new(MallError::OutRange));
     }
 
-    // TODO: 调用敏感文字检测
+    //获取openid
+    let openid = user::get_open_id(&app.pool,uid).await?;
+    //拼接验证内容(item_name + description)
+    let content = format!("{}{}",form.item_name,form.description);
+
+    //内容违规检测
+    let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,content).await?;
+
+    //向form中添加内容验证结果
+    form.suggest = Some(check_response.result.suggest.clone());
+    form.label = Some(check_response.result.label.clone());
 
     // 权限校验
     let pub_code = mall::check_goods(&app.pool, uid, &form).await?;
 
+    form.pub_code = Some(pub_code);
+
+    //修改发布以及商品信息
+    let pub_code = mall::update_publish(&app.pool, &form).await?;
     let goods_id = mall::update_goods(&app.pool, &form).await?;
+
     let response = serde_json::json!({
-        "id": goods_id,
+        "goods_id": goods_id,
+        "pub_code": pub_code
     });
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
@@ -208,7 +236,7 @@ pub async fn publish_comment(
     token: Option<JwtToken>,
     form: web::Json<PubComment>,
 ) -> Result<HttpResponse> {
-    let form = form.into_inner();
+    let mut form = form.into_inner();
     let uid = token
         .map(|token| token.uid)
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))?;
@@ -218,9 +246,17 @@ pub async fn publish_comment(
         return Err(ApiError::new(MallError::OutRange));
     }
 
-    // 调用敏感文字检验
+    //获取openid
+    let openid = user::get_open_id(&app.pool,uid).await?;
 
-    // 调用数据库
+    //内容违规检测
+    let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,form.content.clone()).await?;
+
+    //向form中添加内容验证结果
+    form.suggest = Some(check_response.result.suggest.clone());
+    form.label = Some(check_response.result.label.clone());
+
+    // 数据库插入评论
     let com_code = mall::publish_comment(&app.pool, uid, &form).await?;
     let response = serde_json::json!({
         "code": com_code,

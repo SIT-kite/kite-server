@@ -4,6 +4,7 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 pub use person::get_default_avatar;
+pub use person::get_open_id;
 
 mod identity;
 mod person;
@@ -36,6 +37,8 @@ pub enum UserError {
     NoSuchStudentNo = 58,
     #[error("暂不支持高职学院")]
     NoSupport = 59,
+    #[error("无该用户openid,用户需在近两小时访问过小程序")]
+    NoUserOpenId = 60,
 }
 
 /* Models */
