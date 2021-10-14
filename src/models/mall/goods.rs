@@ -32,6 +32,7 @@ pub async fn get_goods_list(db: &PgPool, form: &SelectGoods, page: PageView) -> 
                     ) AS B
                         ON A.item_code = B.item_code
                 WHERE A.status = 'Y'
+                  AND A.label = '100'
                   AND ($1 IS NULL OR A1.sort = $1)
                   AND ($2 IS NULL OR A1.item_name LIKE $2)
                 ORDER BY A.insert_time
@@ -127,8 +128,10 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
                 ,status
                 ,insert_time
                 ,update_time
+                ,suggest
+                ,label
             )
-            VALUES ($1,$2,$3,$4,$5,$6,$7);
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9);
         ",
     )
     .bind(&pub_code)
@@ -138,6 +141,8 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
     .bind("Y")
     .bind(Local::now())
     .bind(Local::now())
+    .bind(&new.suggest)
+    .bind(&new.label)
     .fetch_optional(db)
     .await?;
 
@@ -221,6 +226,31 @@ pub async fn update_goods(db: &PgPool, new: &UpdateGoods) -> Result<String> {
 
     item_code
         .map(|(item_code,)| item_code)
+        .ok_or_else(|| ApiError::new(MallError::NoSuchGoods))
+}
+
+pub async fn update_publish(db: &PgPool, new: &UpdateGoods) -> Result<String> {
+    let pub_code: Option<(String,)> = sqlx::query_as(
+        "
+            UPDATE
+                mall.publish
+             SET
+                campus = $1,
+                suggest = $2,
+                label = $3
+             WHERE
+                pub_code = $4
+             RETURNING (pub_code);",
+    )
+        .bind(&new.campus)
+        .bind(&new.suggest)
+        .bind(&new.label)
+        .bind(&new.pub_code)
+        .fetch_optional(db)
+        .await?;
+
+    pub_code
+        .map(|(pub_code,)| pub_code)
         .ok_or_else(|| ApiError::new(MallError::NoSuchGoods))
 }
 

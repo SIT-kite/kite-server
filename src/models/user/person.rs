@@ -227,3 +227,20 @@ impl Default for Person {
         }
     }
 }
+
+pub async fn get_open_id(db: &PgPool, uid: i32) -> Result<String> {
+    let open_id: Option<(String,)> = sqlx::query_as(
+        "
+                SELECT account
+                FROM public.authentication
+                WHERE uid = $1
+            ",
+    )
+        .bind(uid)
+        .fetch_optional(db)
+        .await?;
+
+    open_id
+        .map(|(open_id,)| open_id)
+        .ok_or_else(|| ApiError::new(UserError::NoSuchUser))
+}
