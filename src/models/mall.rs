@@ -35,7 +35,7 @@ pub enum MallError {
     #[error("该用户无相应商品")]
     NoUserGood = 226,
     #[error("内容存在违规")]
-    MsgDanger = 227
+    MsgDanger = 227,
 }
 
 /* Model */
@@ -273,7 +273,7 @@ pub struct Publish {
     pub campus: String,
     pub sort: i32,
     pub suggest: Option<String>,
-    pub label: Option<i64>
+    pub label: Option<i64>,
 }
 
 //更新商品参数

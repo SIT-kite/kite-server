@@ -225,9 +225,9 @@ async fn update_activity_in_category(
     agents: &AgentManager,
 ) -> Result<()> {
     for each_activity in activity_list {
-        if id == each_activity.id {
-            break;
-        }
+        // if id == each_activity.id {
+        //     break;
+        // }
         let data = ActivityDetailRequest { id: each_activity.id };
 
         let mut activity_detail = query_activity_detail(agents, data).await?;

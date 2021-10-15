@@ -4,10 +4,10 @@ use crate::error::{ApiError, Result};
 use crate::models::mall::{
     self, Comment, CommentUni, MallError, PubComment, PubWish, SelectGoods, UpdateGoods,
 };
+use crate::models::user;
 use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
-use crate::models::user;
 use wechat_sdk::wechat::Check;
 
 pub fn is_numeric(s: &str) -> bool {
@@ -153,12 +153,15 @@ pub async fn publish_goods(
     }
 
     //获取openid
-    let openid = user::get_open_id(&app.pool,uid).await?;
+    let openid = user::get_open_id(&app.pool, uid).await?;
     //拼接验证内容(item_name + description)
-    let content = format!("{}{}",form.item_name,form.description);
+    let content = format!("{}{}", form.item_name, form.description);
 
     //内容违规检测
-    let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,content).await?;
+    let check_response = app
+        .wx_client
+        .msg_sec_check(openid, "1".to_string(), content)
+        .await?;
 
     //向form中添加内容验证结果
     form.suggest = Some(check_response.result.suggest.clone());
@@ -191,12 +194,15 @@ pub async fn update_goods(
     }
 
     //获取openid
-    let openid = user::get_open_id(&app.pool,uid).await?;
+    let openid = user::get_open_id(&app.pool, uid).await?;
     //拼接验证内容(item_name + description)
-    let content = format!("{}{}",form.item_name,form.description);
+    let content = format!("{}{}", form.item_name, form.description);
 
     //内容违规检测
-    let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,content).await?;
+    let check_response = app
+        .wx_client
+        .msg_sec_check(openid, "1".to_string(), content)
+        .await?;
 
     //向form中添加内容验证结果
     form.suggest = Some(check_response.result.suggest.clone());
@@ -247,10 +253,13 @@ pub async fn publish_comment(
     }
 
     //获取openid
-    let openid = user::get_open_id(&app.pool,uid).await?;
+    let openid = user::get_open_id(&app.pool, uid).await?;
 
     //内容违规检测
-    let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,form.content.clone()).await?;
+    let check_response = app
+        .wx_client
+        .msg_sec_check(openid, "1".to_string(), form.content.clone())
+        .await?;
 
     //向form中添加内容验证结果
     form.suggest = Some(check_response.result.suggest.clone());

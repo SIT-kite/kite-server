@@ -2,6 +2,7 @@
 use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use uuid::Uuid;
 
 use crate::error::Result;
 use crate::models::PageView;
@@ -254,6 +255,25 @@ pub async fn get_sc_activity_detail(pool: &PgPool, activity_id: i32) -> Result<S
         WHERE activity_id = $1;",
     )
     .bind(activity_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(result)
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct ScActivityImage {
+    pub id: Uuid,
+    pub url: String,
+}
+
+pub async fn get_sc_image_url(pool: &PgPool, image_name: String) -> Result<ScActivityImage> {
+    let result = sqlx::query_as(
+        "SELECT id, url FROM attachments
+        WHERE id = $1::uuid;",
+    )
+    .bind(image_name)
     .fetch_one(pool)
     .await?;
 

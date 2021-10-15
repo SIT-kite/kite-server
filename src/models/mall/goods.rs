@@ -242,12 +242,12 @@ pub async fn update_publish(db: &PgPool, new: &UpdateGoods) -> Result<String> {
                 pub_code = $4
              RETURNING (pub_code);",
     )
-        .bind(&new.campus)
-        .bind(&new.suggest)
-        .bind(&new.label)
-        .bind(&new.pub_code)
-        .fetch_optional(db)
-        .await?;
+    .bind(&new.campus)
+    .bind(&new.suggest)
+    .bind(&new.label)
+    .bind(&new.pub_code)
+    .fetch_optional(db)
+    .await?;
 
     pub_code
         .map(|(pub_code,)| pub_code)

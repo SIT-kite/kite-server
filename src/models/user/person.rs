@@ -236,9 +236,9 @@ pub async fn get_open_id(db: &PgPool, uid: i32) -> Result<String> {
                 WHERE uid = $1
             ",
     )
-        .bind(uid)
-        .fetch_optional(db)
-        .await?;
+    .bind(uid)
+    .fetch_optional(db)
+    .await?;
 
     open_id
         .map(|(open_id,)| open_id)

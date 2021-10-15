@@ -1,6 +1,7 @@
 //! This module includes interfaces about the event and sign.
 use actix_web::{get, post, web, HttpResponse};
 use serde::Deserialize;
+use sqlx::PgPool;
 
 use crate::bridge::{
     SaveScActivity, SaveScScore, ScActivityRequest, ScScoreItemRequest, ScScoreSummary,
@@ -11,7 +12,8 @@ use crate::models::edu::{
     save_sc_activity_list, save_sc_score_list,
 };
 use crate::models::event::{
-    get_sc_activity_detail, get_sc_activity_list, query_sc_score, Event, EventError, ScScore,
+    get_sc_activity_detail, get_sc_activity_list, get_sc_image_url, query_sc_score, Event, EventError,
+    ScActivityDetail, ScScore,
 };
 use crate::models::user::Person;
 use crate::models::{event, CommonError, PageView};
@@ -246,10 +248,25 @@ pub async fn get_sc_event_detail(
         .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
 
     let activity_id = path.into_inner();
-    let result = get_sc_activity_detail(&app.pool, activity_id).await?;
+    let mut detail = get_sc_activity_detail(&app.pool, activity_id).await?;
+
+    let result = fetch_image_url(detail, &app.pool).await?;
     let response = serde_json::json!({
         "activityDetail": result,
     });
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+}
+
+async fn fetch_image_url(mut detail: ScActivityDetail, pool: &PgPool) -> Result<ScActivityDetail> {
+    if !detail.image.is_empty() {
+        let mut image_urls = Vec::new();
+        for image in detail.image {
+            let image_url = get_sc_image_url(pool, image).await?;
+            image_urls.push(image_url.url);
+        }
+        detail.image = image_urls;
+    }
+
+    Ok(detail)
 }
