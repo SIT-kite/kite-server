@@ -10,7 +10,7 @@ use crate::config::CONFIG;
 use crate::error::{ApiError, Result};
 use crate::models::file::AvatarImage;
 
-static URL_PREFIX: &str = "https://kite.sunnysab.cn/sc/image/";
+static URL_PREFIX: &str = "https://kite.sunnysab.cn/static/event/image/";
 
 pub async fn query_current_sc_score_list(
     agent: &AgentManager,
