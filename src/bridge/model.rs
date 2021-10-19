@@ -32,7 +32,7 @@ pub enum PortalAuthResponse {
     Err(String),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ScScoreItemRequest {
     pub account: String,
@@ -43,6 +43,7 @@ pub struct ScScoreItemRequest {
 #[serde(rename_all = "camelCase")]
 pub struct ScScoreItem {
     pub activity_id: i32,
+    pub category: i32,
     pub amount: f32,
 }
 
@@ -51,6 +52,7 @@ pub struct ScScoreItem {
 pub struct SaveScScore {
     pub account: String,
     pub activity_id: i32,
+    pub category: i32,
     pub amount: f32,
 }
 
@@ -96,6 +98,12 @@ pub struct ActivityListRequest {
     pub index: u16,
     /// Category Id
     pub category: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct WrongScActivity {
+    pub activity_id_category: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

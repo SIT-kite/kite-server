@@ -4,17 +4,19 @@ use serde::Deserialize;
 use sqlx::PgPool;
 
 use crate::bridge::{
-    SaveScActivity, SaveScScore, ScActivityRequest, ScScoreItemRequest, ScScoreSummary,
+    ActivityDetailRequest, AgentManager, SaveScActivity, SaveScScore, ScActivityRequest,
+    ScScoreItemRequest, ScScoreSummary,
 };
 use crate::error::{ApiError, Result};
 use crate::models::edu::{
-    get_sc_score_detail, query_current_sc_activity_list, query_current_sc_score_list,
-    save_sc_activity_list, save_sc_score_list,
+    get_sc_score_detail, query_activity_detail, query_current_sc_activity_list,
+    query_current_sc_score_list, save_sc_activity_detail, save_sc_activity_list, save_sc_score_list,
 };
 use crate::models::event::{
     get_sc_activity_detail, get_sc_activity_list, get_sc_image_url, query_sc_score, Event, EventError,
     ScActivityDetail, ScScore,
 };
+use crate::models::sc::{delete_sc_score_list, save_image, save_image_as_file};
 use crate::models::user::Person;
 use crate::models::{event, CommonError, PageView};
 use crate::services::response::ApiResponse;
@@ -97,22 +99,38 @@ pub async fn get_sc_score_list(
     let params = params.into_inner();
 
     if params.force {
-        let score_data = ScScoreItemRequest {
-            account: account.clone(),
-            passwd: password.clone(),
-        };
-
         let agent = &app.agents;
-        let score_detail = query_current_sc_score_list(agent, score_data).await?;
-        let save_score_detail: Vec<SaveScScore> = score_detail
-            .into_iter()
-            .map(|e| SaveScScore {
+        let pool = &app.pool;
+        loop {
+            let score_data = ScScoreItemRequest {
                 account: account.clone(),
-                activity_id: e.activity_id,
-                amount: e.amount,
-            })
-            .collect();
-        save_sc_score_list(&app.pool, save_score_detail).await?;
+                passwd: password.clone(),
+            };
+
+            let missing_activities: Vec<(i32, i32)> =
+                store_sc_score_list(agent, pool, score_data.clone(), account.clone()).await?;
+            if missing_activities.is_empty() {
+                break;
+            }
+            // Add missing activity into db
+            for missing_activity in missing_activities {
+                let (activity_id, category) = missing_activity;
+                let activity = ActivityDetailRequest { id: activity_id };
+                let mut activity_detail = query_activity_detail(&app.agents, activity).await?;
+                activity_detail.category = category;
+
+                let (image_message, image_uuid) = save_image_as_file(&activity_detail.images).await?;
+
+                save_image(&app.pool, image_message).await?;
+                save_sc_activity_detail(&app.pool, activity_detail.as_ref(), image_uuid).await?;
+            }
+
+            // Delete the score_detail from db
+            delete_sc_score_list(&app.pool, account.clone()).await?;
+
+            // Reload db
+            store_sc_score_list(agent, pool, score_data, account.clone()).await?;
+        }
 
         let activity_data = ScActivityRequest {
             account: account.clone(),
@@ -135,6 +153,38 @@ pub async fn get_sc_score_list(
             "detail": result,
     });
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+}
+
+async fn store_sc_score_list(
+    agent: &AgentManager,
+    pool: &PgPool,
+    score_data: ScScoreItemRequest,
+    account: String,
+) -> Result<Vec<(i32, i32)>> {
+    let score_detail = query_current_sc_score_list(agent, score_data).await?;
+    let save_score_detail: Vec<SaveScScore> = score_detail
+        .into_iter()
+        .map(|e| SaveScScore {
+            account: account.clone(),
+            activity_id: e.activity_id,
+            category: e.category,
+            amount: e.amount,
+        })
+        .collect();
+
+    let mut missing_activities = Vec::new();
+    for score_detail in save_score_detail {
+        let db_result = save_sc_score_list(pool, score_detail).await?;
+        let (activity_id, category) = db_result.activity_id_category.split_once("-").unwrap_or_default();
+        let activity_id: i32 = activity_id.parse().unwrap_or_default();
+        let category: i32 = category.parse().unwrap_or_default();
+        if activity_id != 0 {
+            missing_activities.push((activity_id, category));
+            println!("{:?}", activity_id);
+        }
+    }
+
+    Ok(missing_activities)
 }
 
 #[get("/event/sc/score/summary")]

@@ -4,7 +4,7 @@ use tokio::io::AsyncWriteExt;
 use crate::bridge::{
     Activity, ActivityDetail, ActivityDetailRequest, ActivityListRequest, AgentManager, HostError,
     RequestFrame, RequestPayload, ResponsePayload, SaveScActivity, SaveScScore, ScActivityItem,
-    ScActivityRequest, ScDetail, ScImages, ScScoreItem, ScScoreItemRequest,
+    ScActivityRequest, ScDetail, ScImages, ScScoreItem, ScScoreItemRequest, WrongScActivity,
 };
 use crate::config::CONFIG;
 use crate::error::{ApiError, Result};
@@ -25,19 +25,26 @@ pub async fn query_current_sc_score_list(
     }
 }
 
-pub async fn save_sc_score_list(db: &PgPool, data: Vec<SaveScScore>) -> Result<()> {
-    for each_score in data {
-        sqlx::query(
-            "INSERT INTO events.sc_score_detail (student_id, activity_id, amount)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (student_id, activity_id, amount) DO NOTHING;",
-        )
-        .bind(each_score.account)
-        .bind(each_score.activity_id)
-        .bind(each_score.amount)
+pub async fn save_sc_score_list(db: &PgPool, data: SaveScScore) -> Result<WrongScActivity> {
+    let result = sqlx::query_as(
+        "SELECT insert_sc_score as activity_id_category from events.insert_sc_score($1, $2, $3, $4)",
+    )
+    .bind(data.account)
+    .bind(data.activity_id)
+    .bind(data.category)
+    .bind(data.amount)
+    .fetch_one(db)
+    .await?;
+
+    Ok(result)
+}
+
+pub async fn delete_sc_score_list(db: &PgPool, id: String) -> Result<()> {
+    sqlx::query("DELETE FROM events.sc_score_detail WHERE student_id = $1;")
+        .bind(id)
         .execute(db)
         .await?;
-    }
+
     Ok(())
 }
 
