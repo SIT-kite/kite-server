@@ -1,5 +1,7 @@
-use sqlx::PgPool;
 use std::collections::HashSet;
+
+use chrono::{Local, Timelike};
+use sqlx::PgPool;
 use tokio::io::AsyncWriteExt;
 
 use crate::bridge::{
@@ -82,7 +84,7 @@ pub async fn save_sc_activity_list(db: &PgPool, data: Vec<SaveScActivity>) -> Re
 pub async fn get_sc_score_detail(pool: &PgPool, query: &str) -> Result<Vec<ScDetail>> {
     let result = sqlx::query_as(
         "SELECT detail.activity_id, event.title, time, status, amount, category
-        FROM events.sc_detail as detail, events.sc_events as event
+        FROM events.sc_detail as detail, events.sc_events AS event
         WHERE detail.activity_id = event.activity_id and student_id = $1
         ORDER BY time DESC;",
     )
@@ -190,48 +192,53 @@ pub async fn save_sc_activity_detail(
     Ok(())
 }
 
-async fn update_activity_list_in_category(
-    pool: PgPool,
-    agents: AgentManager,
-    category: i32,
-) -> Result<()> {
-    let activity_id_list: Vec<(i32,)> = sqlx::query_as(
+async fn fetch_cached_activities_from_db(pool: &PgPool, category: i32, count: u16) -> Result<Vec<i32>> {
+    let result = sqlx::query_as(
         "SELECT activity_id FROM events.sc_events 
-        WHERE category = $1 ORDER BY activity_id DESC LIMIT 100;",
+        WHERE category = $1 ORDER BY activity_id DESC LIMIT $2;",
     )
     .bind(category)
-    .fetch_all(&pool)
-    .await?;
+    .bind(count as i32)
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|x: (i32,)| x.0)
+    .collect();
 
-    let db_activity_list: Vec<i32> = activity_id_list.into_iter().map(|x| x.0).collect();
-
-    let page_count = 50;
-    let last_index = 1;
-
-    let param = ActivityListRequest {
-        count: page_count,
-        index: last_index,
-        category,
-    };
-    let activity_list = query_activity_list(&agents, param).await?;
-    let activity_id_list: Vec<i32> = activity_list.into_iter().map(|x| x.id).collect();
-
-    let db_activity_hash: HashSet<_> = db_activity_list.iter().cloned().collect();
-    let activity_hash: HashSet<_> = activity_id_list.iter().cloned().collect();
-
-    let activity_deduplication: HashSet<_> = activity_hash.difference(&db_activity_hash).collect();
-
-    let activity_deduplication: Vec<Activity> = activity_deduplication
-        .iter()
-        .map(|s| Activity { id: **s, category })
-        .collect();
-
-    update_activity_in_category(&pool, activity_deduplication, &agents).await?;
-
-    Ok(())
+    Ok(result)
 }
 
-async fn update_activity_in_category(
+async fn request_activity_list(agents: &AgentManager, category: i32, count: u16) -> Result<Vec<i32>> {
+    let param = ActivityListRequest {
+        count,
+        index: 1,
+        category,
+    };
+    query_activity_list(&agents, param)
+        .await
+        .map(|activity_list| activity_list.into_iter().map(|x| x.id).collect())
+}
+
+async fn update_activity_list_in_category(
+    pool: &PgPool,
+    agents: &AgentManager,
+    category: i32,
+) -> Result<()> {
+    let count = 30u16;
+    let cached_activities = fetch_cached_activities_from_db(pool, category, count).await?;
+    let recent_activities = request_activity_list(agents, category, count).await?;
+
+    let cached_set: HashSet<_> = cached_activities.iter().collect();
+    let recent_set: HashSet<_> = recent_activities.iter().collect();
+    let activities_to_pull: Vec<_> = recent_set
+        .difference(&cached_set)
+        .map(|&&s| Activity { id: s, category })
+        .collect();
+
+    update_activity(&pool, activities_to_pull, &agents).await
+}
+
+async fn update_activity(
     pool: &PgPool,
     activity_list: Vec<Activity>,
     agents: &AgentManager,
@@ -246,27 +253,34 @@ async fn update_activity_in_category(
         let (image_message, image_uuid) = save_image_as_file(&activity_detail.images).await?;
 
         save_image(&pool, image_message).await?;
-
-        save_sc_activity_detail(&pool, activity_detail.as_ref(), image_uuid).await?;
+        save_sc_activity_detail(&pool, &activity_detail, image_uuid).await?;
     }
 
     Ok(())
 }
 
-async fn update_activity_list(pool: &PgPool, agents: &AgentManager, cat: i32) -> Result<()> {
-    let handle = update_activity_list_in_category(pool.clone(), agents.clone(), cat).await;
+fn is_work_time() -> bool {
+    let now = Local::now();
 
-    // TODO: Wait handles. Must be updated.
-    println!("{:?}", handle);
-
-    Ok(())
+    (7..=22).contains(&now.hour())
 }
 
 pub async fn activity_update_daemon(pool: PgPool, agents: AgentManager) -> Result<()> {
     loop {
+        // Sleep for 5 minutes.
         tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
-        for i in 8..=8 {
-            update_activity_list(&pool, &agents, i).await?;
+        if !is_work_time() {
+            continue;
+        }
+
+        for category in 1..=11 {
+            match update_activity_list_in_category(&pool, &agents, category).await {
+                Ok(_) => (),
+                Err(e) => println!(
+                    "Error occurred while updating activity category {}: {}",
+                    category, e
+                ),
+            }
         }
     }
 }

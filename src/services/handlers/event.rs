@@ -286,36 +286,20 @@ pub async fn get_sc_event_list(
 pub async fn get_sc_event_detail(
     token: Option<JwtToken>,
     app: web::Data<AppState>,
-    path: web::Path<i32>,
+    activity_id: web::Path<i32>,
 ) -> Result<HttpResponse> {
     let uid = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
         .map(|token| token.uid)?;
 
-    let _ = Person::get_identity(&app.pool, uid)
+    Person::get_identity(&app.pool, uid)
         .await?
         .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
 
-    let activity_id = path.into_inner();
-    let mut detail = get_sc_activity_detail(&app.pool, activity_id).await?;
-
-    let result = fetch_image_url(detail, &app.pool).await?;
+    let result = get_sc_activity_detail(&app.pool, activity_id.into_inner()).await?;
     let response = serde_json::json!({
         "activityDetail": result,
     });
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
-}
-
-async fn fetch_image_url(mut detail: ScActivityDetail, pool: &PgPool) -> Result<ScActivityDetail> {
-    if !detail.image.is_empty() {
-        let mut image_urls = Vec::new();
-        for image in detail.image {
-            let image_url = get_sc_image_url(pool, image).await?;
-            image_urls.push(image_url.url);
-        }
-        detail.image = image_urls;
-    }
-
-    Ok(detail)
 }

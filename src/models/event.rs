@@ -229,7 +229,6 @@ pub struct ScActivityDetail {
     pub organizer: Option<String>,
     pub undertaker: Option<String>,
     pub description: String,
-    pub image: Vec<String>,
 }
 
 pub async fn get_sc_activity_list(pool: &PgPool, page: &PageView) -> Result<Vec<ScActivityList>> {
