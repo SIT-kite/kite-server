@@ -180,7 +180,6 @@ async fn store_sc_score_list(
         let category: i32 = category.parse().unwrap_or_default();
         if activity_id != 0 {
             missing_activities.push((activity_id, category));
-            println!("{:?}", activity_id);
         }
     }
 

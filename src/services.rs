@@ -69,9 +69,9 @@ pub async fn server_main() -> std::io::Result<()> {
         wx_client,
     };
 
-    // use crate::models::sc::activity_update_daemon;
-    //
-    // tokio::spawn(activity_update_daemon(pool, agents));
+    use crate::models::sc::activity_update_daemon;
+
+    tokio::spawn(activity_update_daemon(pool, agents));
 
     // Run actix-web services.
     let mut server = HttpServer::new(move || {

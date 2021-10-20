@@ -1,4 +1,5 @@
 use sqlx::PgPool;
+use std::collections::HashSet;
 use tokio::io::AsyncWriteExt;
 
 use crate::bridge::{
@@ -122,7 +123,7 @@ pub async fn save_image_as_file(data: &Vec<ScImages>) -> Result<(Vec<AvatarImage
     let mut result = Vec::new();
     let mut image_uuid = Vec::new();
     for image in data {
-        let path = format!("{}/image/{}", &CONFIG.server.attachment, image.new_name);
+        let path = format!("{}/event/image/{}", &CONFIG.server.attachment, image.new_name);
         let mut file = tokio::fs::File::create(&path).await?;
         file.write_all(&image.content).await?;
         let (file_name, _) = image.new_name.split_once(".").unwrap_or_default();
@@ -194,47 +195,48 @@ async fn update_activity_list_in_category(
     agents: AgentManager,
     category: i32,
 ) -> Result<()> {
-    let id: Option<(i32,)> = sqlx::query_as(
+    let activity_id_list: Vec<(i32,)> = sqlx::query_as(
         "SELECT activity_id FROM events.sc_events 
-        WHERE category = $1 ORDER BY activity_id DESC LIMIT 1;",
+        WHERE category = $1 ORDER BY activity_id DESC LIMIT 100;",
     )
     .bind(category)
-    .fetch_optional(&pool)
+    .fetch_all(&pool)
     .await?;
 
-    let id = id.map(|x| x.0).unwrap_or_default();
+    let db_activity_list: Vec<i32> = activity_id_list.into_iter().map(|x| x.0).collect();
+
     let page_count = 50;
-    let mut last_index = 1;
+    let last_index = 1;
 
-    loop {
-        let param = ActivityListRequest {
-            count: page_count,
-            index: last_index,
-            category,
-        };
-        let activity_list = query_activity_list(&agents, param).await?;
-        let fetched_size = activity_list.len();
+    let param = ActivityListRequest {
+        count: page_count,
+        index: last_index,
+        category,
+    };
+    let activity_list = query_activity_list(&agents, param).await?;
+    let activity_id_list: Vec<i32> = activity_list.into_iter().map(|x| x.id).collect();
 
-        update_activity_in_category(id, &pool, activity_list, &agents).await?;
+    let db_activity_hash: HashSet<_> = db_activity_list.iter().cloned().collect();
+    let activity_hash: HashSet<_> = activity_id_list.iter().cloned().collect();
 
-        if fetched_size < page_count as usize {
-            break;
-        }
-        last_index += 1;
-    }
+    let activity_deduplication: HashSet<_> = activity_hash.difference(&db_activity_hash).collect();
+
+    let activity_deduplication: Vec<Activity> = activity_deduplication
+        .iter()
+        .map(|s| Activity { id: **s, category })
+        .collect();
+
+    update_activity_in_category(&pool, activity_deduplication, &agents).await?;
+
     Ok(())
 }
 
 async fn update_activity_in_category(
-    id: i32,
     pool: &PgPool,
     activity_list: Vec<Activity>,
     agents: &AgentManager,
 ) -> Result<()> {
     for each_activity in activity_list {
-        // if id == each_activity.id {
-        //     break;
-        // }
         let data = ActivityDetailRequest { id: each_activity.id };
 
         let mut activity_detail = query_activity_detail(agents, data).await?;
@@ -244,6 +246,7 @@ async fn update_activity_in_category(
         let (image_message, image_uuid) = save_image_as_file(&activity_detail.images).await?;
 
         save_image(&pool, image_message).await?;
+
         save_sc_activity_detail(&pool, activity_detail.as_ref(), image_uuid).await?;
     }
 
@@ -260,10 +263,10 @@ async fn update_activity_list(pool: &PgPool, agents: &AgentManager, cat: i32) ->
 }
 
 pub async fn activity_update_daemon(pool: PgPool, agents: AgentManager) -> Result<()> {
-    tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
-    for i in 1..=11 {
-        update_activity_list(&pool, &agents, i).await?;
+    loop {
+        tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
+        for i in 8..=8 {
+            update_activity_list(&pool, &agents, i).await?;
+        }
     }
-
-    Ok(())
 }

@@ -114,7 +114,7 @@ pub struct ActivityDetailRequest {
 }
 
 /// Activity link, used for list recent activities.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Activity {
     pub id: i32,
