@@ -498,3 +498,43 @@ pub struct HoldingPreview {
     /// 条码号
     pub barcode: String,
 }
+
+/// Campus card consumption records
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExpenseRecord {
+    /// Record date.
+    pub ts: DateTime<Local>,
+    /// Expense amount.
+    pub amount: f32,
+    /// Expense address.
+    pub address: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct PageInfo {
+    /// current page number.
+    pub current: u32,
+    /// total pages number.
+    pub total: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExpensePage {
+    pub records: Vec<ExpenseRecord>,
+    /// Page information for current record.
+    pub page: PageInfo,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExpenseRequest {
+    /// 账户
+    pub account: String,
+    /// 密码
+    pub password: String,
+    /// 页号
+    pub page: Option<u16>,
+    /// 起始时间
+    pub start_time: Option<String>,
+    /// 终止时间
+    pub end_time: Option<String>,
+}
