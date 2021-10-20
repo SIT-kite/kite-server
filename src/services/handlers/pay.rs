@@ -2,12 +2,19 @@
 use std::ops::Sub;
 
 use actix_web::{get, web, HttpResponse};
-use chrono::Duration;
+use chrono::{Duration};
 
 use crate::error::Result;
 use crate::models::pay::BalanceManager;
 use crate::services::response::ApiResponse;
 use crate::services::AppState;
+
+use crate::bridge::{ExpenseRequest, HostError, RequestFrame, RequestPayload, ResponsePayload};
+use crate::error::ApiError;
+use crate::models::user::Person;
+use crate::models::{CommonError, PageView};
+use crate::services::JwtToken;
+
 
 /**********************************************************************
     Interfaces in this module:
@@ -81,4 +88,47 @@ pub async fn query_room_bills_by_hour(
     let result = manager.query_balance_by_hour(room, start_time, end_time).await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(result)))
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpenseQuery {
+    start_time: Option<String>,
+    end_time: Option<String>,
+}
+
+#[get("/pay/expense")]
+pub async fn query_expense(
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    page: web::Query<PageView>,
+    query: web::Query<ExpenseQuery>,
+) -> Result<HttpResponse> {
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let identity = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+    let account = identity.student_id;
+    let password = identity.oa_secret;
+
+    let request = ExpenseRequest {
+        account,
+        password,
+        page: Some(page.index()),
+        start_time: query.start_time.clone(),
+        end_time: query.end_time.clone(),
+    };
+
+    let agents = &app.agents;
+    let payload = RequestPayload::CardExpense(request);
+    let request = RequestFrame::new(payload);
+
+    let response = agents.request(request).await??;
+    if let ResponsePayload::CardExpense(result) = response {
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(result)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
 }

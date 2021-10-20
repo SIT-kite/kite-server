@@ -5,6 +5,7 @@
 use std::io::Read;
 
 use actix_web::http::HeaderValue;
+
 use actix_web::{web, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -103,10 +104,7 @@ pub async fn server_main() -> std::io::Result<()> {
 }
 
 fn routes(app: &mut web::ServiceConfig) {
-    use handlers::{
-        attachment, contact, edu, event, freshman, library, mall, motto, notice, pay, search, status,
-        user,
-    };
+    use handlers::*;
 
     app.service(
         // API scope: version 1
@@ -186,7 +184,8 @@ fn routes(app: &mut web::ServiceConfig) {
             // Library
             .service(library::query_books)
             .service(library::query_book_holding)
-            .service(library::query_book_detail),
+            .service(library::query_book_detail)
+            .service(pay::query_expense),
     );
 }
 

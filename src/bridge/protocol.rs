@@ -22,6 +22,7 @@ pub enum RequestPayload {
     ScoreDetail(ScoreDetailRequest),
     SearchLibrary(SearchLibraryRequest),
     BookHoldingInfo(BookHoldingRequest),
+    CardExpense(ExpenseRequest),
 }
 
 /// Response payload
@@ -41,6 +42,7 @@ pub enum ResponsePayload {
     ScoreDetail(Vec<ScoreDetail>),
     SearchLibrary(SearchLibraryResult),
     BookHoldingInfo(HoldingPreviews),
+    CardExpense(ExpensePage),
 }
 
 /// Error code and message to response
