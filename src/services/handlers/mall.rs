@@ -160,9 +160,9 @@ pub async fn publish_goods(
     //内容违规检测
     let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,content).await?;
 
-    //向form中添加内容验证结果
-    form.suggest = Some(check_response.result.suggest.clone());
-    form.label = Some(check_response.result.label.clone());
+    //存储检测结果
+    let check_code = mall::check_msg_save(&app.pool, &check_response).await?;
+    form.check_code = Some(check_code.clone());
 
     // 请求添加新商品
     let item_code = mall::publish_goods(&app.pool, uid, &form).await?;
@@ -190,6 +190,9 @@ pub async fn update_goods(
         return Err(ApiError::new(MallError::OutRange));
     }
 
+    // 权限校验
+    let item_code = mall::check_goods(&app.pool, uid, &form).await?;
+
     //获取openid
     let openid = user::get_open_id(&app.pool,uid).await?;
     //拼接验证内容(item_name + description)
@@ -197,23 +200,19 @@ pub async fn update_goods(
 
     //内容违规检测
     let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,content).await?;
+    //存储检测结果
+    let check_code = mall::check_msg_save(&app.pool, &check_response).await?;
+    form.check_code = Some(check_code.clone());
 
-    //向form中添加内容验证结果
-    form.suggest = Some(check_response.result.suggest.clone());
-    form.label = Some(check_response.result.label.clone());
+    //删除原发布商品信息
+    let _ = mall::delete_goods(&app.pool,&form.pub_code).await?;
+    let new = form.to_publish();
+    //创建新的商品信息
+    let item_code = mall::publish_goods(&app.pool, uid,&new).await?;
 
-    // 权限校验
-    let pub_code = mall::check_goods(&app.pool, uid, &form).await?;
-
-    form.pub_code = Some(pub_code);
-
-    //修改发布以及商品信息
-    let pub_code = mall::update_publish(&app.pool, &form).await?;
-    let goods_id = mall::update_goods(&app.pool, &form).await?;
 
     let response = serde_json::json!({
-        "goods_id": goods_id,
-        "pub_code": pub_code
+        "code": item_code
     });
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
@@ -225,7 +224,7 @@ pub async fn delete_goods(
 ) -> Result<HttpResponse> {
     let pub_code = pub_code.into_inner();
 
-    let _ = mall::delete_goods(&app.pool, pub_code).await?;
+    let _ = mall::delete_goods(&app.pool, &pub_code).await?;
 
     Ok(HttpResponse::Ok().json(&ApiResponse::empty()))
 }
@@ -250,11 +249,10 @@ pub async fn publish_comment(
     let openid = user::get_open_id(&app.pool,uid).await?;
 
     //内容违规检测
-    let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,form.content.clone()).await?;
-
-    //向form中添加内容验证结果
-    form.suggest = Some(check_response.result.suggest.clone());
-    form.label = Some(check_response.result.label.clone());
+    let check_response = app.wx_client.msg_sec_check(openid,"2".to_string() ,form.content.clone()).await?;
+    //存储检测结果
+    let check_code = mall::check_msg_save(&app.pool, &check_response).await?;
+    form.check_code = Some(check_code.clone());
 
     // 数据库插入评论
     let com_code = mall::publish_comment(&app.pool, uid, &form).await?;
@@ -297,7 +295,7 @@ pub async fn get_comments(
     // 遍历所有该商品相关评论
     for comment in comments.iter() {
         // 判断parent_code是否为NULL 以判断是否为父级评论
-        if comment.parent_code == "NULL" {
+        if comment.parent_code.is_empty() {
             let comment_parent = CommentUni {
                 com_code: comment.com_code.clone(),
                 user_code: comment.user_code,
@@ -314,7 +312,7 @@ pub async fn get_comments(
     // 再次遍历所有该商品相关评论
     for comment in comments.iter() {
         // 筛选非父级评论，即parent_code 不为NULL
-        if comment.parent_code != "NULL" {
+        if !comment.parent_code.is_empty() {
             // 遍历父级评论Vec
             for comment_parent in comment_uni.iter_mut() {
                 // 在父级评论Vec中 筛选出该子级评论的父级
@@ -369,7 +367,11 @@ pub async fn append_wish(
     // 调用数据库
     let _ = mall::insert_wish(&app.pool, uid, &pub_code).await?;
 
-    Ok(HttpResponse::Ok().json(item_code))
+    let response = serde_json::json!({
+        "code": item_code,
+    });
+
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
 
 #[delete("/mall/wish/{pub_code}")]
@@ -395,5 +397,5 @@ pub async fn get_wishes(app: web::Data<AppState>, user_code: web::Path<i32>) -> 
     let response = serde_json::json!({
         "wishList": wish_list,
     });
-    Ok(HttpResponse::Ok().json(response))
+    Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
