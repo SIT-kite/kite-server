@@ -4,12 +4,11 @@
 
 use std::io::Read;
 
+use actix_web::{App, HttpResponse, HttpServer, web};
 use actix_web::http::HeaderValue;
-
-use actix_web::{web, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
+use sqlx::postgres::{PgPool, PgPoolOptions};
 use wechat_sdk::client::{WeChatClient, WeChatClientBuilder};
 
 use crate::bridge::AgentManager;
@@ -140,6 +139,7 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(event::get_sc_score)
             .service(event::get_sc_event_list)
             .service(event::get_sc_event_detail)
+            .service(event::apply_sc_event_activity)
             // Edu management and course-related routes
             .service(edu::query_available_classrooms)
             .service(edu::query_timetable)

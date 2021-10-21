@@ -1,14 +1,14 @@
-use actix_web::{delete, get, post, put, web, HttpResponse};
+use actix_web::{delete, get, HttpResponse, post, put, web};
+use wechat_sdk::wechat::Check;
 
 use crate::error::{ApiError, Result};
+use crate::models::{CommonError, PageView};
 use crate::models::mall::{
     self, Comment, CommentUni, MallError, PubComment, PubWish, SelectGoods, UpdateGoods,
 };
-use crate::models::{CommonError, PageView};
-use crate::services::response::ApiResponse;
-use crate::services::{AppState, JwtToken};
 use crate::models::user;
-use wechat_sdk::wechat::Check;
+use crate::services::{AppState, JwtToken};
+use crate::services::response::ApiResponse;
 
 pub fn is_numeric(s: &str) -> bool {
     for ch in s.chars() {
@@ -153,12 +153,15 @@ pub async fn publish_goods(
     }
 
     //获取openid
-    let openid = user::get_open_id(&app.pool,uid).await?;
+    let openid = user::get_open_id(&app.pool, uid).await?;
     //拼接验证内容(item_name + description)
-    let content = format!("{}{}",form.item_name,form.description);
+    let content = format!("{}{}", form.item_name, form.description);
 
     //内容违规检测
-    let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,content).await?;
+    let check_response = app
+        .wx_client
+        .msg_sec_check(openid, "1".to_string(), content)
+        .await?;
 
     //存储检测结果
     let check_code = mall::check_msg_save(&app.pool, &check_response).await?;
@@ -194,26 +197,26 @@ pub async fn update_goods(
     let item_code = mall::check_goods(&app.pool, uid, &form).await?;
 
     //获取openid
-    let openid = user::get_open_id(&app.pool,uid).await?;
+    let openid = user::get_open_id(&app.pool, uid).await?;
     //拼接验证内容(item_name + description)
-    let content = format!("{}{}",form.item_name,form.description);
+    let content = format!("{}{}", form.item_name, form.description);
 
     //内容违规检测
-    let check_response = app.wx_client.msg_sec_check(openid,"1".to_string() ,content).await?;
+    let check_response = app
+        .wx_client
+        .msg_sec_check(openid, "1".to_string(), content)
+        .await?;
     //存储检测结果
     let check_code = mall::check_msg_save(&app.pool, &check_response).await?;
     form.check_code = Some(check_code.clone());
 
     //删除原发布商品信息
-    let _ = mall::delete_goods(&app.pool,&form.pub_code).await?;
+    let _ = mall::delete_goods(&app.pool, &form.pub_code).await?;
     let new = form.to_publish();
     //创建新的商品信息
-    let item_code = mall::publish_goods(&app.pool, uid,&new).await?;
+    let item_code = mall::publish_goods(&app.pool, uid, &new).await?;
 
-
-    let response = serde_json::json!({
-        "code": item_code
-    });
+    let response = serde_json::json!({ "code": item_code });
     Ok(HttpResponse::Ok().json(&ApiResponse::normal(response)))
 }
 
@@ -246,10 +249,13 @@ pub async fn publish_comment(
     }
 
     //获取openid
-    let openid = user::get_open_id(&app.pool,uid).await?;
+    let openid = user::get_open_id(&app.pool, uid).await?;
 
     //内容违规检测
-    let check_response = app.wx_client.msg_sec_check(openid,"2".to_string() ,form.content.clone()).await?;
+    let check_response = app
+        .wx_client
+        .msg_sec_check(openid, "2".to_string(), form.content.clone())
+        .await?;
     //存储检测结果
     let check_code = mall::check_msg_save(&app.pool, &check_response).await?;
     form.check_code = Some(check_code.clone());

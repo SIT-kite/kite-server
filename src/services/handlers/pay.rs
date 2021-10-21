@@ -1,20 +1,18 @@
 //! This module includes interfaces for querying electricity bill and expenses record.
 use std::ops::Sub;
 
-use actix_web::{get, web, HttpResponse};
-use chrono::{Duration};
-
-use crate::error::Result;
-use crate::models::pay::BalanceManager;
-use crate::services::response::ApiResponse;
-use crate::services::AppState;
+use actix_web::{get, HttpResponse, web};
+use chrono::Duration;
 
 use crate::bridge::{ExpenseRequest, HostError, RequestFrame, RequestPayload, ResponsePayload};
 use crate::error::ApiError;
-use crate::models::user::Person;
+use crate::error::Result;
 use crate::models::{CommonError, PageView};
+use crate::models::pay::BalanceManager;
+use crate::models::user::Person;
+use crate::services::AppState;
 use crate::services::JwtToken;
-
+use crate::services::response::ApiResponse;
 
 /**********************************************************************
     Interfaces in this module:

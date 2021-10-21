@@ -1,13 +1,13 @@
 use chrono::{DateTime, Local};
 use rand::Rng;
 use sqlx::PgPool;
+use wechat_sdk::wechat::CheckResult;
 
 use crate::error::{ApiError, Result};
 use crate::models::mall::{CoverInfo, DetailInfo, MallError, Publish, SelectGoods, UpdateGoods};
 use crate::models::PageView;
 
 use super::SimpleGoods;
-use wechat_sdk::wechat::CheckResult;
 
 pub async fn get_goods_list(db: &PgPool, form: &SelectGoods, page: PageView) -> Result<Vec<CoverInfo>> {
     let like_clause = format!("%{}%", form.keyword);
@@ -185,11 +185,11 @@ pub async fn check_msg_save(db: &PgPool, new: &CheckResult) -> Result<String> {
     //编号头+年月日秒+随机三位数构成编号
     let check_code = format!("K{}{}", code, rng.gen_range(100, 999));
 
-    let mut Detail:String = "".to_string();
+    let mut Detail: String = "".to_string();
 
     //将数组中[{},{}] 转换为 '{}','{}' 字符串
     for d in &new.detail {
-        Detail = format!("{}'{}',",Detail,serde_json::json!(d));
+        Detail = format!("{}'{}',", Detail, serde_json::json!(d));
     }
 
     //弹出末尾多余的','
@@ -227,7 +227,7 @@ pub async fn check_msg_save(db: &PgPool, new: &CheckResult) -> Result<String> {
 }
 
 pub async fn check_goods(db: &PgPool, uid: i32, new: &UpdateGoods) -> Result<String> {
-    let item_code: Option<(String,)> = sqlx::query_as(
+    let item_code: Option<(String, )> = sqlx::query_as(
         "
             SELECT item_code
             FROM mall.publish

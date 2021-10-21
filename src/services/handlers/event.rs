@@ -1,26 +1,27 @@
 //! This module includes interfaces about the event and sign.
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{get, HttpResponse, post, web};
 use serde::Deserialize;
+use serde_json::json;
 use sqlx::PgPool;
 
 use crate::bridge::{
-    ActivityDetailRequest, AgentManager, SaveScActivity, SaveScScore, ScActivityRequest,
-    ScScoreItemRequest, ScScoreSummary,
+    ActivityDetailRequest, AgentManager, HostError, RequestFrame, RequestPayload, ResponsePayload,
+    SaveScActivity, SaveScScore, ScActivityRequest, ScJoinRequest, ScScoreItemRequest, ScScoreSummary,
 };
 use crate::error::{ApiError, Result};
+use crate::models::{CommonError, event, PageView};
 use crate::models::edu::{
     get_sc_score_detail, query_activity_detail, query_current_sc_activity_list,
     query_current_sc_score_list, save_sc_activity_detail, save_sc_activity_list, save_sc_score_list,
 };
 use crate::models::event::{
-    get_sc_activity_detail, get_sc_activity_list, get_sc_image_url, query_sc_score, Event, EventError,
+    Event, EventError, get_sc_activity_detail, get_sc_activity_list, get_sc_image_url, query_sc_score,
     ScActivityDetail, ScScore,
 };
 use crate::models::sc::{delete_sc_score_list, save_image, save_image_as_file};
 use crate::models::user::Person;
-use crate::models::{event, CommonError, PageView};
-use crate::services::response::ApiResponse;
 use crate::services::{AppState, JwtToken};
+use crate::services::response::ApiResponse;
 
 /**********************************************************************
     Interfaces in this module:
@@ -302,4 +303,45 @@ pub async fn get_sc_event_detail(
     });
 
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ScActivityApplyQuery {
+    pub force: bool,
+}
+
+#[get("/event/sc/{activity_id}/apply")]
+pub async fn apply_sc_event_activity(
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    activity_id: web::Path<i32>,
+    params: web::Query<ScActivityApplyQuery>,
+) -> Result<HttpResponse> {
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let identity = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+
+    let params = params.into_inner();
+
+    let data = ScJoinRequest {
+        account: identity.student_id,
+        password: identity.oa_secret,
+        activity_id: activity_id.into_inner(),
+        force: params.force,
+    };
+
+    let agents = &app.agents;
+    let request = RequestFrame::new(RequestPayload::ScActivityJoin(data));
+    let response = agents.request(request).await??;
+    if let ResponsePayload::ScActivityJoin(join) = response {
+        let response = json!({
+            "scActivityApply": join,
+        });
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
 }

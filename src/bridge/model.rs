@@ -162,6 +162,14 @@ pub struct ScImages {
     pub content: Vec<u8>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ScJoinRequest {
+    pub account: String,
+    pub password: String,
+    pub activity_id: i32,
+    pub force: bool,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum SchoolYear {
     AllYear,

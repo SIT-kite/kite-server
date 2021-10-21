@@ -35,7 +35,7 @@ pub enum MallError {
     #[error("该用户无相应商品")]
     NoUserGood = 226,
     #[error("内容存在违规")]
-    MsgDanger = 227
+    MsgDanger = 227,
 }
 
 /* Model */
@@ -291,8 +291,8 @@ pub struct UpdateGoods {
 
 impl UpdateGoods {
     //将UpdateGoods 转化为 Publish 类型
-    pub fn to_publish(self) -> Publish{
-        Publish{
+    pub fn to_publish(self) -> Publish {
+        Publish {
             item_name: self.item_name,
             description: self.description,
             price: self.price,
@@ -300,7 +300,7 @@ impl UpdateGoods {
             cover_image: self.cover_image,
             campus: self.campus,
             sort: self.sort,
-            check_code: self.check_code
+            check_code: self.check_code,
         }
     }
 }

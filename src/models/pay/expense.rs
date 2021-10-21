@@ -1,7 +1,5 @@
 use chrono::{DateTime, Local};
 
-
-
 #[derive(serde::Serialize, sqlx::FromRow)]
 /// Electricity Balance for FengXian dormitory.
 pub struct Expense {
