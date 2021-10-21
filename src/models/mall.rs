@@ -35,7 +35,7 @@ pub enum MallError {
     #[error("该用户无相应商品")]
     NoUserGood = 226,
     #[error("内容存在违规")]
-    MsgDanger = 227,
+    MsgDanger = 227
 }
 
 /* Model */
@@ -272,14 +272,13 @@ pub struct Publish {
     pub cover_image: String,
     pub campus: String,
     pub sort: i32,
-    pub suggest: Option<String>,
-    pub label: Option<i64>,
+    pub check_code: Option<String>,
 }
 
 //更新商品参数
 #[derive(Deserialize, sqlx::FromRow)]
 pub struct UpdateGoods {
-    pub item_code: String,
+    pub pub_code: String,
     pub item_name: String,
     pub description: String,
     pub price: f32,
@@ -287,9 +286,23 @@ pub struct UpdateGoods {
     pub cover_image: String,
     pub campus: String,
     pub sort: i32,
-    pub suggest: Option<String>,
-    pub label: Option<i64>,
-    pub pub_code: Option<String>,
+    pub check_code: Option<String>,
+}
+
+impl UpdateGoods {
+    //将UpdateGoods 转化为 Publish 类型
+    pub fn to_publish(self) -> Publish{
+        Publish{
+            item_name: self.item_name,
+            description: self.description,
+            price: self.price,
+            images: self.images,
+            cover_image: self.cover_image,
+            campus: self.campus,
+            sort: self.sort,
+            check_code: self.check_code
+        }
+    }
 }
 
 //查询商品列表参数
@@ -305,8 +318,7 @@ pub struct PubComment {
     pub item_code: String,
     pub content: String,
     pub parent_code: Option<String>,
-    pub suggest: Option<String>,
-    pub label: Option<i64>,
+    pub check_code: Option<String>,
 }
 
 //收藏表发布参数
