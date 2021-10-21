@@ -32,10 +32,9 @@ pub async fn publish_comment(db: &PgPool, uid: i32, new: &PubComment) -> Result<
                 ,status
                 ,insert_time
                 ,update_time
-                ,suggest
-                ,label
+                ,check_code
             )
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11);
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);
         ",
     )
     .bind(&com_code)
@@ -47,8 +46,7 @@ pub async fn publish_comment(db: &PgPool, uid: i32, new: &PubComment) -> Result<
     .bind("Y")
     .bind(Local::now())
     .bind(Local::now())
-    .bind(&new.suggest)
-    .bind(&new.label)
+    .bind(&new.check_code)
     .fetch_optional(db)
     .await?;
 
@@ -84,9 +82,11 @@ pub async fn get_comments(db: &PgPool, item_code: String) -> Result<Vec<Comment>
                 ,content
                 ,parent_code
                 ,num_like
-            FROM mall.comment
+            FROM mall.comment A
+            LEFT JOIN mall.check B
+                    ON A.check_code = B.check_code
             WHERE status = 'Y'
-                AND label = '100'
+                AND B.label = '100'
                 AND item_code = $1;
             ",
     )
