@@ -1,5 +1,5 @@
 //! This module includes interfaces about the event and sign.
-use actix_web::{get, HttpResponse, post, web};
+use actix_web::{get, post, web, HttpResponse};
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::PgPool;
@@ -9,18 +9,18 @@ use crate::bridge::{
     SaveScActivity, SaveScScore, ScActivityRequest, ScJoinRequest, ScScoreItemRequest, ScScoreSummary,
 };
 use crate::error::{ApiError, Result};
-use crate::models::{CommonError, event, PageView};
 use crate::models::edu::{
     get_sc_score_detail, query_activity_detail, query_current_sc_activity_list,
     query_current_sc_score_list, save_sc_activity_detail, save_sc_activity_list, save_sc_score_list,
 };
 use crate::models::event::{
-    Event, EventError, get_sc_activity_detail, get_sc_activity_list, query_sc_score, ScScore,
+    get_sc_activity_detail, get_sc_activity_list, query_sc_score, Event, EventError, ScScore,
 };
 use crate::models::sc::{delete_sc_score_list, save_image, save_image_as_file};
 use crate::models::user::Person;
-use crate::services::{AppState, JwtToken};
+use crate::models::{event, CommonError, PageView};
 use crate::services::response::ApiResponse;
+use crate::services::{AppState, JwtToken};
 
 /**********************************************************************
     Interfaces in this module:
@@ -266,13 +266,9 @@ pub async fn get_sc_event_list(
     app: web::Data<AppState>,
     page: web::Query<PageView>,
 ) -> Result<HttpResponse> {
-    let uid = token
+    let _ = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
         .map(|token| token.uid)?;
-
-    let _ = Person::get_identity(&app.pool, uid)
-        .await?
-        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
 
     let result = get_sc_activity_list(&app.pool, &page).await?;
     let response = serde_json::json!({
@@ -288,13 +284,9 @@ pub async fn get_sc_event_detail(
     app: web::Data<AppState>,
     activity_id: web::Path<i32>,
 ) -> Result<HttpResponse> {
-    let uid = token
+    let _ = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
         .map(|token| token.uid)?;
-
-    Person::get_identity(&app.pool, uid)
-        .await?
-        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
 
     let result = get_sc_activity_detail(&app.pool, activity_id.into_inner()).await?;
     let response = serde_json::json!({
@@ -335,9 +327,9 @@ pub async fn apply_sc_event_activity(
     let agents = &app.agents;
     let request = RequestFrame::new(RequestPayload::ScActivityJoin(data));
     let response = agents.request(request).await??;
-    if let ResponsePayload::ScActivityJoin(join) = response {
+    if let ResponsePayload::ScActivityJoin(result) = response {
         let response = json!({
-            "scActivityApply": join,
+            "result": result,
         });
         Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
     } else {
