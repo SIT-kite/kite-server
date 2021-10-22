@@ -520,7 +520,7 @@ pub struct HoldingPreview {
 }
 
 /// Campus card consumption records
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct ExpenseRecord {
     /// Record date.
     pub ts: DateTime<Local>,
@@ -545,7 +545,7 @@ pub struct ExpensePage {
     pub page: PageInfo,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExpenseRequest {
     /// 账户
     pub account: String,

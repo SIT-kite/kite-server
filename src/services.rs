@@ -4,11 +4,11 @@
 
 use std::io::Read;
 
-use actix_web::{App, HttpResponse, HttpServer, web};
 use actix_web::http::HeaderValue;
+use actix_web::{web, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
-use sqlx::Executor;
 use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::Executor;
 use wechat_sdk::client::{WeChatClient, WeChatClientBuilder};
 
 use crate::bridge::AgentManager;
@@ -185,7 +185,9 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(library::query_books)
             .service(library::query_book_holding)
             .service(library::query_book_detail)
-            .service(pay::query_expense),
+            // Expense
+            .service(pay::query_expense)
+            .service(pay::fetch_expense),
     );
 }
 
