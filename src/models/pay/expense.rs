@@ -1,6 +1,6 @@
 use crate::bridge::{
-    AgentManager, ExpensePage, ExpenseRecord, ExpenseRequest, HostError, RequestFrame, RequestPayload,
-    ResponsePayload,
+    AgentManager, ErrorResponse, ExpensePage, ExpenseRecord, ExpenseRequest, HostError, RequestFrame,
+    RequestPayload, ResponsePayload, ResponseResult,
 };
 use crate::error::{ApiError, Result};
 use crate::models::PageView;
@@ -55,18 +55,55 @@ pub async fn query_expense_records(
     Ok(records)
 }
 
+pub async fn query_last_record_ts(pool: &PgPool, student_id: &str) -> Result<Option<DateTime<Local>>> {
+    let ts: Option<(DateTime<Local>,)> = sqlx::query_as(
+        "SELECT ts
+            FROM pay.expense
+            WHERE student_id = $1
+            ORDER BY ts DESC
+            LIMIT 1;",
+    )
+    .bind(student_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(ts.map(|x| x.0))
+}
+
 pub async fn request_expense_page(
     agents: &AgentManager,
     request: &ExpenseRequest,
 ) -> Result<ExpensePage> {
-    let request = request.clone();
-    let payload = RequestPayload::CardExpense(request);
-    let request = RequestFrame::new(payload);
-    let response = agents.request(request).await??;
+    let max_remain = 3;
+    let mut remain = max_remain;
+    let mut wait_time = 2;
 
-    if let ResponsePayload::CardExpense(result) = response {
-        Ok(result)
-    } else {
-        Err(ApiError::new(HostError::Mismatched))
+    loop {
+        let request = request.clone();
+        let payload = RequestPayload::CardExpense(request);
+        let request = RequestFrame::new(payload);
+        let response = agents.request(request).await?;
+
+        match response {
+            Ok(response) => {
+                return if let ResponsePayload::CardExpense(result) = response {
+                    Ok(result)
+                } else {
+                    Err(ApiError::new(HostError::Mismatched))
+                }
+            }
+            Err(e) => {
+                println!(
+                    "Request expense page error(remind {}/{}): {:?}",
+                    remain, max_remain, e
+                );
+                if remain == 0 {
+                    return Err(ApiError::from(e));
+                } else {
+                    remain -= 1;
+                    tokio::time::sleep(tokio::time::Duration::from_secs(wait_time));
+                    wait_time <<= 2;
+                }
+            }
+        }
     }
 }

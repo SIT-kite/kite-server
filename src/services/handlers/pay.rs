@@ -1,5 +1,6 @@
 //! This module includes interfaces for querying electricity bill and expenses record.
 use std::ops::Sub;
+use std::str::FromStr;
 
 use actix_web::{get, post, web, HttpResponse};
 use chrono::{
@@ -16,7 +17,7 @@ use crate::bridge::{
 use crate::error::ApiError;
 use crate::error::Result;
 use crate::models::pay::BalanceManager;
-use crate::models::user::Person;
+use crate::models::user::{Identity, Person};
 use crate::models::{CommonError, PageView};
 use crate::services::JwtToken;
 
@@ -106,7 +107,7 @@ pub async fn fetch_all_expense_records(
     agents: AgentManager,
     account: &str,
     credential: &str,
-) {
+) -> Result<()> {
     use crate::models::pay::{request_expense_page, save_expense_records};
 
     let end_time = chrono::Local::today();
@@ -114,10 +115,10 @@ pub async fn fetch_all_expense_records(
         account: account.to_string(),
         password: credential.to_string(),
         page: Some(1),
-        start_time: Some("20100101".to_string()),
+        start_time: Some("20211001".to_string()),
         end_time: Some(end_time.format("%Y%m%d").to_string()),
     };
-    let first_page = request_expense_page(&agents, &expense_request).await.unwrap();
+    let first_page = request_expense_page(&agents, &expense_request).await?;
     save_expense_records(&pool, account, &first_page.records).await;
 
     for i in 2..=first_page.page.total {
@@ -126,22 +127,95 @@ pub async fn fetch_all_expense_records(
         let pool = pool.clone();
         let account = account.to_string();
 
-        // tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         tokio::spawn(async move {
             request.page = Some(i as u16);
             let page = request_expense_page(&agents, &request).await;
 
             match page {
-                Ok(page) => save_expense_records(&pool, &account, &page.records).await,
+                Ok(page) => {
+                    save_expense_records(&pool, &account, &page.records).await;
+                }
                 Err(e) => println!("Fetch expense records error: {:?}", e),
             }
         });
     }
+    Ok(())
 }
 
-/// 一步步地刷新页面去请求爬虫刷新数据库
+pub async fn fetch_expense_in_parallel(identity: Identity, app: web::Data<AppState>) -> Result<()> {
+    tokio::spawn(async move {
+        let pool = app.pool.clone();
+        let agents = app.agents.clone();
+
+        fetch_all_expense_records(pool, agents, &identity.student_id, &identity.oa_secret).await;
+    });
+    Ok(())
+}
+
+pub async fn fetch_expense_in_iteration(identity: Identity, app: web::Data<AppState>) -> Result<()> {
+    tokio::spawn(fetch_expense_iteratively(identity, app));
+
+    Ok(())
+}
+
+pub async fn fetch_expense_iteratively(identity: Identity, app: web::Data<AppState>) -> Result<()> {
+    use crate::models::pay::{
+        query_last_record_ts, request_expense_page, save_expense_record, save_expense_records,
+    };
+
+    let agents = &app.agents;
+    let pool = &app.pool;
+
+    let end_time = chrono::Local::today();
+    let mut expense_request = ExpenseRequest {
+        account: identity.student_id,
+        password: identity.oa_secret,
+        page: Some(1),
+        start_time: Some("20211001".to_string()),
+        end_time: Some(end_time.format("%Y%m%d").to_string()),
+    };
+    let mut page = 1;
+    let mut total_page = 1;
+    let recent_record_in_db = query_last_record_ts(&pool, &expense_request.account)
+        .await?
+        .unwrap_or_else(|| parse_date_from_str("1970-01-01 08:00:00").unwrap());
+
+    'OUTER: while page <= total_page {
+        expense_request.page = Some(page);
+        let current_page = request_expense_page(&agents, &expense_request).await;
+        match current_page {
+            Ok(current_page) => {
+                total_page = current_page.page.total as u16;
+
+                for r in current_page.records {
+                    if r.ts < recent_record_in_db {
+                        break 'OUTER;
+                    }
+                    save_expense_record(&pool, &expense_request.account, &r).await;
+                }
+            }
+            Err(e) => println!(
+                "Fetch expense records error ({}, page = {}): {:?}",
+                expense_request.account, page, e
+            ),
+        }
+        page += 1;
+    }
+    Ok(())
+}
+
+#[derive(serde::Deserialize)]
+pub struct ExpenseFetchQuery {
+    mode: u8,
+}
+
+/// 并发地刷新页面去请求爬虫刷新数据库
 #[post("/pay/expense/fetch")]
-pub async fn fetch_expense(token: Option<JwtToken>, app: web::Data<AppState>) -> Result<HttpResponse> {
+pub async fn fetch_expense(
+    token: Option<JwtToken>,
+    app: web::Data<AppState>,
+    query: web::Query<ExpenseFetchQuery>,
+) -> Result<HttpResponse> {
     let uid = token
         .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
         .map(|token| token.uid)?;
@@ -149,12 +223,11 @@ pub async fn fetch_expense(token: Option<JwtToken>, app: web::Data<AppState>) ->
         .await?
         .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
 
-    tokio::spawn(async move {
-        let pool = app.pool.clone();
-        let agents = app.agents.clone();
-
-        fetch_all_expense_records(pool, agents, &identity.student_id, &identity.oa_secret).await;
-    });
+    match query.into_inner().mode {
+        1 => fetch_expense_in_parallel(identity, app).await?,
+        2 => fetch_expense_in_iteration(identity, app).await?,
+        _ => return Err(ApiError::new(CommonError::Parameter)),
+    };
     Ok(HttpResponse::Ok().json(ApiResponse::empty()))
 }
 
