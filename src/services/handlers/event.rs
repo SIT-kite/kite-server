@@ -15,8 +15,7 @@ use crate::models::edu::{
     query_current_sc_score_list, save_sc_activity_detail, save_sc_activity_list, save_sc_score_list,
 };
 use crate::models::event::{
-    Event, EventError, get_sc_activity_detail, get_sc_activity_list, get_sc_image_url, query_sc_score,
-    ScActivityDetail, ScScore,
+    Event, EventError, get_sc_activity_detail, get_sc_activity_list, query_sc_score, ScScore,
 };
 use crate::models::sc::{delete_sc_score_list, save_image, save_image_as_file};
 use crate::models::user::Person;
@@ -310,7 +309,7 @@ pub struct ScActivityApplyQuery {
     pub force: bool,
 }
 
-#[get("/event/sc/{activity_id}/apply")]
+#[post("/event/sc/{activity_id}/apply")]
 pub async fn apply_sc_event_activity(
     token: Option<JwtToken>,
     app: web::Data<AppState>,
