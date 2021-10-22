@@ -225,7 +225,7 @@ async fn update_activity_list_in_category(
     category: i32,
 ) -> Result<()> {
     let count = 30u16;
-    let cached_activities = fetch_cached_activities_from_db(pool, category, count).await?;
+    let cached_activities = fetch_cached_activities_from_db(pool, category, count << 1).await?;
     let recent_activities = request_activity_list(agents, category, count).await?;
 
     let cached_set: HashSet<_> = cached_activities.iter().collect();
