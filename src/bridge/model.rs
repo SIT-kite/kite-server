@@ -570,15 +570,26 @@ pub struct ExamArrangeRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExamArrangement {
+    /// 课程名称
     pub course_name: String,
+    /// 考试时间
     pub exam_time: String,
+    /// 考试地点
     pub exam_location: String,
+    /// 考试校区
     pub exam_campus_name: String,
+    /// 课程号
     pub course_id: String,
+    /// 重修标记
     pub is_retaked: String,
+    /// 考试名称
     pub exam_name: String,
+    /// 考试备注
     pub exam_tip: String,
+    /// 教学班名称
     pub dyn_class_id: String,
+    /// 考试方式
     pub exam_method: String,
+    /// 座位号
     pub exam_seat: String,
 }
