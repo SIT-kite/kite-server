@@ -24,6 +24,7 @@ pub enum RequestPayload {
     SearchLibrary(SearchLibraryRequest),
     BookHoldingInfo(BookHoldingRequest),
     CardExpense(ExpenseRequest),
+    ExamArrange(ExamArrangeRequest),
 }
 
 /// Response payload
@@ -45,6 +46,7 @@ pub enum ResponsePayload {
     SearchLibrary(SearchLibraryResult),
     BookHoldingInfo(HoldingPreviews),
     CardExpense(ExpensePage),
+    ExamArrange(Vec<ExamArrangement>),
 }
 
 /// Error code and message to response

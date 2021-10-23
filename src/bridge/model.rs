@@ -558,3 +558,27 @@ pub struct ExpenseRequest {
     /// 终止时间
     pub end_time: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExamArrangeRequest {
+    pub account: String,
+    pub password: String,
+    pub academic_year: u32,
+    pub semester: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExamArrangement {
+    pub course_name: String,
+    pub exam_time: String,
+    pub exam_location: String,
+    pub exam_campus_name: String,
+    pub course_id: String,
+    pub is_retaked: String,
+    pub exam_name: String,
+    pub exam_tip: String,
+    pub class_name: String,
+    pub exam_method: String,
+    pub exam_seat: String,
+}

@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::bridge::{
-    trans_to_semester, trans_to_year, trans_year_to_i32, HostError, MajorRequest, RequestFrame,
-    RequestPayload, ResponsePayload, SchoolYear, ScoreDetailRequest, ScoreRequest, TimeTableRequest,
+    trans_to_semester, trans_to_year, trans_year_to_i32, ExamArrangeRequest, HostError, MajorRequest,
+    RequestFrame, RequestPayload, ResponsePayload, SchoolYear, ScoreDetailRequest, ScoreRequest,
+    TimeTableRequest,
 };
 use crate::error::{ApiError, Result};
 use crate::models::edu::{
@@ -419,6 +420,50 @@ pub async fn get_major_list(
     if let ResponsePayload::MajorList(major_list) = response {
         let response = json!({
             "majorList": major_list,
+        });
+        Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
+    } else {
+        Err(ApiError::new(HostError::Mismatched))
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExamArrangeQuery {
+    pub academic_year: u32,
+    pub semester: u32,
+}
+
+#[get("/edu/exam/arrange")]
+pub async fn get_exam_arrangement(
+    token: Option<JwtToken>,
+    params: web::Query<ExamArrangeQuery>,
+    app: web::Data<AppState>,
+) -> Result<HttpResponse> {
+    let uid = token
+        .ok_or_else(|| ApiError::new(CommonError::LoginNeeded))
+        .map(|token| token.uid)?;
+    let identity = Person::get_identity(&app.pool, uid)
+        .await?
+        .ok_or_else(|| ApiError::new(CommonError::IdentityNeeded))?;
+    let account = identity.student_id;
+    let password = identity.oa_secret;
+
+    let params = params.into_inner();
+    let data = ExamArrangeRequest {
+        account,
+        password,
+        academic_year: params.academic_year,
+        semester: params.semester,
+    };
+
+    let agents = &app.agents;
+
+    let request = RequestFrame::new(RequestPayload::ExamArrange(data));
+    let response = agents.request(request).await??;
+    if let ResponsePayload::ExamArrange(exam_arrangements) = response {
+        let response = json!({
+            "examArrangement": exam_arrangements,
         });
         Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
     } else {
