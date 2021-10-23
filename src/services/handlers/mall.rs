@@ -1,14 +1,14 @@
-use actix_web::{delete, get, HttpResponse, post, put, web};
+use actix_web::{delete, get, post, put, web, HttpResponse};
 use wechat_sdk::wechat::Check;
 
 use crate::error::{ApiError, Result};
-use crate::models::{CommonError, PageView};
 use crate::models::mall::{
     self, Comment, CommentUni, MallError, PubComment, PubWish, SelectGoods, UpdateGoods,
 };
 use crate::models::user;
-use crate::services::{AppState, JwtToken};
+use crate::models::{CommonError, PageView};
 use crate::services::response::ApiResponse;
+use crate::services::{AppState, JwtToken};
 
 pub fn is_numeric(s: &str) -> bool {
     for ch in s.chars() {

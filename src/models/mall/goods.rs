@@ -42,12 +42,12 @@ pub async fn get_goods_list(db: &PgPool, form: &SelectGoods, page: PageView) -> 
                 LIMIT $3 OFFSET $4;
             ",
     )
-        .bind(&form.sort)
-        .bind(like_clause)
-        .bind(page.count(10u16) as i32) // 每次最大取 10 个
-        .bind(page.index() as i32)
-        .fetch_all(db)
-        .await?;
+    .bind(&form.sort)
+    .bind(like_clause)
+    .bind(page.count(10u16) as i32) // 每次最大取 10 个
+    .bind(page.index() as i32)
+    .fetch_all(db)
+    .await?;
 
     Ok(goods)
 }
@@ -64,12 +64,12 @@ pub async fn query_goods(
         ORDER BY publish_time DESC
         LIMIT $3 OFFSET $4;",
     )
-        .bind(keyword)
-        .bind(sort)
-        .bind(page.count(20) as i16)
-        .bind(page.offset(20) as i16)
-        .fetch_all(db)
-        .await?;
+    .bind(keyword)
+    .bind(sort)
+    .bind(page.count(20) as i16)
+    .bind(page.offset(20) as i16)
+    .fetch_all(db)
+    .await?;
 
     Ok(goods)
 }
@@ -86,9 +86,9 @@ pub async fn get_goods_detail(db: &PgPool, item_code: &String) -> Result<DetailI
             WHERE item_code = $1
             LIMIT 1;",
     )
-        .bind(item_code)
-        .fetch_optional(db)
-        .await?;
+    .bind(item_code)
+    .fetch_optional(db)
+    .await?;
 
     detail.ok_or_else(|| ApiError::new(MallError::NoSuchGoods))
 }
@@ -104,10 +104,10 @@ pub async fn delete_goods(db: &PgPool, pub_code: &String) -> Result<i32> {
                 pub_code = $2;
             ",
     )
-        .bind(Local::now())
-        .bind(pub_code)
-        .fetch_optional(db)
-        .await?;
+    .bind(Local::now())
+    .bind(pub_code)
+    .fetch_optional(db)
+    .await?;
     Ok(1)
 }
 
@@ -136,16 +136,16 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8);
         ",
     )
-        .bind(&pub_code)
-        .bind(uid)
-        .bind(&item_code)
-        .bind(&new.campus)
-        .bind("Y")
-        .bind(Local::now())
-        .bind(Local::now())
-        .bind(&new.check_code)
-        .fetch_optional(db)
-        .await?;
+    .bind(&pub_code)
+    .bind(uid)
+    .bind(&item_code)
+    .bind(&new.campus)
+    .bind("Y")
+    .bind(Local::now())
+    .bind(Local::now())
+    .bind(&new.check_code)
+    .fetch_optional(db)
+    .await?;
 
     let _ = sqlx::query(
         "
@@ -161,17 +161,17 @@ pub async fn publish_goods(db: &PgPool, uid: i32, new: &Publish) -> Result<Strin
                 ,update_time)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);",
     )
-        .bind(&item_code)
-        .bind(&new.item_name)
-        .bind(&new.description)
-        .bind(&new.price)
-        .bind(&new.images)
-        .bind(&new.cover_image)
-        .bind(&new.sort)
-        .bind(Local::now())
-        .bind(Local::now())
-        .fetch_optional(db)
-        .await?;
+    .bind(&item_code)
+    .bind(&new.item_name)
+    .bind(&new.description)
+    .bind(&new.price)
+    .bind(&new.images)
+    .bind(&new.cover_image)
+    .bind(&new.sort)
+    .bind(Local::now())
+    .bind(Local::now())
+    .fetch_optional(db)
+    .await?;
 
     Ok(item_code)
 }
@@ -211,23 +211,23 @@ pub async fn check_msg_save(db: &PgPool, new: &CheckResult) -> Result<String> {
             VALUES ($1,$2,$3,Array[$4],$5,$6,$7,$8,$9);
         ",
     )
-        .bind(&check_code)
-        .bind(&new.errcode)
-        .bind(&new.errmsg)
-        .bind(Detail)
-        .bind(&new.result.suggest)
-        .bind(&new.result.label)
-        .bind(&new.trace_id)
-        .bind(Local::now())
-        .bind(Local::now())
-        .fetch_optional(db)
-        .await?;
+    .bind(&check_code)
+    .bind(&new.errcode)
+    .bind(&new.errmsg)
+    .bind(Detail)
+    .bind(&new.result.suggest)
+    .bind(&new.result.label)
+    .bind(&new.trace_id)
+    .bind(Local::now())
+    .bind(Local::now())
+    .fetch_optional(db)
+    .await?;
 
     Ok(check_code)
 }
 
 pub async fn check_goods(db: &PgPool, uid: i32, new: &UpdateGoods) -> Result<String> {
-    let item_code: Option<(String, )> = sqlx::query_as(
+    let item_code: Option<(String,)> = sqlx::query_as(
         "
             SELECT item_code
             FROM mall.publish
@@ -237,10 +237,10 @@ pub async fn check_goods(db: &PgPool, uid: i32, new: &UpdateGoods) -> Result<Str
             LIMIT 1
         ",
     )
-        .bind(uid)
-        .bind(&new.pub_code)
-        .fetch_optional(db)
-        .await?;
+    .bind(uid)
+    .bind(&new.pub_code)
+    .fetch_optional(db)
+    .await?;
 
     item_code
         .map(|(item_code,)| item_code)
@@ -254,9 +254,9 @@ pub async fn update_views(db: &PgPool, pub_code: String) -> Result<()> {
                 SELECT update_views($1)
             ",
     )
-        .bind(pub_code)
-        .fetch_one(db)
-        .await?;
+    .bind(pub_code)
+    .fetch_one(db)
+    .await?;
     Ok(())
 }
 
@@ -270,11 +270,11 @@ pub async fn insert_view_log(db: &PgPool, uid: i32, item_code: &String) -> Resul
                VALUES($1,$2,$3);
             ",
     )
-        .bind(uid)
-        .bind(item_code)
-        .bind(Local::now())
-        .execute(db)
-        .await?;
+    .bind(uid)
+    .bind(item_code)
+    .bind(Local::now())
+    .execute(db)
+    .await?;
 
     Ok(())
 }

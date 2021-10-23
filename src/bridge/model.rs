@@ -86,7 +86,7 @@ pub struct ScDetail {
     pub title: String,
     pub time: DateTime<Local>,
     pub status: String,
-    pub amount: f32,
+    pub amount: Option<f32>,
     pub category: i32,
 }
 
