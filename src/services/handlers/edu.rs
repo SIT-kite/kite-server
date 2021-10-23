@@ -7,7 +7,7 @@ use serde_json::json;
 use crate::bridge::{
     trans_to_semester, trans_to_year, trans_year_to_i32, ExamArrangeRequest, HostError, MajorRequest,
     RequestFrame, RequestPayload, ResponsePayload, SchoolYear, ScoreDetailRequest, ScoreRequest,
-    TimeTableRequest,
+    Semester, TimeTableRequest,
 };
 use crate::error::{ApiError, Result};
 use crate::models::edu::{
@@ -450,11 +450,13 @@ pub async fn get_exam_arrangement(
     let password = identity.oa_secret;
 
     let params = params.into_inner();
+    let semester = trans_to_semester(params.semester as i32);
+
     let data = ExamArrangeRequest {
         account,
         password,
         academic_year: params.academic_year,
-        semester: params.semester,
+        semester,
     };
 
     let agents = &app.agents;

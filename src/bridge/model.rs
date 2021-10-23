@@ -564,7 +564,7 @@ pub struct ExamArrangeRequest {
     pub account: String,
     pub password: String,
     pub academic_year: u32,
-    pub semester: u32,
+    pub semester: Semester,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
