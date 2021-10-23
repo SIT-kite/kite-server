@@ -578,7 +578,7 @@ pub struct ExamArrangement {
     pub is_retaked: String,
     pub exam_name: String,
     pub exam_tip: String,
-    pub class_name: String,
+    pub dyn_class_id: String,
     pub exam_method: String,
     pub exam_seat: String,
 }
