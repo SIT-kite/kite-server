@@ -7,7 +7,7 @@ use serde_json::json;
 use crate::bridge::{
     trans_to_semester, trans_to_year, trans_year_to_i32, ExamArrangeRequest, HostError, MajorRequest,
     RequestFrame, RequestPayload, ResponsePayload, SchoolYear, ScoreDetailRequest, ScoreRequest,
-    Semester, TimeTableRequest,
+    TimeTableRequest,
 };
 use crate::error::{ApiError, Result};
 use crate::models::edu::{

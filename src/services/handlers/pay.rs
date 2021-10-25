@@ -1,24 +1,18 @@
 //! This module includes interfaces for querying electricity bill and expenses record.
 use std::ops::Sub;
-use std::str::FromStr;
 
 use actix_web::{get, post, web, HttpResponse};
-use chrono::{
-    Date, DateTime, Datelike, Duration, FixedOffset, Local, NaiveDate, NaiveDateTime, TimeZone,
-};
+use chrono::{DateTime, Duration, FixedOffset, Local, TimeZone};
 use sqlx::PgPool;
 
-use crate::services::response::ApiResponse;
-use crate::services::AppState;
-
-use crate::bridge::{
-    AgentManager, ExpenseRequest, HostError, RequestFrame, RequestPayload, ResponsePayload,
-};
+use crate::bridge::{AgentManager, ExpenseRequest};
 use crate::error::ApiError;
 use crate::error::Result;
 use crate::models::pay::BalanceManager;
 use crate::models::user::{Identity, Person};
 use crate::models::{CommonError, PageView};
+use crate::services::response::ApiResponse;
+use crate::services::AppState;
 use crate::services::JwtToken;
 
 /**********************************************************************
@@ -159,9 +153,7 @@ pub async fn fetch_expense_in_iteration(identity: Identity, app: web::Data<AppSt
 }
 
 pub async fn fetch_expense_iteratively(identity: Identity, app: web::Data<AppState>) -> Result<()> {
-    use crate::models::pay::{
-        query_last_record_ts, request_expense_page, save_expense_record, save_expense_records,
-    };
+    use crate::models::pay::{query_last_record_ts, request_expense_page, save_expense_record};
 
     let agents = &app.agents;
     let pool = &app.pool;

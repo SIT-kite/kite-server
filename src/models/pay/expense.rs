@@ -1,11 +1,12 @@
+use chrono::{DateTime, Local};
+use sqlx::PgPool;
+
 use crate::bridge::{
-    AgentManager, ErrorResponse, ExpensePage, ExpenseRecord, ExpenseRequest, HostError, RequestFrame,
-    RequestPayload, ResponsePayload, ResponseResult,
+    AgentManager, ExpensePage, ExpenseRecord, ExpenseRequest, HostError, RequestFrame, RequestPayload,
+    ResponsePayload,
 };
 use crate::error::{ApiError, Result};
 use crate::models::PageView;
-use chrono::{DateTime, Local};
-use sqlx::PgPool;
 
 pub async fn save_expense_record(pool: &PgPool, student_id: &str, record: &ExpenseRecord) -> Result<()> {
     sqlx::query("CALL pay.insert_expense_record($1, $2, $3, $4);")
