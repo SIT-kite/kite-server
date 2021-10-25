@@ -216,44 +216,46 @@ fn add_score(sc_score: Vec<ScScore>) -> ScScoreSummary {
     };
 
     for each_score in sc_score {
-        match each_score.category {
-            1 => {
-                result.total += each_score.amount;
-                result.theme_report += each_score.amount;
+        if let Some(amount) = each_score.amount {
+            match each_score.category {
+                1 => {
+                    result.total += amount;
+                    result.theme_report += amount;
+                }
+                2 => {
+                    result.total += amount;
+                    result.social_practice += amount;
+                }
+                3 => {
+                    result.total += amount;
+                    result.creativity += amount;
+                }
+                4 => {
+                    result.total += amount;
+                    result.safety_civilization += amount;
+                }
+                5 => {
+                    result.total += amount;
+                    result.charity += amount;
+                }
+                6 => {
+                    result.total += amount;
+                    result.campus_culture += amount;
+                }
+                7 => {
+                    result.total += amount;
+                    result.theme_report += amount;
+                }
+                8 => {
+                    result.total += amount;
+                    result.campus_culture += amount;
+                }
+                9 => {
+                    result.total += amount;
+                    result.safety_civilization += amount;
+                }
+                _ => {}
             }
-            2 => {
-                result.total += each_score.amount;
-                result.social_practice += each_score.amount;
-            }
-            3 => {
-                result.total += each_score.amount;
-                result.creativity += each_score.amount;
-            }
-            4 => {
-                result.total += each_score.amount;
-                result.safety_civilization += each_score.amount;
-            }
-            5 => {
-                result.total += each_score.amount;
-                result.charity += each_score.amount;
-            }
-            6 => {
-                result.total += each_score.amount;
-                result.campus_culture += each_score.amount;
-            }
-            7 => {
-                result.total += each_score.amount;
-                result.theme_report += each_score.amount;
-            }
-            8 => {
-                result.total += each_score.amount;
-                result.campus_culture += each_score.amount;
-            }
-            9 => {
-                result.total += each_score.amount;
-                result.safety_civilization += each_score.amount;
-            }
-            _ => {}
         }
     }
 

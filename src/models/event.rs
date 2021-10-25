@@ -184,7 +184,7 @@ impl Event {
 #[derive(sqlx::FromRow, Debug)]
 pub struct ScScore {
     pub category: i32,
-    pub amount: f32,
+    pub amount: Option<f32>,
 }
 
 pub async fn query_sc_score(db: &PgPool, query: &str) -> Result<Vec<ScScore>> {
