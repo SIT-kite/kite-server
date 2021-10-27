@@ -69,7 +69,7 @@ pub async fn save_sc_activity_list(db: &PgPool, data: Vec<SaveScActivity>) -> Re
         sqlx::query(
             "INSERT INTO events.sc_activity_detail (student_id, activity_id, time, status)
             VALUES ($1, $2, $3, $4)
-            ON CONFLICT (student_id, activity_id, time) DO NOTHING;",
+            ON CONFLICT (student_id, activity_id, time) DO UPDATE SET status = $4;",
         )
         .bind(each_activity.account)
         .bind(each_activity.activity_id)
