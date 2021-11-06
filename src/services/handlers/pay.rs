@@ -113,7 +113,7 @@ pub async fn fetch_all_expense_records(
         end_time: Some(end_time.format("%Y%m%d").to_string()),
     };
     let first_page = request_expense_page(&agents, &expense_request).await?;
-    save_expense_records(&pool, account, &first_page.records).await;
+    save_expense_records(&pool, account, &first_page.records).await?;
 
     for i in 2..=first_page.page.total {
         let mut request = expense_request.clone();
@@ -126,9 +126,10 @@ pub async fn fetch_all_expense_records(
             let page = request_expense_page(&agents, &request).await;
 
             match page {
-                Ok(page) => {
-                    save_expense_records(&pool, &account, &page.records).await;
-                }
+                Ok(page) => match save_expense_records(&pool, &account, &page.records).await {
+                    Ok(()) => (),
+                    Err(e) => println!("Save expense records error: {:?}", e),
+                },
                 Err(e) => println!("Fetch expense records error: {:?}", e),
             }
         });
@@ -141,7 +142,10 @@ pub async fn fetch_expense_in_parallel(identity: Identity, app: web::Data<AppSta
         let pool = app.pool.clone();
         let agents = app.agents.clone();
 
-        fetch_all_expense_records(pool, agents, &identity.student_id, &identity.oa_secret).await;
+        match fetch_all_expense_records(pool, agents, &identity.student_id, &identity.oa_secret).await {
+            Ok(_) => (),
+            Err(e) => println!("Fetch all expense records error: {:?}", e),
+        }
     });
     Ok(())
 }
@@ -183,7 +187,7 @@ pub async fn fetch_expense_iteratively(identity: Identity, app: web::Data<AppSta
                     if r.ts < recent_record_in_db {
                         break 'OUTER;
                     }
-                    save_expense_record(&pool, &expense_request.account, &r).await;
+                    save_expense_record(&pool, &expense_request.account, &r).await?;
                 }
             }
             Err(e) => println!(

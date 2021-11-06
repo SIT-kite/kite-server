@@ -25,7 +25,7 @@ pub async fn save_expense_records(
     records: &Vec<ExpenseRecord>,
 ) -> Result<()> {
     for r in records {
-        save_expense_record(pool, student_id, r).await;
+        save_expense_record(pool, student_id, r).await?;
     }
     Ok(())
 }
@@ -101,7 +101,7 @@ pub async fn request_expense_page(
                     return Err(ApiError::from(e));
                 } else {
                     remain -= 1;
-                    tokio::time::sleep(tokio::time::Duration::from_secs(wait_time));
+                    let _ = tokio::time::sleep(tokio::time::Duration::from_secs(wait_time));
                     wait_time <<= 2;
                 }
             }
