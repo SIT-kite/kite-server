@@ -101,7 +101,7 @@ pub async fn request_expense_page(
                     return Err(ApiError::from(e));
                 } else {
                     remain -= 1;
-                    let _ = tokio::time::sleep(tokio::time::Duration::from_secs(wait_time));
+                    tokio::time::sleep(tokio::time::Duration::from_secs(wait_time)).await;
                     wait_time <<= 2;
                 }
             }
