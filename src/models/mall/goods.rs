@@ -226,7 +226,7 @@ pub async fn check_msg_save(db: &PgPool, new: &CheckResult) -> Result<String> {
     Ok(check_code)
 }
 
-pub async fn check_goods(db: &PgPool, uid: i32, new: &UpdateGoods) -> Result<String> {
+pub async fn check_goods(db: &PgPool, uid: i32, new: &UpdateGoods) -> Result<()> {
     let item_code: Option<(String,)> = sqlx::query_as(
         "
             SELECT item_code
@@ -243,7 +243,7 @@ pub async fn check_goods(db: &PgPool, uid: i32, new: &UpdateGoods) -> Result<Str
     .await?;
 
     item_code
-        .map(|(item_code,)| item_code)
+        .map(|(_item_code,)| ())
         .ok_or_else(|| ApiError::new(MallError::NoUserGood))
 }
 

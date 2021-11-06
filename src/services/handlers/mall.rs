@@ -194,8 +194,7 @@ pub async fn update_goods(
     }
 
     // 权限校验
-    // fix: unused var here? is this still need?
-    // let item_code = mall::check_goods(&app.pool, uid, &form).await?;
+    mall::check_goods(&app.pool, uid, &form).await?;
 
     //获取openid
     let openid = user::get_open_id(&app.pool, uid).await?;
