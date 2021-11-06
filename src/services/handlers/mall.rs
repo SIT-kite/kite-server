@@ -194,7 +194,7 @@ pub async fn update_goods(
     }
 
     // 权限校验
-    let item_code = mall::check_goods(&app.pool, uid, &form).await?;
+    let _item_code = mall::check_goods(&app.pool, uid, &form).await?;
 
     //获取openid
     let openid = user::get_open_id(&app.pool, uid).await?;

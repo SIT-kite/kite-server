@@ -185,15 +185,15 @@ pub async fn check_msg_save(db: &PgPool, new: &CheckResult) -> Result<String> {
     //编号头+年月日秒+随机三位数构成编号
     let check_code = format!("K{}{}", code, rng.gen_range(100, 999));
 
-    let mut Detail: String = "".to_string();
+    let mut detail: String = "".to_string();
 
     //将数组中[{},{}] 转换为 '{}','{}' 字符串
     for d in &new.detail {
-        Detail = format!("{}'{}',", Detail, serde_json::json!(d));
+        detail = format!("{}'{}',", detail, serde_json::json!(d));
     }
 
     //弹出末尾多余的','
-    Detail.pop();
+    detail.pop();
 
     let _ = sqlx::query(
         "
@@ -214,7 +214,7 @@ pub async fn check_msg_save(db: &PgPool, new: &CheckResult) -> Result<String> {
     .bind(&check_code)
     .bind(&new.errcode)
     .bind(&new.errmsg)
-    .bind(Detail)
+    .bind(detail)
     .bind(&new.result.suggest)
     .bind(&new.result.label)
     .bind(&new.trace_id)
