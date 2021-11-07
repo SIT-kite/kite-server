@@ -29,6 +29,7 @@ pub mod sc;
 pub mod search;
 /// User management.
 pub mod user;
+pub mod weather;
 
 const DEFAULT_PAGE_INDEX: u16 = 0;
 const DEFAULT_ITEM_COUNT: u16 = 20;

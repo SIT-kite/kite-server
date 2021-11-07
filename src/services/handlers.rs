@@ -11,3 +11,4 @@ pub mod pay;
 pub mod search;
 pub mod status;
 pub mod user;
+pub mod weather;

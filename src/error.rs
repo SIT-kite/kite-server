@@ -4,6 +4,7 @@ use actix_web::{error::PayloadError, http::StatusCode, HttpResponse, ResponseErr
 use anyhow::Error as AnyError;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
+use reqwest::Error as ReqError;
 use serde::Serialize;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlError;
@@ -95,3 +96,4 @@ convert_inner_errors!(SqlError);
 convert_inner_errors!(StdIoError);
 convert_inner_errors!(AnyError);
 convert_inner_errors!(WxClientError);
+convert_inner_errors!(ReqError);
