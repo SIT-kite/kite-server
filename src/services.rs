@@ -69,6 +69,10 @@ pub async fn server_main() -> std::io::Result<()> {
         wx_client,
     };
 
+    use crate::models::weather::weather_daemon;
+
+    tokio::spawn(weather_daemon(pool.clone()));
+
     use crate::models::sc::activity_update_daemon;
 
     tokio::spawn(activity_update_daemon(pool, agents));
@@ -188,7 +192,9 @@ fn routes(app: &mut web::ServiceConfig) {
             .service(library::query_book_detail)
             // Expense
             .service(pay::query_expense)
-            .service(pay::fetch_expense),
+            .service(pay::fetch_expense)
+            // Weather
+            .service(weather::get_weather),
     );
 }
 

@@ -50,6 +50,8 @@ pub enum CommonError {
     Forbidden = 5,
     #[error("需要实名认证后才能继续")]
     IdentityNeeded = 6,
+    #[error("url链接无效")]
+    UrlMissed = 7,
 }
 
 impl From<CommonError> for ApiError {
