@@ -68,14 +68,15 @@ pub async fn server_main() -> std::io::Result<()> {
         agents: agents.clone(),
         wx_client,
     };
-
+    // 天气
     use crate::models::weather::weather_daemon;
 
     tokio::spawn(weather_daemon(pool.clone()));
 
-    use crate::models::sc::activity_update_daemon;
-
-    tokio::spawn(activity_update_daemon(pool, agents));
+    // 第二课堂活动
+    // use crate::models::sc::activity_update_daemon;
+    //
+    // tokio::spawn(activity_update_daemon(pool, agents));
 
     // Run actix-web services.
     let mut server = HttpServer::new(move || {
