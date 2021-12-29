@@ -1,0 +1,8 @@
+# HTTP API service address.
+bind = "0.0.0.0:80"
+# Postgresql connection string.
+db = "postgresql://user:password@address:port/database"
+# Token secret for API.
+secret = "secret"
+# Directory path should be end with "\"
+attachment = "D:\\tmp\\"
