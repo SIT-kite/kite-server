@@ -1,4 +1,4 @@
-# 上应小风筝 API
+# 上应小风筝 API v2(WIP)
 
 ## 概要
 
@@ -7,47 +7,26 @@
 后端 API 为整个项目提供接口支持和数据处理。由于经费有限，尽可能需要一个资源占用小的后端服务，开发者希望它能在单核 1G 内存的机器上流畅运行，并承载和选课阶段差不多的访问量。 在之前的测试中，能稳定应对 1k
 左右的并发量，并保持低内存占用。
 
+该分支是 2.0 版本的服务端。由于学校要求导致的业务调整，上应小风筝将切换为 App 模式运营，一些功能（如账户系统）需要进行重构，
+如教务模块（成绩查询、课表查询等）将下线，相关代码功能到 [kite-app](https://github.com/SIT-Yiban/kite-app) 项目并使用 Dart 语言重写。
+当前的服务端仅提供基本的服务，运营支持如软件更新、使用统计，业务逻辑如公告、电费查询，并会添加查给分、二手交易等功能。
+
 ## 功能
 
-- [x] 登录模块
-- [x] 活动与签到（开发中）
-- [ ] 搜索（开发中）
-- [ ] 课表查询与选课
-- [ ] 空教室查询（开发中）
-- [ ] 二手闲置交易（开发中）
-- [x] 入学信息查询
+- [ ] 电费查询
+- [ ] 空教室查询
+- [ ] 二手闲置交易
+- [ ] 入学信息查询
 - [ ] 失物招领
+- [ ] 应用公告
+- [ ] 应用运营统计
+- [ ] 应用更新
 
 ## 环境配置
 
 ### 数据库配置
 
-在 `sql` 目录下有一个 `initial.sql` 文件，用于初始化数据库。
-
-请先部署好数据库，可以参考 [配置文档](docs/数据库配置.md)。考虑到可能的兼容性问题，建议数据库版本不低于 PostgreSQL 13.2。
-
-**方式一** 在 `psql` 中导入数据库
-
-切换到数据库脚本所在路径后，通过 `psql` 连接到对应的数据库：
-
-```shell
-cd kite-server/sql
-psql -U postgres
-```
-
-进入数据库后，输入：
-
-```shell
-\i initial.sql
-```
-
-**方式二** 直接通过 `psql` 命令执行 SQL 文件
-
-```shell
-psql -U postgres -f kite-server/sql/initial.sql
-```
-
-导入完成即可。推荐使用 DataGrip 进行后续的数据库管理操作。
+请先部署好数据库，可以参考 [配置文档](docs/数据库配置.md)。考虑到可能的兼容性问题，建议数据库版本不低于 PostgreSQL 13.2。推荐使用 DataGrip 进行后续的数据库管理操作。
 
 ### 编译
 
@@ -56,7 +35,7 @@ psql -U postgres -f kite-server/sql/initial.sql
 下载并编译：
 
 ```shell
-git clone https://github.com/SIT-Yiban/kite-server.git
+git clone https://github.com/SIT-Yiban/kite-server.git -b v2
 cd kite-server
 cargo build
 ```
@@ -64,8 +43,6 @@ cargo build
 同时修改根目录下 `kite.example.toml` 文件。默认如下：
 
 ```toml
-# Server config
-[server]
 # HTTPS API service address.
 bind = "0.0.0.0:443"
 # Postgresql connection string.
@@ -74,22 +51,8 @@ db = "postgresql://user:password@address:port/database"
 secret = "secret"
 # Directory path should be end with "\"
 attachment = "D:\\tmp\\"
-
-# Wechat platform config. Access https://mp.weixin.qq.com for details
-[wechat]
-# Miniprogram appid
-appid = "111"
-# Secret
-secret = "111"
-
-[host]
-# Bind address, for accepting connections from agents
-bind = "0.0.0.0:1040"
-# Max agent connections
-max = 32
 ```
 
-微信相关接口（微信登录）需要填写 `appid` 和 `secret` 后才能使用。
 执行下面命令即可运行，目标二进制文件存放在 `target` 目录下。
 
 ```shell
@@ -106,14 +69,12 @@ cargo run
 
 ## 如何贡献
 
-非常欢迎你的加入！[提一个 Issue](https://github.com/sunnysab/kite-server/issues/new) 或者提交一个 Pull Request。
+非常欢迎你的加入！[提一个 Issue](https://github.com/SIT-Yiban/kite-server/issues/new) 或者提交一个 Pull Request。
 
 如果您有意见或建议，可以联系我们。
 
-
-
 ## 开源协议
 
-[GPL v3](https://github.com/sunnysab/kite-server/blob/master/LICENSE) © 上海应用技术大学易班 sunnysab
+[GPL v3](https://github.com/SIT-Yiban/kite-server/blob/master/LICENSE) © 上海应用技术大学易班 sunnysab
 
 除此之外，您不能将本程序用于各类竞赛、毕业设计、论文等。
