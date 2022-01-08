@@ -4,7 +4,8 @@
 
 mod notice;
 
-use poem::{get, listener::TcpListener, Route, Server};
+use poem::middleware::AddData;
+use poem::{get, listener::TcpListener, EndpointExt, Route, Server};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
@@ -26,12 +27,12 @@ pub struct JwtToken {
 }
 
 fn create_route() -> Route {
-    Route::new().at("/v2/notice", get(notice::get_recent_notice_list))
+    Route::new().nest("/v2", Route::new().at("/notice", get(notice::get_notice_list)))
 }
 
 pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
-    let _pool = PgPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(10)
         .after_connect(|conn| {
             Box::pin(async move {
@@ -47,8 +48,9 @@ pub async fn server_main() -> std::io::Result<()> {
 
     // Run poem services
     let route = create_route();
+    let app = route.with(AddData::new(pool));
     Server::new(TcpListener::bind(&CONFIG.bind))
         .name("kite-server-v2")
-        .run(route)
+        .run(app)
         .await
 }
