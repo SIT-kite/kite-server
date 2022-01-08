@@ -2,6 +2,9 @@
 use crate::service::server_main;
 
 mod config;
+mod error;
+mod model;
+mod response;
 mod service;
 
 #[tokio::main]
