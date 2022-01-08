@@ -138,6 +138,7 @@ dependencies = [
  "libc",
  "num-integer",
  "num-traits",
+ "serde",
  "time",
  "winapi",
 ]
@@ -604,6 +605,7 @@ name = "kite-server"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "fern",
  "jsonwebtoken",
  "lazy_static",

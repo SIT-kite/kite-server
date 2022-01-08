@@ -21,6 +21,7 @@ num-traits = "0.2"
 num-derive = "0.3"
 lazy_static = "1"
 regex = "1"
+chrono = { version = "0.4", features = ["serde"] }
 
 fern = "0.6"
 log = "0.4"
