@@ -2,7 +2,9 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
-use poem::{get, handler, listener::TcpListener, web::Path, Route, Server};
+mod notice;
+
+use poem::{get, listener::TcpListener, Route, Server};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
@@ -23,31 +25,30 @@ pub struct JwtToken {
     pub is_admin: bool,
 }
 
+fn create_route() -> Route {
+    Route::new().at("/v2/notice", get(notice::get_recent_notice_list))
+}
+
 pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
-    // let _pool = PgPoolOptions::new()
-    //     .max_connections(10)
-    //     .after_connect(|conn| {
-    //         Box::pin(async move {
-    //             conn.execute("SET TIME ZONE 'Asia/Shanghai';").await?;
-    //             Ok(())
-    //         })
-    //     })
-    //     .connect(&CONFIG.db.as_ref())
-    //     .await
-    //     .expect("Could not create database pool");
+    let _pool = PgPoolOptions::new()
+        .max_connections(10)
+        .after_connect(|conn| {
+            Box::pin(async move {
+                conn.execute("SET TIME ZONE 'Asia/Shanghai';").await?;
+                Ok(())
+            })
+        })
+        .connect(&CONFIG.db.as_ref())
+        .await
+        .expect("Could not create database pool");
 
     // tracing_subscriber::fmt::init();
 
     // Run poem services
-    let app = Route::new().at("/hello/:name", get(hello));
+    let route = create_route();
     Server::new(TcpListener::bind(&CONFIG.bind))
         .name("kite-server-v2")
-        .run(app)
+        .run(route)
         .await
-}
-
-#[handler]
-fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
 }

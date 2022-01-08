@@ -1,8 +1,8 @@
 // Import main function.
-use crate::services::server_main;
+use crate::service::server_main;
 
 mod config;
-mod services;
+mod service;
 
 #[tokio::main]
 async fn main() {
