@@ -2,6 +2,7 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
+mod contact;
 mod electricity;
 mod notice;
 
@@ -12,9 +13,6 @@ use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
 
 use crate::config::CONFIG;
-use crate::service::electricity::{
-    query_room_balance, query_room_bills_by_day, query_room_bills_by_hour, query_room_consumption_rank,
-};
 
 /// User Jwt token carried in each request.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -26,12 +24,21 @@ pub struct JwtToken {
 }
 
 fn create_route() -> Route {
+    use contact::*;
+    use electricity::*;
+    use notice::*;
+
     let route = Route::new()
-        .at("/notice", get(notice::get_notice_list))
-        .at("/electricity/room/:room", get(query_room_balance))
-        .at("/electricity/room/:room/rank", get(query_room_consumption_rank))
-        .at("/electricity/room/:room/bill/days", get(query_room_bills_by_day))
-        .at("/electricity/room/:room/bill/hours", get(query_room_bills_by_hour));
+        .at("/notice", get(get_notice_list))
+        .at("/contact", get(query_all_contacts))
+        .nest(
+            "/electricity",
+            Route::new()
+                .at("/room/:room", get(query_room_balance))
+                .at("/room/:room/rank", get(query_room_consumption_rank))
+                .at("/room/:room/bill/days", get(query_room_bills_by_day))
+                .at("/room/:room/bill/hours", get(query_room_bills_by_hour)),
+        );
     Route::new().nest("/v2", route)
 }
 
