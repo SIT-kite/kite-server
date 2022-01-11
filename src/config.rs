@@ -1,5 +1,7 @@
+use anyhow::anyhow;
 use lazy_static::lazy_static;
 use serde::Deserialize;
+use std::ffi::OsString;
 use std::fs;
 
 // Look and rename kite.example.toml
@@ -19,14 +21,21 @@ pub struct ServerConfig {
 }
 
 lazy_static! {
-    pub static ref CONFIG: ServerConfig = load_config(DEFAULT_CONFIG_PATH)
-        .unwrap_or_else(|e| { panic!("Failed to parse {}: {}", DEFAULT_CONFIG_PATH, e) });
+    pub static ref CONFIG: ServerConfig = load_config();
 }
 
-/// Load the global configuration from DEFAULT_CONFIG_PATH on the startup.
-fn load_config(config_path: &str) -> Result<ServerConfig, anyhow::Error> {
-    let config_content = fs::read_to_string(config_path)?;
-    let config = toml::from_str(config_content.as_str())?;
+fn get_config_path() -> String {
+    std::env::var_os("KITE_CONFIG")
+        .and_then(|s| Some(s.into_string().unwrap()))
+        .unwrap_or(DEFAULT_CONFIG_PATH.to_string())
+}
 
-    Ok(config)
+/// Load the global configuration on startup.
+fn load_config() -> ServerConfig {
+    let path = get_config_path();
+
+    fs::read_to_string(&path)
+        .map_err(anyhow::Error::new)
+        .and_then(|f| toml::from_str(&f).map_err(anyhow::Error::new))
+        .unwrap_or_else(|e| panic!("Failed to parse {:?}: {}", path, e))
 }
