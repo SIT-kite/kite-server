@@ -2,6 +2,7 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
+mod electricity;
 mod notice;
 
 use poem::middleware::AddData;
@@ -11,11 +12,9 @@ use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
 
 use crate::config::CONFIG;
-
-#[derive(Clone)]
-pub struct AppState {
-    pool: PgPool,
-}
+use crate::service::electricity::{
+    query_room_balance, query_room_bills_by_day, query_room_bills_by_hour, query_room_consumption_rank,
+};
 
 /// User Jwt token carried in each request.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -27,7 +26,13 @@ pub struct JwtToken {
 }
 
 fn create_route() -> Route {
-    Route::new().nest("/v2", Route::new().at("/notice", get(notice::get_notice_list)))
+    let route = Route::new()
+        .at("/notice", get(notice::get_notice_list))
+        .at("/electricity/room/:room", get(query_room_balance))
+        .at("/electricity/room/:room/rank", get(query_room_consumption_rank))
+        .at("/electricity/room/:room/bill/days", get(query_room_bills_by_day))
+        .at("/electricity/room/:room/bill/hours", get(query_room_bills_by_hour));
+    Route::new().nest("/v2", route)
 }
 
 pub async fn server_main() -> std::io::Result<()> {
