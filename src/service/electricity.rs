@@ -16,10 +16,7 @@ use crate::response::ApiResponse;
 *********************************************************************/
 
 #[handler]
-pub async fn query_room_balance(
-    pool: Data<&PgPool>,
-    Path(room): Path<i32>,
-) -> Result<Json<serde_json::Value>> {
+pub async fn query_room_balance(pool: Data<&PgPool>, Path(room): Path<i32>) -> Result<Json<serde_json::Value>> {
     let data = electricity::query_last_balance(&pool, room).await?;
     let response: serde_json::Value = ApiResponse::normal(data).into();
 
@@ -52,9 +49,7 @@ pub async fn query_room_bills_by_day(
     let today = chrono::Local::today();
     let to_str = |x: Date<Local>| x.format("%Y-%m-%d").to_string();
 
-    let start_date = parameters
-        .start
-        .unwrap_or_else(|| to_str(today.sub(Duration::days(7))));
+    let start_date = parameters.start.unwrap_or_else(|| to_str(today.sub(Duration::days(7))));
     let end_date = parameters.end.unwrap_or_else(|| to_str(today));
 
     let data = electricity::query_statistics_by_day(&pool, room, start_date, end_date).await?;
@@ -64,10 +59,7 @@ pub async fn query_room_bills_by_day(
 }
 
 #[handler]
-pub async fn query_room_bills_by_hour(
-    pool: Data<&PgPool>,
-    Path(room): Path<i32>,
-) -> Result<Json<serde_json::Value>> {
+pub async fn query_room_bills_by_hour(pool: Data<&PgPool>, Path(room): Path<i32>) -> Result<Json<serde_json::Value>> {
     let now = chrono::Local::now();
 
     let start_time = now.sub(Duration::days(1));
