@@ -19,6 +19,8 @@ pub struct WeatherSummary {
     pub temperature: i32,
     /// 天气状况
     pub weather: String,
+    /// 图标 (与 app 的 assets/weather 下图标对应)
+    pub icon: String,
     /// 更新时间(观测时间)
     pub ts: DateTime<Local>,
 }
@@ -57,7 +59,11 @@ async fn save_weather(db: &PgPool, campus: i32, data: &serde_json::Value) -> Res
 
 pub async fn get_recent_weather(pool: &PgPool, campus: i32) -> Result<WeatherSummary> {
     let result = sqlx::query_as(
-        "SELECT CAST(data->>'temp' AS integer) AS temperature, data->>'text' AS weather, CAST(data->>'obsTime' AS timestamptz) AS ts
+        "SELECT 
+            CAST(data->>'temp' AS integer) AS temperature, 
+            data->>'text' AS weather, 
+            data->>'icon' AS icon, 
+            CAST(data->>'obsTime' AS timestamptz) AS ts
         FROM weather.record
         WHERE campus = $1
         ORDER BY record.ts DESC
@@ -84,7 +90,7 @@ pub async fn weather_daemon(pool: PgPool) -> Result<()> {
         if let Err(e) = update_all_weather(&pool).await {
             println!("Error occurred while update weather: {}", e);
         }
-        // Wait 5 minutes.
-        tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
+        // Wait 10 minutes.
+        tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
     }
 }
