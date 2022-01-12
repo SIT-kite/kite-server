@@ -13,6 +13,7 @@ use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Executor;
 
 use crate::config::CONFIG;
+use crate::middleware::logger::Logger;
 
 /// User Jwt token carried in each request.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -60,7 +61,7 @@ pub async fn server_main() -> std::io::Result<()> {
 
     // Run poem services
     let route = create_route();
-    let app = route.with(AddData::new(pool));
+    let app = route.with(AddData::new(pool)).with(Logger);
     Server::new(TcpListener::bind(&CONFIG.bind))
         .name("kite-server-v2")
         .run(app)
