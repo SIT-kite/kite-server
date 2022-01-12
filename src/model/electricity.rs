@@ -41,6 +41,7 @@ pub struct HourlyElectricityBill {
 
 /// Rank of recent-24hour consumption
 #[derive(serde::Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct RecentConsumptionRank {
     /// Consumption in last 24 hours.
     pub consumption: f32,
