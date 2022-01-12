@@ -5,11 +5,12 @@
 mod contact;
 mod electricity;
 mod notice;
+mod weather;
 
 use poem::middleware::AddData;
 use poem::{get, listener::TcpListener, EndpointExt, Route, Server};
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
 
 use crate::config::CONFIG;
@@ -28,10 +29,12 @@ fn create_route() -> Route {
     use contact::*;
     use electricity::*;
     use notice::*;
+    use weather::*;
 
     let route = Route::new()
         .at("/notice", get(get_notice_list))
         .at("/contact", get(query_all_contacts))
+        .at("/weather/:campus", get(get_weather))
         .nest(
             "/electricity",
             Route::new()
@@ -57,7 +60,9 @@ pub async fn server_main() -> std::io::Result<()> {
         .await
         .expect("Could not create database pool");
 
-    // tracing_subscriber::fmt::init();
+    // Start weather update daemon
+    use crate::model::weather;
+    tokio::spawn(weather::weather_daemon(pool.clone()));
 
     // Run poem services
     let route = create_route();

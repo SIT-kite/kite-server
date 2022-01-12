@@ -1,8 +1,5 @@
-use anyhow::anyhow;
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use std::ffi::OsString;
-use std::fs;
 
 // Look and rename kite.example.toml
 const DEFAULT_CONFIG_PATH: &str = "kite.toml";
@@ -18,6 +15,10 @@ pub struct ServerConfig {
     pub db: String,
     /// Attachment directory.
     pub attachment: String,
+
+    /* External API */
+    /// QWeather.com API key.
+    pub qweather_key: String,
 }
 
 lazy_static! {
@@ -34,7 +35,7 @@ fn get_config_path() -> String {
 fn load_config() -> ServerConfig {
     let path = get_config_path();
 
-    fs::read_to_string(&path)
+    std::fs::read_to_string(&path)
         .map_err(anyhow::Error::new)
         .and_then(|f| toml::from_str(&f).map_err(anyhow::Error::new))
         .unwrap_or_else(|e| panic!("Failed to parse {:?}: {}", path, e))
