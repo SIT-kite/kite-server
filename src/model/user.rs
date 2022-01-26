@@ -38,9 +38,25 @@ pub struct Validator;
 
 impl Validator {
     pub fn validate_username(account: &str) -> bool {
-        let regex = regex!(r"^((\d{9})|(\d{6}[YGHE\d]\d{3}))$");
-        return regex.is_match(account);
+        if account.len() > 10 || account.len() < 9 {
+            return false;
+        }
+        let regex = regex!(r"(\d{9})|(\d{6}[YGHE\d]\d{3})");
+        return regex.is_match(&account.to_uppercase());
     }
+}
+
+#[test]
+fn test_username_validator() {
+    use crate::model::user::Validator;
+
+    assert!(Validator::validate_username("1812100505"));
+    assert!(Validator::validate_username("1910100110"));
+    assert!(Validator::validate_username("181042Y109"));
+    assert!(!Validator::validate_username("19101001100"));
+    assert!(Validator::validate_username("191010011"));
+    assert!(!Validator::validate_username("19101001"));
+    assert!(!Validator::validate_username("181042Q109"))
 }
 
 pub async fn query(pool: &PgPool, account: &str) -> Result<Option<User>> {
