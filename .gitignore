@@ -1,8 +1,9 @@
 /target
-/http-test
 /.idea
 /migrations
 /kite.toml
 /kite.log
 /cert.pem
 /key.pem
+backup/
+*.private.env.json
