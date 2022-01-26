@@ -62,7 +62,7 @@ fn test_username_validator() {
 pub async fn query(pool: &PgPool, account: &str) -> Result<Option<User>> {
     // 在数据库中查询信息
     let user = sqlx::query_as(
-        "SELECT uid, account, create_time, role, is_block FROM user.account WHERE username = $1 LIMIT 1;",
+        "SELECT uid, account, create_time, role, is_block FROM \"user\".account WHERE account = $1 LIMIT 1;",
     )
     .bind(account)
     .fetch_optional(pool)
@@ -72,7 +72,7 @@ pub async fn query(pool: &PgPool, account: &str) -> Result<Option<User>> {
 
 pub async fn create(pool: &PgPool, account: &str) -> Result<User> {
     let user: User = sqlx::query_as(
-        "INSERT INTO user.account (account) VALUES($1) RETURNING (uid, account, create_time, role, is_block);",
+        "INSERT INTO \"user\".account (account) VALUES($1) RETURNING (uid, account, create_time, role, is_block);",
     )
     .bind(account)
     .fetch_one(pool)
