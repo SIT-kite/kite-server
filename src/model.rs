@@ -1,3 +1,4 @@
+pub mod badge;
 pub mod contact;
 pub mod electricity;
 pub mod notice;

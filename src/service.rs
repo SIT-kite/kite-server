@@ -5,28 +5,21 @@
 use poem::middleware::AddData;
 use poem::{get, listener::TcpListener, post, EndpointExt, Route, Server};
 use reqwest::redirect::Policy;
-use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
+
+use jwt::JwtToken;
 
 use crate::config::CONFIG;
 use crate::middleware::logger::Logger;
 
+mod badge;
 mod contact;
 mod electricity;
 mod jwt;
 mod notice;
 mod user;
 mod weather;
-
-/// User Jwt token carried in each request.
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct JwtToken {
-    /// UID of current user.
-    pub uid: i32,
-    /// current user role.
-    pub is_admin: bool,
-}
 
 fn create_route() -> Route {
     use contact::*;
@@ -47,6 +40,12 @@ fn create_route() -> Route {
                 .at("/room/:room/rank", get(query_room_consumption_rank))
                 .at("/room/:room/bill/days", get(query_room_bills_by_day))
                 .at("/room/:room/bill/hours", get(query_room_bills_by_hour)),
+        )
+        .nest(
+            "/badge",
+            Route::new()
+                .at("/card/", get(badge::get_my_cards))
+                .at("/result", get(badge::get_event_result)),
         );
     Route::new().nest("/v2", route)
 }
