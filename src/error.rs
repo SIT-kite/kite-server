@@ -33,6 +33,13 @@ impl ApiError {
             msg: Some(sub_err.to_string()),
         }
     }
+
+    pub fn custom(code: u16, msg: &str) -> Self {
+        Self {
+            code,
+            msg: Some(msg.to_string()),
+        }
+    }
 }
 
 #[macro_export]

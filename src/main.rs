@@ -7,6 +7,7 @@ mod middleware;
 mod model;
 mod response;
 mod service;
+mod portal;
 
 #[tokio::main]
 async fn main() {
