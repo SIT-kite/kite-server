@@ -1,4 +1,7 @@
+use poem::{FromRequest, Request, RequestBody};
+
 use crate::config::CONFIG;
+use crate::error::ApiError;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct JwtToken {
@@ -34,5 +37,19 @@ impl JwtToken {
 
     pub fn validate(token: &str) -> bool {
         Self::decode(token).is_some()
+    }
+}
+
+#[poem::async_trait]
+impl<'a> FromRequest<'a> for JwtToken {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> poem::Result<Self> {
+        let token = req
+            .headers()
+            .get("Authorization")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|s| s.strip_prefix("Bearer "))
+            .and_then(JwtToken::decode)
+            .ok_or_else(|| ApiError::custom(100, "凭据无效"))?;
+        Ok(token)
     }
 }
