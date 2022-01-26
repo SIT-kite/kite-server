@@ -66,7 +66,14 @@ pub async fn server_main() -> std::io::Result<()> {
         .expect("Could not create database pool");
 
     // Global http client.
-    let client = reqwest::Client::builder().redirect(Policy::none()).build().unwrap();
+    let mut client_builder = reqwest::Client::builder().redirect(Policy::none());
+    if let Some(proxy) = &CONFIG.get().unwrap().http_proxy {
+        client_builder = client_builder
+            .proxy(reqwest::Proxy::http(proxy).unwrap())
+            .proxy(reqwest::Proxy::https(proxy).unwrap())
+            .danger_accept_invalid_certs(true);
+    }
+    let client = client_builder.build().unwrap();
 
     // Start weather update daemon
     use crate::model::weather;

@@ -17,6 +17,8 @@ pub struct ServerConfig {
     pub db: String,
     /// Attachment directory.
     pub attachment: String,
+    /// Http proxy configuration (Optional).
+    pub http_proxy: Option<String>,
 
     /* External API */
     /// QWeather.com API key.
