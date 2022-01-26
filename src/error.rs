@@ -3,12 +3,13 @@ use num_traits::ToPrimitive;
 use poem::error::ResponseError;
 use poem::http::StatusCode;
 use reqwest::Error as ReqwestError;
+use serde::de::StdError;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlxError;
 
 pub type Result<T> = std::result::Result<T, ApiError>;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, serde::Serialize)]
 pub struct ApiError {
     pub code: u16,
     pub msg: Option<String>,
@@ -16,13 +17,24 @@ pub struct ApiError {
 
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{code:{},msg:\"{:?}\"}}", self.code, self.msg,)
+        write!(f, "{}", serde_json::to_string(&self).unwrap())
     }
 }
 
 impl ResponseError for ApiError {
     fn status(&self) -> StatusCode {
         StatusCode::OK
+    }
+
+    /// Convert this error to a HTTP response.
+    fn as_response(&self) -> poem::Response
+    where
+        Self: StdError + Send + Sync + 'static,
+    {
+        poem::Response::builder()
+            .status(self.status())
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&self).unwrap())
     }
 }
 
