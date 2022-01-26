@@ -135,19 +135,14 @@ macro_rules! regex_find {
 impl Portal {
     /// Check whether captcha is need or not.
     async fn check_need_captcha(&mut self, account: &str) -> Result<bool> {
-        let response = self
-            .session
-            .client
-            .get(NEED_CAPTCHA_URL)
-            .query(&[("username", account), ("pwdEncrypt2", "pwdEncryptSalt")])
-            .send()
-            .await?;
+        let url = format!("{}?username={}&pwdEncrypt2=pwdEncryptSalt", NEED_CAPTCHA_URL, account);
+        let response = self.session.get(&url).await?;
         Ok(response.text().await? == "true")
     }
 
     /// Fetch captcha image.
     async fn fetch_captcha(&mut self) -> Result<Vec<u8>> {
-        let response = self.session.client.get(CAPTCHA_URL).send().await?;
+        let response = self.session.get(CAPTCHA_URL).await?;
         return Ok(response.bytes().await?.to_vec());
     }
 
