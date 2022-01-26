@@ -11,7 +11,7 @@ mod service;
 
 #[tokio::main]
 async fn main() {
-    /// Load configuration.
+    // Load configuration.
     config::CONFIG.set(config::load_config());
 
     server_main().await.unwrap_or_else(|e| {
