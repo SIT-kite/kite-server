@@ -1,5 +1,7 @@
-use lazy_static::lazy_static;
+use once_cell::sync::OnceCell;
 use serde::Deserialize;
+
+pub static CONFIG: OnceCell<ServerConfig> = OnceCell::new();
 
 // Look and rename kite.example.toml
 const DEFAULT_CONFIG_PATH: &str = "kite.toml";
@@ -21,10 +23,6 @@ pub struct ServerConfig {
     pub qweather_key: String,
 }
 
-lazy_static! {
-    pub static ref CONFIG: ServerConfig = load_config();
-}
-
 fn get_config_path() -> String {
     std::env::var_os("KITE_CONFIG")
         .and_then(|s| Some(s.into_string().unwrap()))
@@ -32,7 +30,7 @@ fn get_config_path() -> String {
 }
 
 /// Load the global configuration on startup.
-fn load_config() -> ServerConfig {
+pub fn load_config() -> ServerConfig {
     let path = get_config_path();
 
     std::fs::read_to_string(&path)

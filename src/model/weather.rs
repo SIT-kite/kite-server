@@ -1,6 +1,7 @@
+use std::str::FromStr;
+
 use chrono::{DateTime, Local};
 use sqlx::PgPool;
-use std::str::FromStr;
 
 use crate::config::CONFIG;
 use crate::error::Result;
@@ -31,7 +32,7 @@ fn make_api_url(campus: i32) -> String {
     } else {
         LOCATION_XUHUI
     };
-    let key = &CONFIG.qweather_key;
+    let key = CONFIG.get().unwrap().qweather_key.as_str();
     format!(
         "https://devapi.qweather.com/v7/weather/now?key={}&location={}",
         key, location
@@ -59,10 +60,10 @@ async fn save_weather(db: &PgPool, campus: i32, data: &serde_json::Value) -> Res
 
 pub async fn get_recent_weather(pool: &PgPool, campus: i32) -> Result<WeatherSummary> {
     let result = sqlx::query_as(
-        "SELECT 
-            CAST(data->>'temp' AS integer) AS temperature, 
-            data->>'text' AS weather, 
-            data->>'icon' AS icon, 
+        "SELECT
+            CAST(data->>'temp' AS integer) AS temperature,
+            data->>'text' AS weather,
+            data->>'icon' AS icon,
             CAST(data->>'obsTime' AS timestamptz) AS ts
         FROM weather.record
         WHERE campus = $1
