@@ -3,7 +3,8 @@
 //! some permission check in acl_middleware
 
 use poem::middleware::AddData;
-use poem::{get, listener::TcpListener, EndpointExt, Route, Server};
+use poem::{get, listener::TcpListener, post, EndpointExt, Route, Server};
+use reqwest::redirect::Policy;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
@@ -35,7 +36,7 @@ fn create_route() -> Route {
     use weather::*;
 
     let route = Route::new()
-        .at("/session", get(login))
+        .at("/session", post(login))
         .at("/notice", get(get_notice_list))
         .at("/contact", get(query_all_contacts))
         .at("/weather/:campus", get(get_weather))
@@ -65,7 +66,7 @@ pub async fn server_main() -> std::io::Result<()> {
         .expect("Could not create database pool");
 
     // Global http client.
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().redirect(Policy::none()).build().unwrap();
 
     // Start weather update daemon
     use crate::model::weather;
