@@ -1,7 +1,7 @@
+use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
 use poem::error::ResponseError;
 use poem::http::StatusCode;
-
 use reqwest::Error as ReqwestError;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlxError;
@@ -59,3 +59,4 @@ macro_rules! convert_inner_errors {
 convert_inner_errors!(SqlxError);
 convert_inner_errors!(JsonError);
 convert_inner_errors!(ReqwestError);
+convert_inner_errors!(JwtError);

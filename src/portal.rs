@@ -19,11 +19,26 @@ const CAPTCHA_URL: &str = "https://authserver.sit.edu.cn/authserver/captcha.html
 /// 验证码识别服务
 const CAPTCHA_REORGANIZATION_URL: &str = "https://kite.sunnysab.cn/api/ocr/captcha";
 
+#[derive(Debug, num_derive::ToPrimitive, thiserror::Error)]
+pub enum PortalError {
+    #[error("提供的 Cookie 无效")]
+    InvalidCookie = 1,
+    #[error("登录失败")]
+    LoginFailed = 2,
+}
+
+#[derive(Clone)]
 pub struct Credential {
     /// 学号
     pub account: String,
     /// OA密码
     pub password: String,
+}
+
+impl Credential {
+    pub fn new(account: String, password: String) -> Credential {
+        Credential { account, password }
+    }
 }
 
 #[derive(Default)]
@@ -51,7 +66,7 @@ impl CookieJar {
         let result = self
             .inner
             .iter()
-            .fold(String::new(), |mut s, (k, v)| s + &*format!("{}={};", k, v));
+            .fold(String::new(), |s, (k, v)| s + &*format!("{}={};", k, v));
         return Some(result);
     }
 }
@@ -60,17 +75,14 @@ impl CookieJar {
 pub struct Session {
     /// 会话用的连接
     pub client: reqwest::Client,
-    /// 凭据
-    credential: Credential,
     /// Cookie 存储
     cookie_jar: CookieJar,
 }
 
 impl Session {
-    pub fn new(client: reqwest::Client, credential: Credential) -> Session {
+    pub fn new(client: reqwest::Client) -> Session {
         Session {
             client,
-            credential,
             cookie_jar: CookieJar::default(),
         }
     }
@@ -145,8 +157,8 @@ impl Portal {
 
         #[derive(serde::Deserialize)]
         struct RecognizeResult {
-            code: i32,
-            msg: Option<String>,
+            // code: i32,
+            // msg: Option<String>,
             data: Option<String>,
         }
         let response = self
@@ -162,7 +174,7 @@ impl Portal {
     }
 
     /// Check cookie is valid or not. This method can save time to login.
-    pub async fn valid_cookie(raw_client: &reqwest::Client, username: &str, cookie: &str) -> Result<bool> {
+    pub async fn valid_cookie(raw_client: &reqwest::Client, username: &str, cookie: &str) -> Result<()> {
         let response = raw_client
             .get(AUTH_SERVER_HOME_URL)
             .header("User-Agent", MOBILE_USER_AGENT)
@@ -173,7 +185,11 @@ impl Portal {
             .text()
             .await?
             .contains(&format!("<div class=\"index-nav-id\" data-name=\"id\">{}\n", username));
-        return Ok(result);
+
+        if result {
+            return Ok(());
+        }
+        return Err(ApiError::new(PortalError::InvalidCookie));
     }
 
     /// When submit password to `authserver.sit.edu.cn`, it's required to do AES and base64 algorithm with
@@ -205,30 +221,24 @@ impl Portal {
 
     /// Login on campus official auth-server with student id and password.
     /// Return session if done successfully.
-    pub async fn login(raw_client: &reqwest::Client, username: &str, password: &str) -> Result<Self> {
-        let mut session = Session::new(
-            raw_client.clone(),
-            Credential {
-                account: username.to_string(),
-                password: password.to_string(),
-            },
-        );
+    pub async fn login(raw_client: &reqwest::Client, credential: &Credential) -> Result<Self> {
+        let session = Session::new(raw_client.clone());
         let mut portal = Portal { session };
 
         // Request login page to get encrypt key and so on.
         let index_html = portal.session.get(LOGIN_URL).await?.text().await?;
         let aes_key = Self::get_aes_key(&index_html);
         let lt = Self::get_lt_field(&index_html);
-        let encrypted_password = Self::generate_password_string(&password.to_string(), &aes_key);
+        let encrypted_password = Self::generate_password_string(&credential.password, &aes_key);
 
-        let need_captcha = portal.check_need_captcha(username).await?;
+        let need_captcha = portal.check_need_captcha(&credential.account).await?;
         let mut captcha = String::default();
         if need_captcha {
             let image = portal.fetch_captcha().await?;
             captcha = portal.recognize_captcha(image).await?;
         }
         let form = vec![
-            ("username", username),
+            ("username", credential.account.as_str()),
             ("password", &encrypted_password),
             ("dllt", "userNamePasswordLogin"),
             ("execution", "e1s1"),
@@ -241,6 +251,6 @@ impl Portal {
         if response.status() == StatusCode::FOUND {
             return Ok(portal);
         }
-        return Err(ApiError::custom(1, "登录失败"));
+        return Err(ApiError::new(PortalError::LoginFailed));
     }
 }
