@@ -46,6 +46,7 @@ impl PageView {
     }
     /// Calculate offset
     pub fn offset(&self, max_count: i32) -> i32 {
-        self.count(max_count) * (self.index() - 1)
+        let index = if self.index() > 0 { self.index() - 1 } else { 0 };
+        self.count(max_count) * index
     }
 }
