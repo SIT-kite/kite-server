@@ -2,6 +2,7 @@ use chrono::{DateTime, Local};
 use sqlx::PgPool;
 
 use crate::error::Result;
+use crate::model::PageView;
 
 /// Kite-app home page notification.
 #[derive(sqlx::FromRow, serde::Serialize)]
@@ -19,11 +20,14 @@ pub struct SimpleNotice {
     pub top: bool,
 }
 
-pub async fn get_recent_notice(client: &PgPool) -> Result<Vec<SimpleNotice>> {
+pub async fn get_recent_notice(client: &PgPool, page: &PageView) -> Result<Vec<SimpleNotice>> {
     let notices = sqlx::query_as(
         "SELECT id, publish_time, title, content, top FROM notice WHERE expired = false
-                 ORDER BY top DESC, publish_time DESC LIMIT 5",
+                 ORDER BY top DESC, publish_time DESC
+                 LIMIT $1 OFFSET $2;",
     )
+    .bind(page.count(20))
+    .bind(page.offset(20))
     .fetch_all(client)
     .await?;
 
