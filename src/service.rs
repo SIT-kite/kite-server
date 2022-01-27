@@ -14,6 +14,7 @@ use crate::config::CONFIG;
 use crate::middleware::logger::Logger;
 
 mod badge;
+mod classroom;
 mod contact;
 mod electricity;
 mod jwt;
@@ -22,6 +23,7 @@ mod user;
 mod weather;
 
 fn create_route() -> Route {
+    use classroom::*;
     use contact::*;
     use electricity::*;
     use notice::*;
@@ -33,6 +35,7 @@ fn create_route() -> Route {
         .at("/notice", get(get_notice_list))
         .at("/contact", get(query_all_contacts))
         .at("/weather/:campus", get(get_weather))
+        .at("/classroom/available", get(query_available_classrooms))
         .nest(
             "/electricity",
             Route::new()

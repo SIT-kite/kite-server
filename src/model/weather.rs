@@ -5,9 +5,7 @@ use sqlx::PgPool;
 
 use crate::config::CONFIG;
 use crate::error::Result;
-
-const CAMPUS_FENGXIAN: i32 = 1;
-const CAMPUS_XUHUI: i32 = 2;
+use crate::model::{CAMPUS_FENGXIAN, CAMPUS_XUHUI};
 
 /// 奉贤校区, campus = 1
 const LOCATION_FENGXIAN: &str = "101021000";
