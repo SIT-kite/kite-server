@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Local};
 use serde::Serialize;
 use sqlx::PgPool;
 
@@ -11,7 +11,7 @@ pub struct Notice {
     /// id
     pub id: i32,
     /// publish time of the notice
-    pub publish_time: NaiveDateTime,
+    pub publish_time: DateTime<Local>,
     /// Title
     pub title: String,
     /// Content of the notice.
