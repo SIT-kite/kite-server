@@ -17,6 +17,7 @@ mod badge;
 mod classroom;
 mod contact;
 mod electricity;
+mod exception;
 mod jwt;
 mod notice;
 mod user;
@@ -26,11 +27,13 @@ fn create_route() -> Route {
     use classroom::*;
     use contact::*;
     use electricity::*;
+    use exception::*;
     use notice::*;
     use user::*;
     use weather::*;
 
     let route = Route::new()
+        .at("/exception", post(post_exception))
         .at("/session", post(login))
         .at("/notice", get(get_notice_list))
         .at("/contact", get(query_all_contacts))

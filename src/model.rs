@@ -2,6 +2,7 @@ pub mod badge;
 pub mod classroom;
 pub mod contact;
 pub mod electricity;
+pub mod exception;
 pub mod notice;
 pub mod user;
 pub mod weather;
