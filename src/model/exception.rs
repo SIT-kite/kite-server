@@ -1,4 +1,8 @@
-use chrono::{DateTime, Local};
+use std::fmt::Display;
+use std::str::FromStr;
+
+use chrono::NaiveDateTime;
+use serde::{de, Deserialize, Deserializer};
 use sqlx::PgPool;
 
 use crate::error::Result;
@@ -8,8 +12,8 @@ pub struct Exception {
     /// 错误信息 (异常里的一行文本描述)
     pub error: String,
     /// 发生时间
-    #[serde(rename = "dateTime")]
-    pub date_time: DateTime<Local>,
+    #[serde(rename = "dateTime", deserialize_with = "deserialize_from_str")]
+    pub date_time: NaiveDateTime,
     /// 调用栈
     #[serde(rename = "stackTrace")]
     pub stack: String,
@@ -25,6 +29,17 @@ pub struct Exception {
     /// 应用程序信息
     #[serde(rename = "applicationParameters")]
     pub application: serde_json::Value,
+}
+
+// https://stackoverflow.com/questions/57614558/how-to-use-a-custom-serde-deserializer-for-chrono-timestamps
+fn deserialize_from_str<'de, S, D>(deserializer: D) -> std::result::Result<S, D::Error>
+where
+    S: FromStr,      // Required for S::from_str...
+    S::Err: Display, // Required for .map_err(de::Error::custom)
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    S::from_str(&s).map_err(de::Error::custom)
 }
 
 pub async fn save_exception(pool: &PgPool, exception: &Exception) -> Result<()> {
