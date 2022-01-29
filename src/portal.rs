@@ -17,7 +17,8 @@ const MOBILE_USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 10; MI 8 Build/QKQ1
 /// 验证码
 const CAPTCHA_URL: &str = "https://authserver.sit.edu.cn/authserver/captcha.html";
 /// 验证码识别服务
-const CAPTCHA_REORGANIZATION_URL: &str = "https://kite.sunnysab.cn/api/ocr/captcha";
+// const CAPTCHA_REORGANIZATION_URL: &str = "https://kite.sunnysab.cn/api/ocr/captcha";
+const CAPTCHA_REORGANIZATION_URL: &str = "http://127.0.0.1:5000/api/ocr/captcha";
 
 #[derive(Debug, num_derive::ToPrimitive, thiserror::Error)]
 pub enum PortalError {
@@ -170,12 +171,27 @@ impl Portal {
 
     /// Check cookie is valid or not. This method can save time to login.
     pub async fn valid_cookie(raw_client: &reqwest::Client, username: &str, cookie: &str) -> Result<()> {
-        let response = raw_client
-            .get(AUTH_SERVER_HOME_URL)
-            .header("User-Agent", MOBILE_USER_AGENT)
-            .header("Cookie", cookie)
-            .send()
-            .await?;
+        let mut target = AUTH_SERVER_HOME_URL.to_string();
+        let mut response: reqwest::Response;
+        loop {
+            response = raw_client
+                .get(target.clone())
+                .header("User-Agent", MOBILE_USER_AGENT)
+                .header("Cookie", cookie)
+                .send()
+                .await?;
+            if response.status() == StatusCode::FOUND {
+                target = response
+                    .headers()
+                    .get("Location")
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string();
+            } else {
+                break;
+            }
+        }
         let result = response
             .text()
             .await?
