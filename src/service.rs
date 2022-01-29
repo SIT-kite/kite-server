@@ -2,7 +2,8 @@
 //! then calls business logic functions. Server controls database as it do
 //! some permission check in acl_middleware
 
-use poem::middleware::AddData;
+use poem::http::Method;
+use poem::middleware::{AddData, Cors};
 use poem::{get, listener::TcpListener, post, EndpointExt, Route, Server};
 use reqwest::redirect::Policy;
 use sqlx::postgres::PgPoolOptions;
@@ -87,7 +88,15 @@ pub async fn server_main() -> std::io::Result<()> {
 
     // Run poem services
     let route = create_route();
-    let app = route.with(AddData::new(pool)).with(AddData::new(client)).with(Logger);
+    let app = route
+        .with(AddData::new(pool))
+        .with(AddData::new(client))
+        .with(Logger)
+        .with(Cors::new().allow_origin("cdn.kite.sunnysab.cn").allow_methods([
+            Method::POST,
+            Method::GET,
+            Method::OPTIONS,
+        ]));
     Server::new(TcpListener::bind(CONFIG.get().unwrap().bind.as_str()))
         .name("kite-server-v2")
         .run(app)
