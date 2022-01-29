@@ -74,10 +74,10 @@ pub struct UserEvent {
 
 pub async fn append_user_event(pool: &PgPool, user: &Uuid, event_list: &Vec<UserEvent>) -> Result<()> {
     for e in event_list {
-        sqlx::query("INSERT INTO public.history (user, ts, type, params) VALUES ($1, $2, $3, $4);")
+        sqlx::query("INSERT INTO public.history (\"user\", type, ts, params) VALUES ($1, $2, $3, $4);")
             .bind(user)
-            .bind(e.ts)
             .bind(e._type)
+            .bind(e.ts)
             .bind(&e.params)
             .execute(pool)
             .await?;
