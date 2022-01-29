@@ -92,11 +92,11 @@ pub async fn server_main() -> std::io::Result<()> {
         .with(AddData::new(pool))
         .with(AddData::new(client))
         .with(Logger)
-        .with(Cors::new().allow_origin("cdn.kite.sunnysab.cn").allow_methods([
-            Method::POST,
-            Method::GET,
-            Method::OPTIONS,
-        ]));
+        .with(
+            Cors::new()
+                .allow_origins(["https://cdn.kite.sunnysab.cn", "https://kite.sunnysab.cn"])
+                .allow_methods([Method::POST, Method::GET, Method::OPTIONS]),
+        );
     Server::new(TcpListener::bind(CONFIG.get().unwrap().bind.as_str()))
         .name("kite-server-v2")
         .run(app)
