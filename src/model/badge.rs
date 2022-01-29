@@ -40,7 +40,7 @@ pub struct Card {
 }
 
 pub async fn get_cards_list(pool: &PgPool, uid: i32) -> Result<Vec<Card>> {
-    let cards = sqlx::query_as("SELECT card, ts FROM fu.scan WHERE uid = $1;")
+    let cards = sqlx::query_as("SELECT card, ts FROM fu.scan WHERE uid = $1 AND result = 3 AND card != 0;")
         .bind(uid)
         .fetch_all(pool)
         .await?;
