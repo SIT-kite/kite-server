@@ -69,9 +69,8 @@ pub async fn server_main() -> std::io::Result<()> {
         wx_client,
     };
     // 天气
-    use crate::models::weather::weather_daemon;
-
-    tokio::spawn(weather_daemon(pool.clone()));
+    // use crate::models::weather::weather_daemon;
+    // tokio::spawn(weather_daemon(pool.clone()));
 
     // 第二课堂活动
     // use crate::models::sc::activity_update_daemon;
