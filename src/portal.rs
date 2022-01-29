@@ -18,7 +18,7 @@ const MOBILE_USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 10; MI 8 Build/QKQ1
 const CAPTCHA_URL: &str = "https://authserver.sit.edu.cn/authserver/captcha.html";
 /// 验证码识别服务
 // const CAPTCHA_REORGANIZATION_URL: &str = "https://kite.sunnysab.cn/api/ocr/captcha";
-const CAPTCHA_REORGANIZATION_URL: &str = "http://127.0.0.1:5000/api/ocr/captcha";
+const CAPTCHA_REORGANIZATION_URL: &str = "https://127.0.0.1:443/api/ocr/captcha";
 
 #[derive(Debug, num_derive::ToPrimitive, thiserror::Error)]
 pub enum PortalError {
