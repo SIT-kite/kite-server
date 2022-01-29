@@ -12,6 +12,7 @@ use jwt::JwtToken;
 
 use crate::config::CONFIG;
 use crate::middleware::logger::Logger;
+use crate::model::report::append_user_event;
 
 mod badge;
 mod classroom;
@@ -20,6 +21,7 @@ mod electricity;
 mod exception;
 mod jwt;
 mod notice;
+mod report;
 mod user;
 mod weather;
 
@@ -29,11 +31,13 @@ fn create_route() -> Route {
     use electricity::*;
     use exception::*;
     use notice::*;
+    use report::*;
     use user::*;
     use weather::*;
 
     let route = Route::new()
         .at("/exception", post(post_exception))
+        .at("/report/event", post(append_user_event))
         .at("/session", post(login))
         .at("/notice", get(get_notice_list))
         .at("/contact", get(query_all_contacts))

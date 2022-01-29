@@ -4,6 +4,7 @@ pub mod contact;
 pub mod electricity;
 pub mod exception;
 pub mod notice;
+pub mod report;
 pub mod user;
 pub mod weather;
 
