@@ -59,6 +59,16 @@ fn test_username_validator() {
     assert!(!Validator::validate_username("181042Q109"))
 }
 
+pub async fn hit_cache(pool: &PgPool, account: &str, credential: &str) -> Result<bool> {
+    let (count,): (i32,) =
+        sqlx::query_as("SELECT COUNT(*) FROM public.authentication WHERE account = $1 AND credential = $2 ;")
+            .bind(account)
+            .bind(credential)
+            .fetch_one(pool)
+            .await?;
+    Ok(count != 0)
+}
+
 pub async fn query(pool: &PgPool, account: &str) -> Result<Option<User>> {
     // 在数据库中查询信息
     let user = sqlx::query_as(

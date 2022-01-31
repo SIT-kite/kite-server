@@ -43,8 +43,11 @@ pub async fn login(
         portal::Portal::valid_cookie(&client, &payload.account, &cookie).await?;
     } else if let Some(password) = payload.password {
         // 使用密码尝试验证
-        let credential = portal::Credential::new(payload.account.clone(), password);
-        let _ = portal::Portal::login(&client, &credential).await?;
+        if !user::hit_cache(&pool, &payload.account, &password).await? {
+            let credential = portal::Credential::new(payload.account.clone(), password);
+            // 若登录失败, 函数从此处结束.
+            let _ = portal::Portal::login(&client, &credential).await?;
+        }
     } else {
         return Err(ApiError::new(UserError::CredentialMissing).into());
     }
