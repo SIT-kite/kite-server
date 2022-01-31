@@ -46,3 +46,11 @@ pub async fn get_cards_list(pool: &PgPool, uid: i32) -> Result<Vec<Card>> {
         .await?;
     Ok(cards)
 }
+
+pub async fn append_share_log(pool: &PgPool, uid: i32) -> Result<()> {
+    sqlx::query("INSERT INTO fu.share_log (uid) VALUES ($1);")
+        .bind(uid)
+        .execute(pool)
+        .await?;
+    Ok(())
+}

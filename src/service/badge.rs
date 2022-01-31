@@ -11,6 +11,7 @@ use crate::service::JwtToken;
  Interfaces in this module:
  get_my_cards()         <-- GET /badge/card/
  get_event_result()     <-- GET /badge/result
+ append_share_log()     <-- POST /badge/share
 *********************************************************************/
 
 #[handler]
@@ -29,5 +30,13 @@ pub async fn get_event_result() -> Result<Json<serde_json::Value>> {
     });
     let response: serde_json::Value = ApiResponse::normal(result).into();
 
+    Ok(Json(response))
+}
+
+#[handler]
+pub async fn append_share_log(pool: Data<&PgPool>, token: JwtToken) -> Result<Json<serde_json::Value>> {
+    badge::append_share_log(&pool, token.uid).await?;
+
+    let response: serde_json::Value = ApiResponse::<()>::empty().into();
     Ok(Json(response))
 }

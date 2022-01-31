@@ -53,7 +53,8 @@ fn create_route() -> Route {
             "/badge",
             Route::new()
                 .at("/card/", get(badge::get_my_cards))
-                .at("/result", get(badge::get_event_result)),
+                .at("/result", get(badge::get_event_result))
+                .at("/share", post(badge::append_share_log)),
         );
     Route::new().nest("/v2", route)
 }
