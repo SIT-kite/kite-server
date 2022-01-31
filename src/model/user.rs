@@ -60,7 +60,7 @@ fn test_username_validator() {
 }
 
 pub async fn hit_cache(pool: &PgPool, account: &str, credential: &str) -> Result<bool> {
-    let (count,): (i32,) =
+    let (count,): (i64,) =
         sqlx::query_as("SELECT COUNT(*) FROM public.authentication WHERE account = $1 AND credential = $2 ;")
             .bind(account)
             .bind(credential)
