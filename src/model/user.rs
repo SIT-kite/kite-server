@@ -59,6 +59,16 @@ fn test_username_validator() {
     assert!(!Validator::validate_username("181042Q109"))
 }
 
+pub async fn hit_card_number(pool: &PgPool, account: &str, card_number: &str) -> Result<bool> {
+    let (count,): (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM \"user\".identity WHERE student_id = $1 AND id_card = $2 LIMIT 1;")
+            .bind(account)
+            .bind(card_number)
+            .fetch_one(pool)
+            .await?;
+    Ok(count != 0)
+}
+
 pub async fn hit_cache(pool: &PgPool, account: &str, credential: &str) -> Result<bool> {
     let (count,): (i64,) =
         sqlx::query_as("SELECT COUNT(*) FROM public.authentication WHERE account = $1 AND credential = $2 ;")
