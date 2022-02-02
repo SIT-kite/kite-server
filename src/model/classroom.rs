@@ -35,8 +35,7 @@ pub struct AvailClassroomQuery {
 
 pub async fn query_avail_classroom(db: &PgPool, query: &AvailClassroomQuery) -> Result<Vec<AvailClassroom>> {
     let classrooms = sqlx::query_as(
-        "SELECT room, busy_time::int, capacity::int FROM edu.query_available_classrooms($1, $2, $3, $4, $5, $6)
-        LIMIT $7 OFFSET $8;",
+        "SELECT room, busy_time::int, capacity::int FROM edu.query_available_classrooms($1, $2, $3, $4, $5, $6);",
     )
     .bind(&query.campus)
     .bind(&query.building)
