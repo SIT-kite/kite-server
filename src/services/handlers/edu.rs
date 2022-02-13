@@ -317,10 +317,10 @@ pub async fn query_score_detail(
 pub async fn get_school_start_date() -> Result<HttpResponse> {
     use chrono::NaiveDate;
 
-    let date = NaiveDate::from_ymd(2021, 9, 6);
+    let date = NaiveDate::from_ymd(2022, 2, 14);
     let response = json!({
         "year": "2021-2022",
-        "semester": 1,
+        "semester": 2,
         "start": date,
     });
     Ok(HttpResponse::Ok().json(ApiResponse::normal(response)))
