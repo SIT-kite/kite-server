@@ -96,7 +96,7 @@ fn get_current_dtstamp() -> String {
 
 fn get_semester_start_date() -> Date<FixedOffset> {
     // TODO: Load from db or config. From config is recommended.
-    FixedOffset::east(8 * 3600).ymd(2021, 9, 6)
+    FixedOffset::east(8 * 3600).ymd(2022, 2, 14)
 }
 
 /// 获取该学期的某周的第几天的时间
