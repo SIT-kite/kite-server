@@ -1,3 +1,7 @@
+use actix_web::{get, post, put, web, HttpResponse};
+use serde::Deserialize;
+use wechat_sdk::wechat::{Login, WxSession};
+
 use crate::error::{ApiError, Result};
 use crate::jwt::encode_jwt;
 use crate::models::file::AvatarManager;
@@ -5,9 +9,6 @@ use crate::models::user::{get_default_avatar, Authentication, Identity, Person, 
 use crate::models::user::{LOGIN_BY_PASSWORD, LOGIN_BY_WECHAT};
 use crate::models::CommonError;
 use crate::services::{response::ApiResponse, AppState, JwtToken};
-use actix_web::{get, post, put, web, HttpResponse};
-use serde::Deserialize;
-use wechat_sdk::wechat::{Login, WxSession};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -124,13 +125,6 @@ pub async fn create_user(
     user.province = parameters.province;
     user.city = parameters.city;
     user.language = parameters.language;
-
-    let avatar_storage = AvatarManager::new(&app.pool);
-    user.avatar = avatar_storage
-        .save(0, &user.avatar)
-        .await?
-        .url
-        .unwrap_or_else(|| get_default_avatar().to_string());
     user.register(&app.pool).await?;
 
     let response = serde_json::json!({
@@ -174,21 +168,6 @@ pub async fn update_user_detail(
     }
     if let Some(country) = form.country {
         person.country = Some(country);
-    }
-    if let Some(avatar_url) = form.avatar_url {
-        if !avatar_url.starts_with("https://") {
-            return Err(ApiError::new(CommonError::Parameter));
-        }
-
-        let avatar_storage = AvatarManager::new(&app.pool);
-        let stored_avatar = avatar_storage.query(&avatar_url).await;
-        let final_url = match stored_avatar {
-            // Use stored avatar
-            Ok(a) => a.url,
-            // Download and save avatar if not stored.
-            Err(_) => avatar_storage.save(0, &avatar_url).await?.url,
-        };
-        person.avatar = final_url.unwrap_or_else(|| get_default_avatar().to_string());
     }
     person.update(&app.pool).await?;
 
