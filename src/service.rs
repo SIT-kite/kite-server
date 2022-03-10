@@ -18,6 +18,7 @@ mod badge;
 mod classroom;
 mod contact;
 mod electricity;
+mod game;
 mod jwt;
 mod notice;
 mod report;
@@ -55,6 +56,12 @@ fn create_route() -> Route {
                 .at("/card/", get(badge::get_my_cards))
                 .at("/result", get(badge::get_event_result))
                 .at("/share", post(badge::append_share_log)),
+        )
+        .nest(
+            "/game",
+            Route::new()
+                .at("/ranking", get(game::get_ranking))
+                .at("/record", post(game::post_record)),
         );
     Route::new().nest("/v2", route)
 }
