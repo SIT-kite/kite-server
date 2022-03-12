@@ -60,7 +60,7 @@ fn create_route() -> Route {
         .nest(
             "/game",
             Route::new()
-                .at("/ranking", get(game::get_ranking))
+                .at("/ranking/:game", get(game::get_ranking))
                 .at("/record", post(game::post_record)),
         );
     Route::new().nest("/v2", route)

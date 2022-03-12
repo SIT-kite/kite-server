@@ -4,6 +4,7 @@ use sqlx::PgPool;
 
 use crate::model::game;
 use crate::response::ApiResponse;
+use crate::service::jwt::JwtToken;
 
 #[handler]
 pub async fn get_ranking(pool: Data<&PgPool>, Path(game): Path<i32>) -> Result<Json<serde_json::Value>> {
@@ -14,8 +15,12 @@ pub async fn get_ranking(pool: Data<&PgPool>, Path(game): Path<i32>) -> Result<J
 }
 
 #[handler]
-pub async fn post_record(pool: Data<&PgPool>, Json(record): Json<game::GameRecord>) -> Result<Json<serde_json::Value>> {
-    game::post_record(&pool, record).await?;
+pub async fn post_record(
+    pool: Data<&PgPool>,
+    token: JwtToken,
+    Json(record): Json<game::GameRecord>,
+) -> Result<Json<serde_json::Value>> {
+    game::post_record(&pool, token.uid, record).await?;
 
     Ok(Json(ApiResponse::<()>::empty().into()))
 }

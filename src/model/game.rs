@@ -40,9 +40,10 @@ pub async fn get_ranking(pool: &PgPool, game: i32, count: i32) -> Result<Vec<Pub
     Ok(ranking)
 }
 
-pub async fn post_record(pool: &PgPool, new_record: GameRecord) -> Result<()> {
-    sqlx::query("INSERT INTO game.record(ts, game, score) VALUES($1, $2, $3);")
+pub async fn post_record(pool: &PgPool, uid: i32, new_record: GameRecord) -> Result<()> {
+    sqlx::query("INSERT INTO game.record(ts, uid, game, score) VALUES($1, $2, $3, $4);")
         .bind(new_record.ts)
+        .bind(uid)
         .bind(new_record.game)
         .bind(new_record.score)
         .execute(pool)
