@@ -8,6 +8,7 @@ mod model;
 mod portal;
 mod response;
 mod service;
+mod util;
 
 #[tokio::main]
 async fn main() {

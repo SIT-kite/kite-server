@@ -1,11 +1,10 @@
-use std::str::FromStr;
-
 use chrono::{DateTime, Local};
 use serde::{de, Deserialize, Deserializer};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::error::Result;
+use crate::util::deserialize_from_str;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Exception {
@@ -29,16 +28,6 @@ pub struct Exception {
     /// 应用程序信息
     #[serde(rename = "applicationParameters")]
     pub application: serde_json::Value,
-}
-
-// https://stackoverflow.com/questions/57614558/how-to-use-a-custom-serde-deserializer-for-chrono-timestamps
-fn deserialize_from_str<'de, D>(deserializer: D) -> std::result::Result<DateTime<Local>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let mut s: String = Deserialize::deserialize(deserializer)?;
-    s += "+08:00";
-    DateTime::<Local>::from_str(&s).map_err(de::Error::custom)
 }
 
 pub async fn save_exception(pool: &PgPool, exception: &Exception) -> Result<()> {

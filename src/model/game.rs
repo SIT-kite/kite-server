@@ -1,4 +1,5 @@
 use crate::error::Result;
+use crate::util::deserialize_from_str;
 use chrono::{DateTime, Local};
 use sqlx::PgPool;
 
@@ -14,6 +15,7 @@ pub struct PublicGameRecord {
 #[derive(serde::Deserialize)]
 pub struct GameRecord {
     /// Timestamp timezone
+    #[serde(rename = "dateTime", deserialize_with = "deserialize_from_str")]
     pub ts: DateTime<Local>,
     /// Game type
     pub game: i32,
