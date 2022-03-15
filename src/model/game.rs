@@ -29,7 +29,6 @@ pub async fn get_ranking(pool: &PgPool, game: i32, count: i32) -> Result<Vec<Pub
         FROM game.record, \"user\".account
         WHERE record.uid = account.uid
             AND game = $1
-            AND ts >= current_date
         GROUP BY student_id
         ORDER BY score DESC
         LIMIT $2;",
