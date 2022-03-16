@@ -8,7 +8,7 @@ use crate::service::jwt::JwtToken;
 
 #[handler]
 pub async fn get_ranking(pool: Data<&PgPool>, Path(game): Path<i32>) -> Result<Json<serde_json::Value>> {
-    let data = game::get_ranking(&pool, game, 20).await?;
+    let data = game::get_ranking(&pool, game, 65535).await?;
     let response: serde_json::Value = ApiResponse::normal(data).into();
 
     Ok(Json(response))
