@@ -38,10 +38,10 @@ pub struct Validator;
 
 impl Validator {
     pub fn validate_username(account: &str) -> bool {
-        if account.len() > 10 || account.len() < 9 {
+        if account.len() != 4 && account.len() != 10 && account.len() != 9 {
             return false;
         }
-        let regex = regex!(r"(\d{9})(\d{4})|(\d{6}[YGHE\d]\d{3})");
+        let regex = regex!(r"^((\d{2}6\d{6})|(\d{4})|(\d{6}[YGHE\d]\d{3}))$");
         return regex.is_match(&account.to_uppercase());
     }
 }
@@ -54,9 +54,12 @@ fn test_username_validator() {
     assert!(Validator::validate_username("1910100110"));
     assert!(Validator::validate_username("181042Y109"));
     assert!(!Validator::validate_username("19101001100"));
-    assert!(Validator::validate_username("191010011"));
+    assert!(!Validator::validate_username("191010011"));
     assert!(!Validator::validate_username("19101001"));
-    assert!(!Validator::validate_username("181042Q109"))
+    assert!(!Validator::validate_username("181042Q109"));
+    assert!(Validator::validate_username("1234"));
+    assert!(Validator::validate_username("0000"));
+    assert!(Validator::validate_username("216001234"));
 }
 
 pub async fn hit_card_number(pool: &PgPool, account: &str, card_number: &str) -> Result<bool> {
