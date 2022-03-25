@@ -128,7 +128,7 @@ pub async fn apply(
         "index": index,
         "text": make_index_description(index),
     });
-    Ok(Json(response))
+    Ok(Json(ApiResponse::normal(response).into()))
 }
 
 #[derive(serde::Deserialize)]
