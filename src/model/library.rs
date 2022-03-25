@@ -17,7 +17,7 @@ pub struct Application {
     /// 预约编号
     pub id: i32,
     /// 预约场次. 格式为 `yyMMdd` + 场次 (1 上午, 2 下午）
-    pub period: u32,
+    pub period: i32,
     /// 学号/工号
     pub user: String,
     /// 场次下座位号
@@ -53,13 +53,18 @@ pub async fn get_notice(pool: &PgPool) -> Result<Option<Notice>> {
 /// 获取预约状态
 pub async fn get_status(pool: &PgPool, date: i32) -> Result<Vec<Status>> {
     let result = sqlx::query_as(
-        "SELECT period, COUNT(*) AS applied
-        FROM library.application
-        WHERE period / 10 = $1
-        GROUP BY period
-        ORDER BY period;",
+        "SELECT generate_series AS period, COALESCE(applied, 0) AS applied 
+        FROM generate_series($1, $2)
+        LEFT JOIN (
+            SELECT period, CAST(COUNT(*) AS int) AS applied
+            FROM library.application
+            GROUP BY period
+            ORDER BY period
+        ) AS applied_count
+        ON period = generate_series;",
     )
-    .bind(date % 1000000)
+    .bind(date * 10 + 1)
+    .bind(date * 10 + 2)
     .fetch_all(pool)
     .await?;
     Ok(result)
@@ -75,7 +80,7 @@ pub async fn get_applications(pool: &PgPool, period: Option<i32>, user: Option<S
     let applications = sqlx::query_as(
         "SELECT id, period, \"user\", index, status
         FROM library.application_view
-            AND (period = $1 OR $1 IS NULL)
+        WHERE (period = $1 OR $1 IS NULL)
             AND (\"user\" = $2 OR $2 IS NULL);",
     )
     .bind(period)

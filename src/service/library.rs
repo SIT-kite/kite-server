@@ -47,7 +47,7 @@ pub struct Status {
 
 #[handler]
 pub async fn get_status(pool: Data<&PgPool>, Path(date): Path<i32>) -> Result<Json<serde_json::Value>> {
-    let status = library::get_status(&pool, date).await?;
+    let status = library::get_status(&pool, date % 1000000).await?;
     let make_period_description = |x: i32| match x {
         1 => "9:00 - 11:30",
         2 => "13:00 - 16:30",
@@ -113,10 +113,20 @@ pub async fn apply(
     token: JwtToken,
     Json(data): Json<ApplyRequest>,
 ) -> Result<Json<serde_json::Value>> {
-    let apply_id = library::apply(&pool, token.uid, data.period).await?;
+    let index = library::apply(&pool, token.uid, data.period).await?;
+    let make_index_description = |index: i32| {
+        if index == 0 {
+            "无座位"
+        } else if index <= 175 {
+            "B201"
+        } else {
+            "B206"
+        }
+    };
 
     let response: serde_json::Value = json!({
-        "id": apply_id,
+        "index": index,
+        "text": make_index_description(index),
     });
     Ok(Json(response))
 }
