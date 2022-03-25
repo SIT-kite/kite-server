@@ -1,0 +1,56 @@
+### 查询公告
+GET {{prefix}}/library/notice
+Accept: application/json
+
+
+### 查询场次和剩余座位情况
+GET {{prefix}}/library/status/20220302/
+Accept: application/json
+
+
+### 查询预约记录
+GET {{prefix}}/library/application/?period=2203251
+Authorization: Bearer {{jwt}}
+Accept: application/json
+
+
+### 查询公钥
+GET {{prefix}}}}/library/publicKey
+Accept: application/json
+
+
+### 查询预约记录
+GET {{prefix}}/library/application/?user=1812100505
+Authorization: Bearer {{jwt}}
+Accept: application/json
+
+
+### 获取加密后二维码数据
+GET {{prefix}}/library/application/5/code
+Authorization: Bearer {{jwt}}
+Accept: application/json
+
+
+### 预约
+POST {{prefix}}/library/application
+Authorization: Bearer {{jwt}}
+Accept: application/json
+
+{
+  "period": 2203251
+}
+
+### 进馆
+PATCH {{prefix}}/library/application/5
+Authorization: Bearer {{jwt}}
+Accept: application/json
+
+{
+  "status": 1
+}
+
+
+### 取消预约
+DELETE {{prefix}}/library/application/5
+Authorization: Bearer {{jwt}}
+Accept: application/json
