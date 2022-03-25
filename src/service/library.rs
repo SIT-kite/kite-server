@@ -18,11 +18,11 @@ async fn load_key(filename: &str) -> String {
 }
 
 async fn load_public_key() -> String {
-    load_key("./rsa2048-priv.pem").await
+    load_key("./rsa2048-public.pem").await
 }
 
 async fn load_private_key() -> String {
-    load_key("./rsa2048-priv.pem").await
+    load_key("./rsa2048-private.pem").await
 }
 
 #[handler]
