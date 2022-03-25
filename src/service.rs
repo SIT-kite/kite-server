@@ -4,7 +4,7 @@
 
 use poem::http::Method;
 use poem::middleware::{AddData, Cors};
-use poem::{get, listener::TcpListener, post, EndpointExt, Route, Server};
+use poem::{delete, get, listener::TcpListener, patch, post, EndpointExt, Route, Server};
 use reqwest::redirect::Policy;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
@@ -20,6 +20,7 @@ mod contact;
 mod electricity;
 mod game;
 mod jwt;
+mod library;
 mod notice;
 mod report;
 mod user;
@@ -62,6 +63,17 @@ fn create_route() -> Route {
             Route::new()
                 .at("/ranking/:game", get(game::get_ranking))
                 .at("/record", post(game::post_record)),
+        )
+        .nest(
+            "/library",
+            Route::new()
+                .at("/notice", get(library::get_notice))
+                .at("/status/", get(library::get_status))
+                .at("/application/", get(library::get_application_list))
+                .at("/application/:apply_id/code", get(library::get_code))
+                .at("/application", post(library::apply))
+                .at("/application/:apply_id", patch(library::update_application_status))
+                .at("/application/:apply_id", delete(library::cancel)),
         );
     Route::new().nest("/v2", route)
 }

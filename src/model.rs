@@ -7,6 +7,7 @@ pub mod report;
 pub mod user;
 pub mod weather;
 pub mod game;
+pub mod library;
 
 pub const CAMPUS_FENGXIAN: i32 = 1;
 pub const CAMPUS_XUHUI: i32 = 2;
