@@ -70,10 +70,13 @@ fn create_route() -> Route {
                 .at("/notice", get(library::get_notice))
                 .at("/status/", get(library::get_status))
                 .at("/application/", get(library::get_application_list))
+                .at("/publicKey", get(library::get_public_key))
                 .at("/application/:apply_id/code", get(library::get_code))
                 .at("/application", post(library::apply))
-                .at("/application/:apply_id", patch(library::update_application_status))
-                .at("/application/:apply_id", delete(library::cancel)),
+                .at(
+                    "/application/:apply_id",
+                    patch(library::update_application_status).delete(library::cancel),
+                ),
         );
     Route::new().nest("/v2", route)
 }
