@@ -44,7 +44,7 @@ pub struct Status {
 
 /// 获取图书馆公告
 pub async fn get_notice(pool: &PgPool) -> Result<Option<Notice>> {
-    let notice: Option<Notice> = sqlx::query_as("SELECT html, ts FROM library.notice ORDER BY id DESC LIMIT 1;")
+    let notice: Option<Notice> = sqlx::query_as("SELECT html, ts FROM library.notice ORDER BY ts DESC LIMIT 1;")
         .fetch_optional(pool)
         .await?;
     Ok(notice)

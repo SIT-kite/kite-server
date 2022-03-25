@@ -4,7 +4,7 @@
 
 use poem::http::Method;
 use poem::middleware::{AddData, Cors};
-use poem::{delete, get, listener::TcpListener, patch, post, EndpointExt, Route, Server};
+use poem::{get, listener::TcpListener, patch, post, EndpointExt, Route, Server};
 use reqwest::redirect::Policy;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
@@ -68,7 +68,7 @@ fn create_route() -> Route {
             "/library",
             Route::new()
                 .at("/notice", get(library::get_notice))
-                .at("/status/", get(library::get_status))
+                .at("/status/:date/", get(library::get_status))
                 .at("/application/", get(library::get_application_list))
                 .at("/publicKey", get(library::get_public_key))
                 .at("/application/:apply_id/code", get(library::get_code))
