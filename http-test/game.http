@@ -1,0 +1,17 @@
+GET {{prefix}}/game/ranking/0
+Authorization: Bearer {{jwt}}
+Accept: application/json
+
+###
+
+POST {{prefix}}/game/record
+Authorization: Bearer {{jwt}}
+Accept: application/json
+
+{
+  "ts": 1647069885,
+  "game": 1,
+  "score": 200
+}
+
+###
