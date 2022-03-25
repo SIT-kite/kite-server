@@ -41,7 +41,7 @@ impl Validator {
         if account.len() > 10 || account.len() < 9 {
             return false;
         }
-        let regex = regex!(r"(\d{9})|(\d{6}[YGHE\d]\d{3})");
+        let regex = regex!(r"(\d{9})(\d{4})|(\d{6}[YGHE\d]\d{3})");
         return regex.is_match(&account.to_uppercase());
     }
 }
