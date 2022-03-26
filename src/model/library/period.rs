@@ -33,6 +33,27 @@ pub fn get_current_period() -> Option<i32> {
     make_period_by_datetime(Local::now())
 }
 
+/// 根据时间推算当前（或下一场）场次
+///
+/// 如果当前无场次，返回下一场场次
+pub fn get_next_period(datetime: DateTime<Local>) -> i32 {
+    let time = datetime.hour() * 100 + datetime.minute();
+
+    for i in 0..OPENING_PERIOD.len() {
+        let end = OPENING_PERIOD[i].1 as u32;
+        if time < end {
+            let index = (i + 1) as i32;
+            return datetime.year() % 100 * 100000
+                + datetime.month() as i32 * 1000
+                + datetime.day() as i32 * 10
+                + index;
+        }
+    }
+    // 如果当日无任何匹配，则下一场在明日（假设明日开馆）
+    let tomorrow = datetime.date().succ();
+    tomorrow.year() % 100 * 100000 + tomorrow.month() as i32 * 1000 + tomorrow.day() as i32 * 10 + 1
+}
+
 /// 获取第 i 场开放的开始时间和结束时间
 pub fn get_period_range(base_date: Date<Local>, index: i32) -> (DateTime<Local>, DateTime<Local>) {
     let period_pair: (i32, i32) = OPENING_PERIOD[index as usize - 1];

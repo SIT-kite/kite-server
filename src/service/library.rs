@@ -203,14 +203,19 @@ pub async fn get_current_period(pool: Data<&PgPool>) -> Result<Json<serde_json::
     let response = match index {
         Some(index) => {
             let range = library::get_period_range(now.date(), 2);
-            let data = json!({
+            json!({
                 "period": index,
                 "after": range.0,
                 "before": range.1,
-            });
-            ApiResponse::normal(data).into()
+            })
         }
-        None => ApiResponse::<Option<()>>::normal(None).into(),
+        None => {
+            let next = library::get_next_period(now);
+            json!({
+                "next":  next,
+                "period": Option::<()>::None,
+            })
+        }
     };
-    Ok(Json(response))
+    Ok(Json(ApiResponse::normal(response).into()))
 }
