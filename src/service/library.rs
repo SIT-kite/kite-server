@@ -4,6 +4,7 @@ use serde_json::json;
 use sqlx::PgPool;
 
 use crate::model::library;
+use crate::model::library::Application;
 use crate::response::ApiResponse;
 use crate::service::jwt::JwtToken;
 use tokio::sync::OnceCell;
@@ -23,6 +24,17 @@ async fn load_public_key() -> String {
 
 async fn load_private_key() -> String {
     load_key("./rsa2048-private.pem").await
+}
+
+fn make_index_description(index: i32) -> &'static str {
+    if index == 0 {
+        // 无座位
+        unreachable!();
+    } else if index <= 175 {
+        "B201"
+    } else {
+        "B206"
+    }
 }
 
 #[handler]
@@ -74,6 +86,22 @@ pub struct ApplicationQuery {
     pub user: Option<String>,
 }
 
+#[derive(serde::Serialize)]
+pub struct ApplicationResult {
+    /// 预约编号
+    pub id: i32,
+    /// 预约场次. 格式为 `yyMMdd` + 场次 (1 上午, 2 下午, 3 晚上）
+    pub period: i32,
+    /// 学号/工号
+    pub user: String,
+    /// 场次下座位号
+    pub index: i32,
+    /// 预约状态
+    pub status: i32,
+    /// 房间描述
+    pub text: String,
+}
+
 #[handler]
 pub async fn get_application_list(
     pool: Data<&PgPool>,
@@ -81,7 +109,18 @@ pub async fn get_application_list(
     token: JwtToken,
 ) -> Result<Json<serde_json::Value>> {
     // TODO: 权限校验
-    let data = library::get_applications(&pool, query.period, query.user).await?;
+    let data: Vec<ApplicationResult> = library::get_applications(&pool, query.period, query.user)
+        .await?
+        .into_iter()
+        .map(|e| ApplicationResult {
+            id: e.id,
+            period: e.period,
+            user: e.user,
+            index: e.index,
+            status: e.status,
+            text: make_index_description(e.index).to_string(),
+        })
+        .collect();
 
     let response: serde_json::Value = ApiResponse::normal(data).into();
     Ok(Json(response))
@@ -114,17 +153,6 @@ pub async fn apply(
     Json(data): Json<ApplyRequest>,
 ) -> Result<Json<serde_json::Value>> {
     let apply_result = library::apply(&pool, token.uid, data.period).await?;
-    let make_index_description = |index: i32| {
-        if index == 0 {
-            // 无座位
-            unreachable!();
-        } else if index <= 175 {
-            "B201"
-        } else {
-            "B206"
-        }
-    };
-
     let response: serde_json::Value = json!({
         "id": apply_result.id.unwrap(),
         "index": apply_result.index,
