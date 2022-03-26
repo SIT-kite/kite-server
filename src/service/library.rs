@@ -196,26 +196,34 @@ pub async fn cancel(
     Ok(Json(response))
 }
 
+static OPENING_PERIOD: &[(i32, i32); 3] = &[(830, 1130), (1300, 1600), (1730, 2100)];
+
 #[handler]
 pub async fn get_current_period(pool: Data<&PgPool>) -> Result<Json<serde_json::Value>> {
     let now = Local::now();
     let mut response = ApiResponse::<Option<()>>::normal(None).into();
 
-    let get_data = |period_index: i32| {
+    let get_data = |period_index: i32, after: DateTime<Local>, before: DateTime<Local>| {
         json!({
             "period": now.year() % 100 * 100000 + now.month() as i32 * 1000 + now.day() as i32 * 10 + period_index,
+            "after": after,
+            "before": before,
         })
     };
 
     // 周一、二不开放
     if now.weekday().num_days_from_monday() != 1 && now.weekday().num_days_from_monday() != 2 {
         let time = now.hour() * 100 + now.minute();
-        if time >= 830 && time <= 1130 {
-            response = get_data(1);
-        } else if time >= 1300 && time <= 1600 {
-            response = get_data(2);
-        } else if time >= 1730 && time <= 2100 {
-            response = get_data(3);
+
+        for i in 0..OPENING_PERIOD.len() {
+            let (start, end) = (OPENING_PERIOD[i].0 as u32, OPENING_PERIOD[i].1 as u32);
+
+            if time >= start as u32 && time <= end {
+                let after = now.date().and_hms(start / 100, start % 100, 0);
+                let before = now.date().and_hms(end / 100, end % 100, 0);
+                response = get_data((i + 1) as i32, after, before);
+                break;
+            }
         }
     }
     Ok(Json(response))
