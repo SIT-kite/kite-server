@@ -1,11 +1,10 @@
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Datelike, Local, Timelike};
 use poem::web::{Data, Json, Path, Query};
 use poem::{handler, Result};
 use serde_json::json;
 use sqlx::PgPool;
 
 use crate::model::library;
-use crate::model::library::Application;
 use crate::response::ApiResponse;
 use crate::service::jwt::JwtToken;
 use tokio::sync::OnceCell;
@@ -183,6 +182,7 @@ pub async fn update_application_status(
     let response: serde_json::Value = ApiResponse::<()>::empty().into();
     Ok(Json(response))
 }
+
 #[handler]
 pub async fn cancel(
     pool: Data<&PgPool>,
@@ -193,5 +193,30 @@ pub async fn cancel(
     library::cancel(&pool, apply_id).await?;
 
     let response: serde_json::Value = ApiResponse::<()>::empty().into();
+    Ok(Json(response))
+}
+
+#[handler]
+pub async fn get_current_period(pool: Data<&PgPool>) -> Result<Json<serde_json::Value>> {
+    let now = Local::now();
+    let mut response = ApiResponse::<Option<()>>::normal(None).into();
+
+    let get_data = |period_index: i32| {
+        json!({
+            "period": now.year() % 100 * 100000 + now.month() as i32 * 1000 + now.day() as i32 * 10 + period_index,
+        })
+    };
+
+    // 周一、二不开放
+    if now.weekday().num_days_from_monday() != 1 && now.weekday().num_days_from_monday() != 2 {
+        let time = now.hour() * 100 + now.minute();
+        if time >= 830 && time <= 1130 {
+            response = get_data(1);
+        } else if time >= 1300 && time <= 1600 {
+            response = get_data(2);
+        } else if time >= 1730 && time <= 2100 {
+            response = get_data(3);
+        }
+    }
     Ok(Json(response))
 }

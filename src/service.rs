@@ -76,7 +76,8 @@ fn create_route() -> Route {
                 .at(
                     "/application/:apply_id",
                     patch(library::update_application_status).delete(library::cancel),
-                ),
+                )
+                .at("/current", get(library::get_current_period)),
         );
     Route::new().nest("/v2", route)
 }
