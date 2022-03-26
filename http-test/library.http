@@ -15,8 +15,8 @@ Accept: application/json
 
 
 ### 查询公钥
-GET {{prefix}}}}/library/publicKey
-Accept: application/json
+GET {{prefix}}/library/publicKey
+Accept: text/html
 
 
 ### 查询预约记录
