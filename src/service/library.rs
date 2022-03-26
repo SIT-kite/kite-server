@@ -1,3 +1,4 @@
+use chrono::{DateTime, Local};
 use poem::web::{Data, Json, Path, Query};
 use poem::{handler, Result};
 use serde_json::json;
@@ -100,6 +101,8 @@ pub struct ApplicationResult {
     pub status: i32,
     /// 房间描述
     pub text: String,
+    /// 预约时间
+    pub ts: DateTime<Local>,
 }
 
 #[handler]
@@ -118,6 +121,7 @@ pub async fn get_application_list(
             user: e.user,
             index: e.index,
             status: e.status,
+            ts: e.ts,
             text: make_index_description(e.index).to_string(),
         })
         .collect();

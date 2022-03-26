@@ -80,7 +80,7 @@ pub async fn get_applications(pool: &PgPool, period: Option<i32>, user: Option<S
         return Ok(vec![]);
     }
     let applications = sqlx::query_as(
-        "SELECT id, period, \"user\", index, status
+        "SELECT id, period, \"user\", index, status, ts
         FROM library.application_view
         WHERE (period = $1 OR $1 IS NULL)
             AND (\"user\" = $2 OR $2 IS NULL);",
