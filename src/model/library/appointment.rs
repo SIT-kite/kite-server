@@ -106,12 +106,13 @@ pub async fn get_code(pool: &PgPool, id: i32, private_key: &str) -> Result<Strin
 pub struct ApplyResult {
     pub id: Option<i32>,
     pub index: i32,
+    pub is_exist: bool,
 }
 
 /// 预约座位
 pub async fn apply(pool: &PgPool, uid: i32, period: i32) -> Result<ApplyResult> {
     // library.apply(_uid int, _period int, max_seat int)
-    let result: ApplyResult = sqlx::query_as("SELECT id, index FROM library.apply($1, $2, 275);")
+    let result: ApplyResult = sqlx::query_as("SELECT id, index, is_exist FROM library.apply($1, $2, 275);")
         .bind(uid)
         .bind(period)
         .fetch_one(pool)

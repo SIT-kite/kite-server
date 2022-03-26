@@ -162,6 +162,7 @@ pub async fn apply(
         "id": apply_result.id.unwrap(),
         "index": apply_result.index,
         "text": make_index_description(apply_result.index),
+        "exist": apply_result.is_exist,
     });
     Ok(Json(ApiResponse::normal(response).into()))
 }
