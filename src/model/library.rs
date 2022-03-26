@@ -24,6 +24,8 @@ pub struct Application {
     pub index: i32,
     /// 预约状态
     pub status: i32,
+    /// 预约时间
+    pub ts: DateTime<Local>,
 }
 
 #[derive(serde::Serialize, sqlx::FromRow)]
@@ -93,7 +95,7 @@ pub async fn get_applications(pool: &PgPool, period: Option<i32>, user: Option<S
 /// 查询单条申请记录
 pub async fn query_application_by_id(pool: &PgPool, id: i32) -> Result<Option<Application>> {
     let result = sqlx::query_as(
-        "SELECT id, period, \"user\", index, status
+        "SELECT id, period, \"user\", index, status, ts
         FROM library.application_view
         WHERE id = $1
         LIMIT 1;",
@@ -110,7 +112,17 @@ pub async fn get_code(pool: &PgPool, id: i32, private_key: &str) -> Result<Strin
         .await?
         .ok_or(ApiError::new(LibraryError::NoSuchItem))?;
 
-    let content = serde_json::to_string(&application).unwrap();
+    #[derive(serde::Serialize)]
+    pub struct ApplicationCode {
+        pub application: Application,
+        pub generation_ts: DateTime<Local>,
+    }
+
+    let code_structure = ApplicationCode {
+        application,
+        generation_ts: Local::now(),
+    };
+    let content = serde_json::to_string(&code_structure).unwrap();
 
     let mut rng = rand::thread_rng();
     let key = RsaPrivateKey::from_pkcs8_pem(private_key).expect("Invalid Rsa key.");
