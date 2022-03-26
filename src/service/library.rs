@@ -113,10 +113,11 @@ pub async fn apply(
     token: JwtToken,
     Json(data): Json<ApplyRequest>,
 ) -> Result<Json<serde_json::Value>> {
-    let index = library::apply(&pool, token.uid, data.period).await?;
+    let apply_result = library::apply(&pool, token.uid, data.period).await?;
     let make_index_description = |index: i32| {
         if index == 0 {
-            "无座位"
+            // 无座位
+            unreachable!();
         } else if index <= 175 {
             "B201"
         } else {
@@ -125,8 +126,9 @@ pub async fn apply(
     };
 
     let response: serde_json::Value = json!({
-        "index": index,
-        "text": make_index_description(index),
+        "id": apply_result.id.unwrap(),
+        "index": apply_result.index,
+        "text": make_index_description(apply_result.index),
     });
     Ok(Json(ApiResponse::normal(response).into()))
 }

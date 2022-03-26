@@ -121,18 +121,24 @@ pub async fn get_code(pool: &PgPool, id: i32, private_key: &str) -> Result<Strin
     Ok(base64::encode(result))
 }
 
+#[derive(sqlx::FromRow)]
+pub struct ApplyResult {
+    pub id: Option<i32>,
+    pub index: i32,
+}
+
 /// 预约座位
-pub async fn apply(pool: &PgPool, uid: i32, period: i32) -> Result<i32> {
+pub async fn apply(pool: &PgPool, uid: i32, period: i32) -> Result<ApplyResult> {
     // library.apply(_uid int, _period int, max_seat int)
-    let (apply_id,): (i32,) = sqlx::query_as("SELECT library.apply($1, $2, 275);")
+    let result: ApplyResult = sqlx::query_as("SELECT id, index FROM library.apply($1, $2, 275);")
         .bind(uid)
         .bind(period)
         .fetch_one(pool)
         .await?;
-    if apply_id == 0 {
+    if result.id.is_none() {
         return Err(ApiError::new(LibraryError::AlreadyFull));
     }
-    Ok(apply_id)
+    Ok(result)
 }
 
 /// 更新预约状态
