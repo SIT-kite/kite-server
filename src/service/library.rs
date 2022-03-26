@@ -85,6 +85,7 @@ pub async fn get_status(pool: Data<&PgPool>, Path(date): Path<i32>) -> Result<Js
 pub struct ApplicationQuery {
     pub period: Option<i32>,
     pub user: Option<String>,
+    pub date: Option<i32>,
 }
 
 #[derive(serde::Serialize)]
@@ -112,19 +113,20 @@ pub async fn get_application_list(
     token: JwtToken,
 ) -> Result<Json<serde_json::Value>> {
     // TODO: 权限校验
-    let data: Vec<ApplicationResult> = library::get_applications(&pool, query.period, query.user)
-        .await?
-        .into_iter()
-        .map(|e| ApplicationResult {
-            id: e.id,
-            period: e.period,
-            user: e.user,
-            index: e.index,
-            status: e.status,
-            ts: e.ts,
-            text: make_index_description(e.index).to_string(),
-        })
-        .collect();
+    let data: Vec<ApplicationResult> =
+        library::get_applications(&pool, query.period, query.user, query.date.map(|x| x % 1000000))
+            .await?
+            .into_iter()
+            .map(|e| ApplicationResult {
+                id: e.id,
+                period: e.period,
+                user: e.user,
+                index: e.index,
+                status: e.status,
+                ts: e.ts,
+                text: make_index_description(e.index).to_string(),
+            })
+            .collect();
 
     let response: serde_json::Value = ApiResponse::normal(data).into();
     Ok(Json(response))

@@ -75,18 +75,25 @@ pub async fn get_status(pool: &PgPool, date: i32) -> Result<Vec<Status>> {
 /// 获取预约列表
 ///
 /// 请不要同时提供或不提供 period/user 参数.
-pub async fn get_applications(pool: &PgPool, period: Option<i32>, user: Option<String>) -> Result<Vec<Application>> {
-    if (period.is_none() && user.is_none()) || (period.is_some() && user.is_some()) {
+pub async fn get_applications(
+    pool: &PgPool,
+    period: Option<i32>,
+    user: Option<String>,
+    date: Option<i32>,
+) -> Result<Vec<Application>> {
+    if date.is_none() && ((period.is_none() && user.is_none()) || (period.is_some() && user.is_some())) {
         return Ok(vec![]);
     }
     let applications = sqlx::query_as(
         "SELECT id, period, \"user\", index, status, ts
         FROM library.application_view
         WHERE (period = $1 OR $1 IS NULL)
-            AND (\"user\" = $2 OR $2 IS NULL);",
+            AND (\"user\" = $2 OR $2 IS NULL)\
+            AND (period / 10 = $3 OR $3 IS NULL);",
     )
     .bind(period)
     .bind(user)
+    .bind(date)
     .fetch_all(pool)
     .await?;
     Ok(applications)
