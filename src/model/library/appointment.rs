@@ -41,6 +41,7 @@ pub async fn get_applications(
     pool: &PgPool,
     period: Option<i32>,
     user: Option<String>,
+    uid: Option<i32>,
     date: Option<i32>,
 ) -> Result<Vec<Application>> {
     if date.is_none() && ((period.is_none() && user.is_none()) || (period.is_some() && user.is_some())) {
@@ -50,11 +51,13 @@ pub async fn get_applications(
         "SELECT id, period, \"user\", index, status, ts
         FROM library.application_view
         WHERE (period = $1 OR $1 IS NULL)
-            AND (\"user\" = $2 OR $2 IS NULL)\
-            AND (period / 10 = $3 OR $3 IS NULL);",
+            AND (\"user\" = $2 OR $2 IS NULL)
+            AND (uid = $3 OR $3 IS NULL)
+            AND (period / 10 = $4 OR $4 IS NULL);",
     )
     .bind(period)
     .bind(user)
+    .bind(uid)
     .bind(date)
     .fetch_all(pool)
     .await?;

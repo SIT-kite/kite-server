@@ -3,6 +3,7 @@ use poem::web::{Data, Json, Path, Query};
 use poem::{handler, Result};
 use serde_json::json;
 use sqlx::PgPool;
+use std::fmt::Debug;
 
 use crate::model::library;
 use crate::response::ApiResponse;
@@ -55,11 +56,35 @@ pub struct Status {
     pub applied: i32,
     /// 场次描述
     pub text: String,
+    /// 用户是否已经申请
+    pub appointed: bool,
 }
 
 #[handler]
-pub async fn get_status(pool: Data<&PgPool>, Path(date): Path<i32>) -> Result<Json<serde_json::Value>> {
+pub async fn get_status(
+    pool: Data<&PgPool>,
+    Path(date): Path<i32>,
+    token: Option<JwtToken>,
+) -> Result<Json<serde_json::Value>> {
     let status = library::get_status(&pool, date % 1000000).await?;
+    let applied_vec = if token.is_some() {
+        library::get_applications(&pool, None, None, token.map(|x| x.uid), Some(date % 1000000))
+            .await?
+            .iter()
+            .map(|x| x.period)
+            .collect()
+    } else {
+        vec![]
+    };
+
+    fn in_vec<T: std::cmp::PartialEq + Debug>(num: T, vec: &[T]) -> bool {
+        for e in vec {
+            if e == &num {
+                return true;
+            }
+        }
+        return false;
+    }
     let make_period_description = |x: i32| match x {
         1 => "9:00 - 11:30",
         2 => "13:30 - 16:00",
@@ -73,6 +98,7 @@ pub async fn get_status(pool: Data<&PgPool>, Path(date): Path<i32>) -> Result<Js
             count: 274,
             applied: s.applied,
             text: make_period_description(s.period % 10).to_string(),
+            appointed: in_vec(s.period, &applied_vec),
         })
         .collect();
     let response: serde_json::Value = ApiResponse::normal(result).into();
@@ -113,7 +139,7 @@ pub async fn get_application_list(
 ) -> Result<Json<serde_json::Value>> {
     // TODO: 权限校验
     let data: Vec<ApplicationResult> =
-        library::get_applications(&pool, query.period, query.user, query.date.map(|x| x % 1000000))
+        library::get_applications(&pool, query.period, query.user, None, query.date.map(|x| x % 1000000))
             .await?
             .into_iter()
             .map(|e| ApplicationResult {
@@ -177,6 +203,7 @@ pub async fn update_application_status(
     pool: Data<&PgPool>,
     Path(apply_id): Path<i32>,
     Json(data): Json<UpdateRequest>,
+    token: JwtToken,
 ) -> Result<Json<serde_json::Value>> {
     library::update_application(&pool, apply_id, data.status).await?;
 
@@ -198,7 +225,7 @@ pub async fn cancel(
 }
 
 #[handler]
-pub async fn get_current_period(pool: Data<&PgPool>) -> Result<Json<serde_json::Value>> {
+pub async fn get_current_period() -> Result<Json<serde_json::Value>> {
     let now = Local::now();
     let index = library::make_period_by_datetime(now);
     let response = match index {
