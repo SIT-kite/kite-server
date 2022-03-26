@@ -16,7 +16,7 @@ pub enum LibraryError {
 pub struct Application {
     /// 预约编号
     pub id: i32,
-    /// 预约场次. 格式为 `yyMMdd` + 场次 (1 上午, 2 下午）
+    /// 预约场次. 格式为 `yyMMdd` + 场次 (1 上午, 2 下午, 3 晚上）
     pub period: i32,
     /// 学号/工号
     pub user: String,
@@ -64,7 +64,7 @@ pub async fn get_status(pool: &PgPool, date: i32) -> Result<Vec<Status>> {
         ON period = generate_series;",
     )
     .bind(date * 10 + 1)
-    .bind(date * 10 + 2)
+    .bind(date * 10 + 3)
     .fetch_all(pool)
     .await?;
     Ok(result)

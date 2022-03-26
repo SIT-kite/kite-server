@@ -50,15 +50,15 @@ pub async fn get_status(pool: Data<&PgPool>, Path(date): Path<i32>) -> Result<Js
     let status = library::get_status(&pool, date % 1000000).await?;
     let make_period_description = |x: i32| match x {
         1 => "9:00 - 11:30",
-        2 => "13:00 - 16:30",
-        // 3 => "18:00 - 21:00",
+        2 => "13:30 - 16:00",
+        3 => "18:00 - 21:00",
         _ => "/",
     };
     let result: Vec<Status> = status
         .iter()
         .map(|s| Status {
             period: s.period,
-            count: 275,
+            count: 274,
             applied: s.applied,
             text: make_period_description(s.period % 10).to_string(),
         })
