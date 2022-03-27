@@ -7,7 +7,7 @@ use std::fmt::Debug;
 
 use crate::error::ApiError;
 use crate::model::library::LibraryError;
-use crate::model::{library, user::role_mask};
+use crate::model::{library, user, user::role_mask};
 use crate::response::ApiResponse;
 use crate::service::jwt::JwtToken;
 use tokio::sync::OnceCell;
@@ -147,7 +147,21 @@ pub async fn get_application_list(
     Query(query): Query<ApplicationQuery>,
     token: JwtToken,
 ) -> Result<Json<serde_json::Value>> {
-    // TODO: 权限校验
+    if let Some(query_user) = &query.user {
+        if token.role & role_mask::LIBRARY == 0 {
+            // 对普通用户校验是否有权限查询预约记录
+            let user = user::query(&pool, &query_user).await?;
+            if let Some(user) = user {
+                // 如果普通用户查询了不属于自己的预约记录, 返回错误
+                if user.uid != token.uid {
+                    return Err(ApiError::new(LibraryError::Forbidden).into());
+                }
+            } else {
+                // 如果要查询的用户不存在, 不需要请求数据库了
+                return Ok(Json(ApiResponse::normal(Vec::<()>::new()).into()));
+            }
+        }
+    }
     let data: Vec<ApplicationResult> =
         library::get_applications(&pool, query.period, query.user, None, query.date.map(|x| x % 1000000))
             .await?
