@@ -39,6 +39,10 @@ pub enum UserError {
     InvalidAccountFormat = 2,
     #[error("缺少登录凭据")]
     CredentialMissing = 3,
+    #[error("找不到用户")]
+    NoSuchUser = 4,
+    #[error("凭据认证失败")]
+    CredentialFailure = 5,
 }
 
 pub struct Validator;
@@ -81,7 +85,17 @@ pub async fn hit_card_number(pool: &PgPool, account: &str, card_number: &str) ->
 
 pub async fn hit_cache(pool: &PgPool, account: &str, credential: &str) -> Result<bool> {
     let (count,): (i64,) =
-        sqlx::query_as("SELECT COUNT(*) FROM public.authentication WHERE account = $1 AND credential = $2 ;")
+        sqlx::query_as("SELECT COUNT(*) FROM public.authentication WHERE account = $1 AND credential = $2;")
+            .bind(account)
+            .bind(credential)
+            .fetch_one(pool)
+            .await?;
+    Ok(count != 0)
+}
+
+pub async fn hit_admin(pool: &PgPool, account: &str, credential: &str) -> Result<bool> {
+    let (count,): (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM \"user\".admin WHERE account = $1 AND credential = $2;")
             .bind(account)
             .bind(credential)
             .fetch_one(pool)
@@ -112,7 +126,9 @@ pub async fn query(pool: &PgPool, account: &str) -> Result<Option<User>> {
 
 pub async fn create(pool: &PgPool, account: &str) -> Result<User> {
     let user: User = sqlx::query_as(
-        "INSERT INTO \"user\".account (account) VALUES($1) RETURNING (uid, account, create_time, role, is_block);",
+        "INSERT INTO \"user\".account (account) VALUES($1) \
+        ON CONFLICT (account) DO UPDATE SET account = $1 \
+        RETURNING uid, account, create_time, role, is_block;",
     )
     .bind(account)
     .fetch_one(pool)

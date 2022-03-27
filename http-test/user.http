@@ -10,6 +10,19 @@ Content-Type: application/json
 }
 
 
+### 用户登录和注册. （管理员）
+POST {{prefix}}/session
+Accept: */*
+Cache-Control: no-cache
+Content-Type: application/json
+
+{
+  "account": "sunnysab",
+  "password": "sunnysab",
+  "mode": 1
+}
+
+
 ### 用户登录和注册. （基于统一认证系统的 Cookie）
 POST {{prefix}}/session
 Accept: */*
