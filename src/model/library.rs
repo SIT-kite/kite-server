@@ -14,7 +14,13 @@ pub enum LibraryError {
     #[error("当日已满")]
     AlreadyFull = 201,
     #[error("禁止取消已使用的预约")]
-    CanNotCancel,
+    CanNotCancelUsed = 202,
+    #[error("禁止取消历史场次")]
+    CanNotCancelExpired = 203,
+    #[error("禁止申请历史场次")]
+    CanNotApplyExpired = 204,
+    #[error("权限不足")]
+    Forbidden = 205,
 }
 
 #[derive(serde::Serialize, sqlx::FromRow)]

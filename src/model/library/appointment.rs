@@ -136,15 +136,10 @@ pub async fn update_application(pool: &PgPool, apply_id: i32, status: i32) -> Re
 }
 
 /// 取消预约
-pub async fn cancel(pool: &PgPool, apply_id: i32) -> Result<()> {
-    let record = query_application_by_id(pool, apply_id)
-        .await?
-        .ok_or(ApiError::new(LibraryError::NoSuchItem))?;
-    if record.status == 1 {
-        return Err(ApiError::new(LibraryError::CanNotCancel));
-    }
-    sqlx::query("DELETE FROM library.application WHERE id = $1;")
+pub async fn cancel(pool: &PgPool, apply_id: i32, uid: Option<i32>) -> Result<()> {
+    sqlx::query("DELETE FROM library.application WHERE id = $1 AND (uid = $2 OR $2 IS NULL);")
         .bind(apply_id)
+        .bind(uid)
         .execute(pool)
         .await?;
     Ok(())

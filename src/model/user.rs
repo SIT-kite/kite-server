@@ -3,6 +3,13 @@ use sqlx::PgPool;
 
 use crate::error::Result;
 
+pub mod role_mask {
+    /// 图书馆管理员
+    pub const LIBRARY: i32 = 0b10;
+    /// 完整权限
+    pub const FULL: i32 = 0x7FFFFFFF;
+}
+
 macro_rules! regex {
     ($re:literal $(,)?) => {{
         static RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
@@ -80,6 +87,16 @@ pub async fn hit_cache(pool: &PgPool, account: &str, credential: &str) -> Result
             .fetch_one(pool)
             .await?;
     Ok(count != 0)
+}
+
+pub async fn get(pool: &PgPool, uid: i32) -> Result<Option<User>> {
+    let user = sqlx::query_as(
+        "SELECT uid, account, create_time, role, is_block FROM \"user\".account WHERE uid = $1 LIMIT 1;",
+    )
+    .bind(uid)
+    .fetch_optional(pool)
+    .await?;
+    Ok(user)
 }
 
 pub async fn query(pool: &PgPool, account: &str) -> Result<Option<User>> {

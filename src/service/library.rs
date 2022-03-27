@@ -5,7 +5,9 @@ use serde_json::json;
 use sqlx::PgPool;
 use std::fmt::Debug;
 
-use crate::model::library;
+use crate::error::ApiError;
+use crate::model::library::LibraryError;
+use crate::model::{library, user::role_mask};
 use crate::response::ApiResponse;
 use crate::service::jwt::JwtToken;
 use tokio::sync::OnceCell;
@@ -191,6 +193,17 @@ pub async fn apply(
     token: JwtToken,
     Json(data): Json<ApplyRequest>,
 ) -> Result<Json<serde_json::Value>> {
+    let now = Local::now();
+    let earliest_to_apply = if let Some(period) = library::make_period_by_datetime(now) {
+        period
+    } else {
+        library::get_next_period(now)
+    };
+
+    if data.period < earliest_to_apply {
+        return Err(ApiError::new(LibraryError::CanNotApplyExpired).into());
+    }
+
     let apply_result = library::apply(&pool, token.uid, data.period).await?;
     let response: serde_json::Value = json!({
         "id": apply_result.id.unwrap(),
@@ -213,6 +226,9 @@ pub async fn update_application_status(
     Json(data): Json<UpdateRequest>,
     token: JwtToken,
 ) -> Result<Json<serde_json::Value>> {
+    if token.role & role_mask::LIBRARY == 0 {
+        return Err(ApiError::new(LibraryError::Forbidden).into());
+    }
     library::update_application(&pool, apply_id, data.status).await?;
 
     let response: serde_json::Value = ApiResponse::<()>::empty().into();
@@ -225,11 +241,34 @@ pub async fn cancel(
     Path(apply_id): Path<i32>,
     token: JwtToken,
 ) -> Result<Json<serde_json::Value>> {
-    // TODO: Check token.
-    library::cancel(&pool, apply_id).await?;
+    // 管理员可以删除任意记录, 普通用户只能删除属于自己的记录
+    let target_uid = if token.role & role_mask::LIBRARY != 0 {
+        None
+    } else {
+        Some(token.uid)
+    };
 
-    let response: serde_json::Value = ApiResponse::<()>::empty().into();
-    Ok(Json(response))
+    let target_record = library::query_application_by_id(&pool, apply_id).await?;
+    if let Some(record) = target_record {
+        let current_period = library::get_next_period(Local::now());
+        if record.status != 0 {
+            // 禁止取消已进馆记录
+            Err(ApiError::new(LibraryError::CanNotCancelUsed).into())
+        } else {
+            if current_period <= record.period {
+                // 该场次未结束，可以取消
+                library::cancel(&pool, apply_id, target_uid).await?;
+
+                let response: serde_json::Value = ApiResponse::<()>::empty().into();
+                Ok(Json(response))
+            } else {
+                // 禁止取消过期记录
+                Err(ApiError::new(LibraryError::CanNotCancelExpired).into())
+            }
+        }
+    } else {
+        Err(ApiError::new(LibraryError::NoSuchItem).into())
+    }
 }
 
 #[handler]
