@@ -2,7 +2,8 @@ use super::LibraryError;
 use super::{Application, Notice, Status};
 use crate::error::{ApiError, Result};
 use chrono::{DateTime, Local};
-use rsa::{pkcs8::FromPrivateKey, PaddingScheme, PublicKey, RsaPrivateKey};
+use rsa::{pkcs8::FromPrivateKey, Hash, PaddingScheme, RsaPrivateKey};
+use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 
 /// 获取图书馆公告
@@ -78,27 +79,21 @@ pub async fn query_application_by_id(pool: &PgPool, id: i32) -> Result<Option<Ap
 }
 
 /// 生成加密的二维码信息
-pub async fn get_code(pool: &PgPool, id: i32, private_key: &str) -> Result<String> {
-    let application = query_application_by_id(pool, id)
-        .await?
-        .ok_or(ApiError::new(LibraryError::NoSuchItem))?;
+pub fn generate_sign(application: &Application, private_key: &str, ts: &DateTime<Local>) -> Result<String> {
+    let clear_text = format!(
+        "{}|{}|{}|{}|{}",
+        &application.period,
+        &application.user,
+        &application.index,
+        &application.id,
+        ts.timestamp_millis(),
+    );
 
-    #[derive(serde::Serialize)]
-    pub struct ApplicationCode {
-        pub application: Application,
-        pub generation_ts: DateTime<Local>,
-    }
-
-    let code_structure = ApplicationCode {
-        application,
-        generation_ts: Local::now(),
-    };
-    let content = serde_json::to_string(&code_structure).unwrap();
-
-    let mut rng = rand::thread_rng();
+    let digest = Sha256::digest(clear_text.as_bytes()).to_vec();
     let key = RsaPrivateKey::from_pkcs8_pem(private_key).expect("Invalid Rsa key.");
+
     let result = key
-        .encrypt(&mut rng, PaddingScheme::PKCS1v15Encrypt, content.as_bytes())
+        .sign(PaddingScheme::new_pkcs1v15_sign(Some(Hash::SHA2_256)), &digest)
         .unwrap();
 
     Ok(base64::encode(result))

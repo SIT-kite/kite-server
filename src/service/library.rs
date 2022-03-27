@@ -190,9 +190,18 @@ pub async fn get_public_key() -> Result<String> {
 #[handler]
 pub async fn get_code(pool: Data<&PgPool>, Path(apply_id): Path<i32>) -> Result<Json<serde_json::Value>> {
     let key = PRIVATE_KEY.get_or_init(load_private_key).await;
-    let data = library::get_code(&pool, apply_id, key).await?;
+    let data = library::query_application_by_id(&pool, apply_id)
+        .await?
+        .ok_or_else(|| ApiError::new(LibraryError::NoSuchItem))?;
+    let ts = Local::now();
+    let sign = library::generate_sign(&data, key, &ts)?;
 
-    let response: serde_json::Value = ApiResponse::normal(data).into();
+    let response: serde_json::Value = ApiResponse::normal(json!({
+        "application": data,
+        "timestamp": ts,
+        "sign": sign,
+    }))
+    .into();
     Ok(Json(response))
 }
 
