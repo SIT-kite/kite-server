@@ -227,12 +227,12 @@ pub async fn cancel(
 #[handler]
 pub async fn get_current_period() -> Result<Json<serde_json::Value>> {
     let now = Local::now();
-    let index = library::make_period_by_datetime(now);
-    let response = match index {
-        Some(index) => {
-            let range = library::get_period_range(now.date(), 2);
+    let period = library::make_period_by_datetime(now);
+    let response = match period {
+        Some(period) => {
+            let range = library::get_period_range(now.date(), period % 10);
             json!({
-                "period": index,
+                "period": period,
                 "after": range.0,
                 "before": range.1,
             })
