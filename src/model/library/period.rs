@@ -1,5 +1,4 @@
 use chrono::{Date, DateTime, Datelike, Local, Timelike};
-use serde_json::json;
 
 /// 图书馆开馆区间
 static OPENING_PERIOD: &[(i32, i32); 3] = &[(830, 1130), (1300, 1600), (1730, 2100)];
@@ -20,7 +19,7 @@ fn get_period_index(datetime: DateTime<Local>) -> Option<i32> {
 
 pub fn make_period_by_datetime(datetime: DateTime<Local>) -> Option<i32> {
     // 周一、二不开放
-    if datetime.weekday().num_days_from_monday() == 1 || datetime.weekday().num_days_from_monday() == 2 {
+    if datetime.weekday().number_from_monday() == 1 || datetime.weekday().number_from_monday() == 2 {
         return None;
     }
 

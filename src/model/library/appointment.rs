@@ -2,7 +2,6 @@ use super::LibraryError;
 use super::{Application, Notice, Status};
 use crate::error::{ApiError, Result};
 use chrono::{DateTime, Local};
-use num_derive::ToPrimitive;
 use rsa::{pkcs8::FromPrivateKey, PaddingScheme, PublicKey, RsaPrivateKey};
 use sqlx::PgPool;
 

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, Local, Timelike};
+use chrono::{DateTime, Datelike, Local, NaiveDate};
 use poem::web::{Data, Json, Path, Query};
 use poem::{handler, Result};
 use serde_json::json;
@@ -66,6 +66,14 @@ pub async fn get_status(
     Path(date): Path<i32>,
     token: Option<JwtToken>,
 ) -> Result<Json<serde_json::Value>> {
+    let week_day = NaiveDate::from_ymd(date / 10000, (date / 100 % 100) as u32, (date % 100) as u32)
+        .weekday()
+        .number_from_monday();
+    if week_day == 1 || week_day == 2 {
+        let response = ApiResponse::normal(Vec::<Status>::new()).into();
+        return Ok(Json(response));
+    }
+
     let status = library::get_status(&pool, date % 1000000).await?;
     let applied_vec = if token.is_some() {
         library::get_applications(&pool, None, None, token.map(|x| x.uid), Some(date % 1000000))
