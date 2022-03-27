@@ -86,7 +86,7 @@ pub fn generate_sign(application: &Application, private_key: &str, ts: &DateTime
         &application.user,
         &application.index,
         &application.id,
-        ts.timestamp_millis(),
+        ts.timestamp(),
     );
 
     let digest = Sha256::digest(clear_text.as_bytes()).to_vec();
