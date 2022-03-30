@@ -18,6 +18,9 @@ poem = { version = "1.2" }
 tokio = { version = "1.15", features = ["parking_lot"] }
 reqwest = { version = "0.11", features = ["rustls-tls", "gzip", "json"] }
 
+# Html parser
+scraper = "0.12"
+
 uuid = { version = "0.8", features = ["serde", "v4"] }
 num-traits = "0.2"
 num-derive = "0.3"

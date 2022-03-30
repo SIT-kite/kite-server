@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use reqwest::{Method, StatusCode};
+use scraper::{Html, Selector};
 
 use crate::error::{ApiError, Result};
 
@@ -168,17 +169,11 @@ impl Portal {
         return Ok(text.data.unwrap());
     }
 
-    /// Check cookie is valid or not. This method can save time to login.
-    pub async fn valid_cookie(raw_client: &reqwest::Client, username: &str, cookie: &str) -> Result<()> {
+    pub async fn get_person_name(&mut self) -> Result<String> {
         let mut target = AUTH_SERVER_HOME_URL.to_string();
         let mut response: reqwest::Response;
         loop {
-            response = raw_client
-                .get(target.clone())
-                .header("User-Agent", MOBILE_USER_AGENT)
-                .header("Cookie", cookie)
-                .send()
-                .await?;
+            response = self.session.get(&target).await?;
             if response.status() == StatusCode::FOUND {
                 target = response
                     .headers()
@@ -191,15 +186,15 @@ impl Portal {
                 break;
             }
         }
-        let result = response
-            .text()
-            .await?
-            .contains(&format!("<div class=\"index-nav-id\" data-name=\"id\">{}\n", username));
+        let html = response.text().await?;
+        let document = Html::parse_document(&html);
 
-        if result {
-            return Ok(());
-        }
-        return Err(ApiError::new(PortalError::InvalidCookie));
+        let name: String = document
+            .select(&Selector::parse("#auth_siderbar > div.auth_username > span > span").unwrap())
+            .next()
+            .map(|e| e.text().collect())
+            .unwrap_or_default();
+        return Ok(name.trim().to_string());
     }
 
     /// When submit password to `authserver.sit.edu.cn`, it's required to do AES and base64 algorithm with

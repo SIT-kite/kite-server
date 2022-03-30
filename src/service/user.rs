@@ -33,32 +33,32 @@ pub async fn login(
     client: Data<&reqwest::Client>,
     Json(payload): Json<Credential>,
 ) -> Result<Json<serde_json::Value>> {
-    let name: String;
-    // 常规登录
-    if payload.mode.unwrap_or(0) == 0 {
+    let name: String = if payload.mode.unwrap_or(0) == 0
+    /* 常规登录 */
+    {
         if !user::Validator::validate_username(&payload.account) {
             return Err(ApiError::new(UserError::InvalidAccountFormat).into());
         }
-
-        let credential = portal::Credential::new(payload.account.clone(), password);
+        let credential = portal::Credential::new(payload.account.clone(), payload.password.clone());
         // 若登录失败, 函数从此处结束.
         let mut portal = portal::Portal::login(&client, &credential).await?;
-        name = portal.get_person_name().await?;
+
+        portal.get_person_name().await?
     } else
     /* 管理员登录 */
     {
-        if !user::hit_admin(&pool, &payload.account, &password).await? {
+        if !user::hit_admin(&pool, &payload.account, &payload.password).await? {
             return Err(ApiError::new(UserError::NoSuchUser).into());
         }
-        name = payload.account;
-    }
+        payload.account.clone()
+    };
 
     // 此处验证通过, 从数据库中查找相应记录.
     let query_result = user::query(&pool, &payload.account).await?;
     let user: user::User = if let Some(queried_user) = query_result {
         queried_user
     } else {
-        user::create(&pool, &payload.account).await?
+        user::create(&pool, &payload.account, &name).await?
     };
     let token = jwt::JwtToken::new(user.uid, user.role).encode();
     let response: serde_json::Value = ApiResponse::normal(SessionResponse { token, profile: user }).into();
