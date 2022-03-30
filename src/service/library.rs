@@ -131,6 +131,8 @@ pub struct ApplicationResult {
     pub period: i32,
     /// 学号/工号
     pub user: String,
+    /// 姓名
+    pub name: String,
     /// 场次下座位号
     pub index: i32,
     /// 预约状态
@@ -170,6 +172,7 @@ pub async fn get_application_list(
                 id: e.id,
                 period: e.period,
                 user: e.user,
+                name: e.name,
                 index: e.index,
                 status: e.status,
                 ts: e.ts,

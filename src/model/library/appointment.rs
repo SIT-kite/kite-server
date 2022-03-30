@@ -48,7 +48,7 @@ pub async fn get_applications(
         return Ok(vec![]);
     }
     let applications = sqlx::query_as(
-        "SELECT id, period, \"user\", index, status, ts
+        "SELECT id, period, \"user\", name, index, status, ts
         FROM library.application_view
         WHERE (period = $1 OR $1 IS NULL)
             AND (\"user\" = $2 OR $2 IS NULL)
@@ -67,7 +67,7 @@ pub async fn get_applications(
 /// 查询单条申请记录
 pub async fn query_application_by_id(pool: &PgPool, id: i32) -> Result<Option<Application>> {
     let result = sqlx::query_as(
-        "SELECT id, period, \"user\", index, status, ts
+        "SELECT id, period, \"user\", name, index, status, ts
         FROM library.application_view
         WHERE id = $1
         LIMIT 1;",
