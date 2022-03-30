@@ -14,11 +14,9 @@ pub struct Credential {
     /// 学号
     pub account: String,
     /// OA密码
-    pub password: Option<String>,
+    pub password: String,
     /// 登录类型
     pub mode: Option<i32>,
-    /// 登录 Cookie, 来源于统一认证平台, 用于免密码快速验证.
-    pub cookie: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -35,41 +33,24 @@ pub async fn login(
     client: Data<&reqwest::Client>,
     Json(payload): Json<Credential>,
 ) -> Result<Json<serde_json::Value>> {
+    let name: String;
     // 常规登录
     if payload.mode.unwrap_or(0) == 0 {
         if !user::Validator::validate_username(&payload.account) {
             return Err(ApiError::new(UserError::InvalidAccountFormat).into());
         }
 
-        // 使用 Cookie 验证
-        if let Some(cookie) = payload.cookie {
-            portal::Portal::valid_cookie(&client, &payload.account, &cookie).await?;
-        } else if let Some(password) = payload.password {
-            // 使用身份证号(倒2-倒7)验证
-            if (password.len() == 6 && !user::hit_card_number(&pool, &payload.account, &password).await?)
-                || password.len() != 6
-            {
-                // 使用密码尝试验证
-                if !user::hit_cache(&pool, &payload.account, &password).await? {
-                    let credential = portal::Credential::new(payload.account.clone(), password);
-                    // 若登录失败, 函数从此处结束.
-                    let mut portal = portal::Portal::login(&client, &credential).await?;
-                    let name = portal.get_person_name().await?;
-                }
-            }
-        } else {
-            return Err(ApiError::new(UserError::CredentialMissing).into());
-        }
+        let credential = portal::Credential::new(payload.account.clone(), password);
+        // 若登录失败, 函数从此处结束.
+        let mut portal = portal::Portal::login(&client, &credential).await?;
+        name = portal.get_person_name().await?;
     } else
     /* 管理员登录 */
     {
-        if let Some(password) = payload.password {
-            if !user::hit_admin(&pool, &payload.account, &password).await? {
-                return Err(ApiError::new(UserError::NoSuchUser).into());
-            }
-        } else {
-            return Err(ApiError::new(UserError::CredentialMissing).into());
+        if !user::hit_admin(&pool, &payload.account, &password).await? {
+            return Err(ApiError::new(UserError::NoSuchUser).into());
         }
+        name = payload.account;
     }
 
     // 此处验证通过, 从数据库中查找相应记录.
