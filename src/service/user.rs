@@ -46,12 +46,15 @@ pub async fn login(
             portal::Portal::valid_cookie(&client, &payload.account, &cookie).await?;
         } else if let Some(password) = payload.password {
             // 使用身份证号(倒2-倒7)验证
-            if password.len() == 6 && !user::hit_card_number(&pool, &payload.account, &password).await? {
+            if (password.len() == 6 && !user::hit_card_number(&pool, &payload.account, &password).await?)
+                || password.len() != 6
+            {
                 // 使用密码尝试验证
                 if !user::hit_cache(&pool, &payload.account, &password).await? {
                     let credential = portal::Credential::new(payload.account.clone(), password);
                     // 若登录失败, 函数从此处结束.
-                    let _ = portal::Portal::login(&client, &credential).await?;
+                    let mut portal = portal::Portal::login(&client, &credential).await?;
+                    let name = portal.get_person_name().await?;
                 }
             }
         } else {
