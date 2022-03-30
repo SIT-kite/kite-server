@@ -71,7 +71,7 @@ pub async fn get_status(
     let week_day = NaiveDate::from_ymd(date / 10000, (date / 100 % 100) as u32, (date % 100) as u32)
         .weekday()
         .number_from_monday();
-    if week_day == 1 || week_day == 2 || date == 20220330 {
+    if week_day == 1 || week_day == 2 {
         let response = ApiResponse::normal(Vec::<Status>::new()).into();
         return Ok(Json(response));
     }
