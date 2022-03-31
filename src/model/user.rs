@@ -107,8 +107,8 @@ pub async fn query(pool: &PgPool, account: &str) -> Result<Option<User>> {
 pub async fn create(pool: &PgPool, account: &str, name: &str) -> Result<User> {
     let user: User = sqlx::query_as(
         "INSERT INTO \"user\".account (account, name) VALUES($1, $2) \
-        ON CONFLICT (account) DO UPDATE SET account = $1, SET name name = $2 \
-        RETURNING uid, account, name, create_time, role, is_block;",
+        ON CONFLICT (account) DO UPDATE SET account = $1, name = $2 \
+        RETURNING uid, account, create_time, role, is_block;",
     )
     .bind(account)
     .bind(name)
