@@ -2,12 +2,16 @@ use crate::error::Result;
 use crate::util::deserialize_from_str;
 use chrono::{DateTime, Local};
 use sqlx::PgPool;
+use substring::Substring;
 
 #[derive(serde::Serialize, sqlx::FromRow)]
 pub struct PublicGameRecord {
-    /// 学号 (最后 3 位隐去）
+    /// 学号
     #[serde(rename = "studentId")]
     pub student_id: String,
+    /// 姓名
+    #[serde(skip_serializing)]
+    pub name: String,
     /// 成绩
     pub score: i32,
 }
@@ -23,20 +27,74 @@ pub struct GameRecord {
     pub score: i32,
 }
 
-pub async fn get_ranking(pool: &PgPool, game: i32, count: i32) -> Result<Vec<PublicGameRecord>> {
-    let ranking = sqlx::query_as(
-        "SELECT (LEFT(account, -3) || '***') AS student_id, MAX(score) AS score
+/// 映射学院名称. 输入学号
+fn map_school(student_id: &str) -> &str {
+    let index: i32 = student_id[3..5].parse().unwrap_or_default();
+
+    match index {
+        1 => "材料",
+        2 => "机械",
+        3 => "电气",
+        4 => "计算机",
+        5 | 6 => "城建",
+        7 => "化工",
+        8 => "香料",
+        9 => "艺术",
+        10 => "经管",
+        11 => "外国语",
+        14 => "生态",
+        15 => "轨交",
+        21 => "人文",
+        22 => "理学院",
+        24 => "工创",
+        _ => "",
+    }
+}
+
+/// 学号/工号生成字符串
+fn map_student_id(student_id: &str, name: &str) -> String {
+    if student_id.len() == 9 || student_id.len() == 10 {
+        let grade = &student_id[..2];
+        let school = map_school(student_id);
+        format!("{} {}{}同学", grade, school, name.substring(0, 1))
+    } else if student_id.len() == 4 {
+        format!("{}** {}老师", &student_id[..2], name.substring(0, 1))
+    } else {
+        String::from("未知用户")
+    }
+}
+
+pub async fn get_ranking(pool: &PgPool, student_id: Option<String>, game: i32) -> Result<Vec<PublicGameRecord>> {
+    let ranking: Vec<PublicGameRecord> = sqlx::query_as(
+        "SELECT student_id, name, score
+        FROM \"user\".account,
+        (SELECT account AS student_id, MAX(score) AS score
         FROM game.record, \"user\".account
         WHERE record.uid = account.uid
-            AND game = $1
-        GROUP BY student_id
-        ORDER BY score DESC
-        LIMIT $2;",
+                    AND game = $1
+                GROUP BY student_id) rank
+        WHERE account.account = rank.student_id
+        ORDER BY score DESC;",
     )
     .bind(game)
-    .bind(count)
     .fetch_all(pool)
-    .await?;
+    .await?
+    .into_iter()
+    .map(|e: PublicGameRecord| {
+        let student = map_student_id(&e.student_id, &e.name);
+        let student = if student_id.is_some() && student_id.as_ref().unwrap().eq(&e.student_id) {
+            format!("{} (我)", student)
+        } else {
+            student
+        };
+
+        PublicGameRecord {
+            student_id: student,
+            name: "".to_string(),
+            score: e.score,
+        }
+    })
+    .collect();
 
     Ok(ranking)
 }
