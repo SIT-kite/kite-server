@@ -68,6 +68,9 @@ pub async fn get_status(
     Path(date): Path<i32>,
     token: Option<JwtToken>,
 ) -> Result<Json<serde_json::Value>> {
+    let response = ApiResponse::normal(Vec::<Status>::new()).into();
+    return Ok(Json(response));
+
     let week_day = NaiveDate::from_ymd(date / 10000, (date / 100 % 100) as u32, (date % 100) as u32)
         .weekday()
         .number_from_monday();
