@@ -18,10 +18,10 @@ pub struct FreshmanReqSecret {
 pub async fn get_basic_info(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    token: Option<JwtToken>,
+    // token: Option<JwtToken>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
-    let token = token.unwrap();
+    // let token = token.unwrap();
     let secret = parameters.secret;
 
     if account.is_empty() {
@@ -29,9 +29,9 @@ pub async fn get_basic_info(
     }
     let manager = FreshmanManager::new(&pool);
     let freshman = manager.query(&account, secret.as_str()).await?;
-    if freshman.uid.is_none() && !manager.is_bound(token.uid).await? {
-        manager.bind(&freshman.student_id, Some(token.uid)).await?;
-    }
+    // if freshman.uid.is_none() && !manager.is_bound(token.uid).await? {
+    //     manager.bind(&freshman.student_id, Some(token.uid)).await?;
+    // }
     Ok(Json(ApiResponse::normal(freshman).into()))
 }
 
@@ -46,10 +46,8 @@ pub struct UpdateInfo {
 pub async fn update_account(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    token: Option<JwtToken>,
     Json(form): Json<UpdateInfo>,
 ) -> Result<Json<serde_json::Value>> {
-    let _ = token.unwrap();
     let secret = form.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
@@ -76,10 +74,8 @@ pub async fn update_account(
 pub async fn get_roommate(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    token: Option<JwtToken>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
-    let _ = token.unwrap();
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
@@ -99,10 +95,8 @@ pub async fn get_roommate(
 pub async fn get_people_familiar(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    token: Option<JwtToken>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
-    let _ = token.unwrap();
 
     let secret = parameters.secret;
 
@@ -122,10 +116,8 @@ pub async fn get_people_familiar(
 pub async fn get_classmate(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    token: Option<JwtToken>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
-    let _ = token.unwrap();
 
     let secret = parameters.secret;
 
@@ -145,10 +137,8 @@ pub async fn get_classmate(
 pub async fn get_analysis_data(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    token: Option<JwtToken>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
-    let _ = token.unwrap();
 
     let secret = parameters.secret;
 
@@ -168,7 +158,6 @@ pub async fn get_analysis_data(
 pub async fn post_analysis_log(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    token: Option<JwtToken>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
     let secret = parameters.secret;
