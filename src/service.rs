@@ -98,7 +98,7 @@ pub async fn server_main() -> std::io::Result<()> {
     // Create database pool.
     let pool = PgPoolOptions::new()
         .max_connections(10)
-        .after_connect(|conn| {
+        .after_connect(|conn, _| {
             Box::pin(async move {
                 conn.execute("SET TIME ZONE 'Asia/Shanghai';").await?;
                 Ok(())
