@@ -84,7 +84,7 @@ fn create_route() -> Route {
             "/freshman",
             Route::new()
                 .at("/:account", get(freshman::get_basic_info))
-                .at("/:account", put(freshman::update_account))
+                .at("/:account/update", put(freshman::update_account))
                 .at("/:account/roommate", get(freshman::get_roommate))
                 .at("/:account/familiar", get(freshman::get_people_familiar))
                 .at("/:account/classmate", get(freshman::get_classmate))
