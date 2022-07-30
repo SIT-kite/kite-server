@@ -4,7 +4,7 @@
 
 use poem::http::Method;
 use poem::middleware::{AddData, Cors};
-use poem::{get, listener::TcpListener, patch, post, EndpointExt, Route, Server};
+use poem::{get, listener::TcpListener, patch, post, put, EndpointExt, Route, Server};
 use reqwest::redirect::Policy;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
@@ -18,6 +18,7 @@ mod badge;
 mod classroom;
 mod contact;
 mod electricity;
+mod freshman;
 mod game;
 mod jwt;
 mod library;
@@ -78,6 +79,17 @@ fn create_route() -> Route {
                     patch(library::update_application_status).delete(library::cancel),
                 )
                 .at("/current", get(library::get_current_period)),
+        )
+        .nest(
+            "/freshman",
+            Route::new()
+                .at("/:account", get(freshman::get_basic_info))
+                .at("/:account", put(freshman::update_account))
+                .at("/:account/roommate", get(freshman::get_roommate))
+                .at("/:account/familiar", get(freshman::get_people_familiar))
+                .at("/:account/classmate", get(freshman::get_classmate))
+                .at("/:account/analysis", get(freshman::get_analysis_data))
+                .at("/:account/analysis/log", post(freshman::post_analysis_log)),
         );
     Route::new().nest("/v2", route)
 }

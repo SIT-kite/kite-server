@@ -1,14 +1,16 @@
+use thiserror::Error;
+
 pub mod badge;
 pub mod classroom;
 pub mod contact;
 pub mod electricity;
+pub mod freshman;
+pub mod game;
+pub mod library;
 pub mod notice;
 pub mod report;
 pub mod user;
 pub mod weather;
-pub mod game;
-pub mod library;
-
 pub const CAMPUS_FENGXIAN: i32 = 1;
 pub const CAMPUS_XUHUI: i32 = 2;
 

@@ -32,3 +32,16 @@ impl<T: Serialize> Into<serde_json::Value> for ApiResponse<T> {
         serde_json::to_value(&self).unwrap()
     }
 }
+
+impl<T> ToString for ApiResponse<T>
+where
+    T: Serialize,
+{
+    // Serialize
+    fn to_string(&self) -> String {
+        if let Ok(body_json) = serde_json::to_string(&self) {
+            return body_json;
+        }
+        String::from("Critical: Could not serialize error message.")
+    }
+}

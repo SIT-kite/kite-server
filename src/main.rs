@@ -1,5 +1,7 @@
 // Import main function.
 use crate::service::server_main;
+#[macro_use]
+extern crate num_derive;
 
 mod config;
 mod error;

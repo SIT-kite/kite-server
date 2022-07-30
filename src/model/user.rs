@@ -116,3 +116,7 @@ pub async fn create(pool: &PgPool, account: &str, name: &str) -> Result<User> {
     .await?;
     Ok(user)
 }
+
+pub fn get_default_avatar() -> &'static str {
+    "https://kite.sunnysab.cn/static/icon.png"
+}
