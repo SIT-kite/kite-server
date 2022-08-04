@@ -2,10 +2,9 @@
 use serde::Deserialize;
 
 use crate::error::ApiError;
-use crate::model::freshman::{FreshmanBasic, FreshmanManager};
+use crate::model::freshman::FreshmanManager;
 use crate::response::ApiResponse;
-use crate::service::jwt::JwtToken;
-use poem::web::{Data, Json, Path};
+use poem::web::{Data, Json, Path, Query};
 use poem::{handler, Result};
 use sqlx::PgPool;
 
@@ -19,7 +18,7 @@ pub async fn get_basic_info(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
     // token: Option<JwtToken>,
-    Json(parameters): Json<FreshmanReqSecret>,
+    Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
     // let token = token.unwrap();
     let secret = parameters.secret;
@@ -97,7 +96,6 @@ pub async fn get_people_familiar(
     Path(account): Path<String>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
-
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
@@ -118,7 +116,6 @@ pub async fn get_classmate(
     Path(account): Path<String>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
-
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
@@ -139,7 +136,6 @@ pub async fn get_analysis_data(
     Path(account): Path<String>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
-
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
