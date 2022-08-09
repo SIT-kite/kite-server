@@ -73,7 +73,7 @@ pub async fn update_account(
 pub async fn get_roommate(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    Json(parameters): Json<FreshmanReqSecret>,
+    Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
     let secret = parameters.secret;
 
@@ -94,7 +94,7 @@ pub async fn get_roommate(
 pub async fn get_people_familiar(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    Json(parameters): Json<FreshmanReqSecret>,
+    Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
     let secret = parameters.secret;
 
@@ -114,7 +114,7 @@ pub async fn get_people_familiar(
 pub async fn get_classmate(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    Json(parameters): Json<FreshmanReqSecret>,
+    Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
     let secret = parameters.secret;
 
@@ -134,7 +134,7 @@ pub async fn get_classmate(
 pub async fn get_analysis_data(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    Json(parameters): Json<FreshmanReqSecret>,
+    Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
     let secret = parameters.secret;
 
@@ -159,7 +159,7 @@ pub async fn post_analysis_log(
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
-    let freshman = freshman_manager
+    freshman_manager
         .query(&account, &secret)
         .await?
         .post_analysis_log_model(&pool)
