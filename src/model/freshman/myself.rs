@@ -60,7 +60,7 @@ impl<'a> FreshmanManager<'a> {
         let student_basic: Option<FreshmanBasic> = sqlx::query_as(
             "SELECT
                     name, uid, student_id, college, major, campus, building, room, bed, secret,
-                    counselor_name, counselor_tel, visible
+                    counselor_name, counselor_tel, visible, contact
                 FROM freshman.students
                 WHERE (name = $1 OR student_id = $1 OR ticket = $1) AND secret = $2",
         )

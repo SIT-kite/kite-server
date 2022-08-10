@@ -61,6 +61,7 @@ pub struct FreshmanBasic {
     pub counselor_tel: String,
     /// Allow people in the same city access one's contact details.
     pub visible: bool,
+    pub contact: Option<serde_json::Value>,
 }
 
 /// This structure is of one student, which can be used in
