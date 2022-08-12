@@ -46,6 +46,8 @@ sha2 = "0.10"
 rand = "0.8"
 jsonwebtoken = "7.2"
 
+urlencoding = "2.1.0"
+
 # Database
 sqlx = { version = "0.6", default-features = false, features = ["runtime-tokio-rustls", "uuid", "chrono", "json", "postgres", "macros"] }
 

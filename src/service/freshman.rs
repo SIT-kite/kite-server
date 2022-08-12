@@ -17,10 +17,9 @@ pub struct FreshmanReqSecret {
 pub async fn get_basic_info(
     pool: Data<&PgPool>,
     Path(account): Path<String>,
-    // token: Option<JwtToken>,
     Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
-    // let token = token.unwrap();
+    let account = urlencoding::decode(&account).expect("UTF-8");
     let secret = parameters.secret;
 
     if account.is_empty() {
@@ -47,6 +46,7 @@ pub async fn update_account(
     Path(account): Path<String>,
     Json(form): Json<UpdateInfo>,
 ) -> Result<Json<serde_json::Value>> {
+    let account = urlencoding::decode(&account).expect("UTF-8");
     let secret = form.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
@@ -75,6 +75,7 @@ pub async fn get_roommate(
     Path(account): Path<String>,
     Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
+    let account = urlencoding::decode(&account).expect("UTF-8");
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
@@ -96,6 +97,7 @@ pub async fn get_people_familiar(
     Path(account): Path<String>,
     Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
+    let account = urlencoding::decode(&account).expect("UTF-8");
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
@@ -116,6 +118,7 @@ pub async fn get_classmate(
     Path(account): Path<String>,
     Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
+    let account = urlencoding::decode(&account).expect("UTF-8");
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
@@ -136,6 +139,7 @@ pub async fn get_analysis_data(
     Path(account): Path<String>,
     Query(parameters): Query<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
+    let account = urlencoding::decode(&account).expect("UTF-8");
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
@@ -156,6 +160,7 @@ pub async fn post_analysis_log(
     Path(account): Path<String>,
     Json(parameters): Json<FreshmanReqSecret>,
 ) -> Result<Json<serde_json::Value>> {
+    let account = urlencoding::decode(&account).expect("UTF-8");
     let secret = parameters.secret;
 
     let freshman_manager = FreshmanManager::new(&pool);
