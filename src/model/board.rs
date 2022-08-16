@@ -113,7 +113,7 @@ pub async fn insert_db(pool: &PgPool, pic: &Picture) -> Result<()> {
 
 pub async fn get_picture_list(pool: &PgPool, page: &PageView) -> Result<Vec<PictureSummary>> {
     let result: Vec<PictureSummary> = sqlx::query_as(
-        "SELECT id, '', thumbnail, ts FROM board.picture
+        "SELECT id, '' AS publisher, thumbnail, ts FROM board.picture
         ORDER BY ts DESC
         LIMIT $1 OFFSET $2;",
     )
