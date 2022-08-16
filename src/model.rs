@@ -1,11 +1,11 @@
 pub mod badge;
+pub mod board;
 pub mod classroom;
 pub mod contact;
 pub mod electricity;
 pub mod freshman;
 pub mod game;
 pub mod library;
-pub mod board;
 pub mod notice;
 pub mod report;
 pub mod user;

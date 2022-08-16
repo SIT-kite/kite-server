@@ -1,10 +1,15 @@
 use poem::web::{Data, Json, Multipart, Query};
 use sqlx::PgPool;
 
-use crate::{model::{board::{self, Picture}, PageView}, response::ApiResponse};
 use super::jwt::JwtToken;
 use crate::error::Result;
-
+use crate::{
+    model::{
+        board::{self, Picture},
+        PageView,
+    },
+    response::ApiResponse,
+};
 
 #[poem::handler]
 pub async fn upload(pool: Data<&PgPool>, mut multipart: Multipart, token: JwtToken) -> Result<Json<serde_json::Value>> {
@@ -14,11 +19,9 @@ pub async fn upload(pool: Data<&PgPool>, mut multipart: Multipart, token: JwtTok
         }
         "".to_string()
     }
-    
+
     while let Ok(Some(field)) = multipart.next_field().await {
-        
         if let Some(name) = field.name().map(ToString::to_string) {
-        
             if let Ok(bytes) = field.bytes().await {
                 let ext = parse_ext(&name);
                 let picture = Picture::new(token.uid, &ext);
@@ -29,7 +32,6 @@ pub async fn upload(pool: Data<&PgPool>, mut multipart: Multipart, token: JwtTok
     }
     Ok(Json(ApiResponse::<()>::empty().into()))
 }
-
 
 #[poem::handler]
 pub async fn get_picture_list(pool: Data<&PgPool>, Query(page): Query<PageView>) -> Result<Json<serde_json::Value>> {

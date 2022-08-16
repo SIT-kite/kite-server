@@ -92,10 +92,11 @@ fn create_route() -> Route {
                 .at("/:account/analysis", get(freshman::get_analysis_data))
                 .at("/:account/analysis/log", post(freshman::post_analysis_log)),
         )
-        .nest("/board", 
-            Route::new()     
+        .nest(
+            "/board",
+            Route::new()
                 .at("/", get(board::get_picture_list))
-                .at("/new", post(board::upload))
+                .at("/new", post(board::upload)),
         );
     Route::new().nest("/v2", route)
 }
