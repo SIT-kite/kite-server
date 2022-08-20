@@ -47,6 +47,7 @@ rand = "0.8"
 jsonwebtoken = "7.2"
 
 image = "0.24"
+webp = "0.2"
 urlencoding = "2.1.0"
 
 # Database

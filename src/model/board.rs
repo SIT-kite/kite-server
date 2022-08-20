@@ -1,6 +1,8 @@
 use chrono::{DateTime, Local};
 use sqlx::PgPool;
 use tokio::io::AsyncWriteExt;
+use image::EncodableLayout;
+use webp::{Encoder, WebPMemory};
 
 use super::PageView;
 use crate::error::{ApiError, Result};
@@ -70,24 +72,27 @@ fn make_thumbnail(content: &[u8], longest_edge: u32) -> Result<Vec<u8>> {
     let img = image::load_from_memory(content).map_err(|_| ApiError::new(BoardError::BadImage))?;
     let img = img.thumbnail(longest_edge, longest_edge);
 
-    let mut buf = std::io::Cursor::new(Vec::<u8>::new());
-    img.write_to(&mut buf, image::ImageFormat::WebP);
+    let encoder: Encoder = Encoder::from_image(&img).unwrap();
+    let encoded_webp: WebPMemory = encoder.encode(70f32);
 
-    Ok(buf.get_ref().to_vec())
+    Ok(encoded_webp.as_bytes().to_vec())
 }
 
 pub async fn save(pic: &Picture, content: &[u8]) -> Result<()> {
     let path = format!("{}/{}.{}", IMAGE_FOLDER, &pic.id, &pic.ext);
     let mut file = tokio::fs::File::create(&path)
         .await
-        .map_err(|_| ApiError::new(BoardError::FailToSave))?;
+        .map_err(|e| {
+            println!("{}", e);
+            ApiError::new(BoardError::FailToSave)})?;
     file.write_all(content).await;
 
-    let path = format!("{}/{}.webp", THUMB_URL_PREFIX, &pic.id);
+    let path = format!("{}/{}.webp", THUMB_FOLDER, &pic.id);
     let thumb_image = make_thumbnail(content, THUMB_MAX_SIZE)?;
     let mut file = tokio::fs::File::create(&path)
         .await
-        .map_err(|_| ApiError::new(BoardError::FailToSave))?;
+        .map_err(|e| {
+            println!("{}", e);ApiError::new(BoardError::FailToSave)})?;
     file.write_all(&thumb_image).await;
 
     Ok(())
