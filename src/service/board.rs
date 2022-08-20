@@ -21,7 +21,7 @@ pub async fn upload(pool: Data<&PgPool>, mut multipart: Multipart, token: JwtTok
     }
 
     while let Ok(Some(field)) = multipart.next_field().await {
-        if let Some(name) = field.name().map(ToString::to_string) {
+        if let Some(name) = field.file_name().map(ToString::to_string) {
             if let Ok(bytes) = field.bytes().await {
                 let ext = parse_ext(&name);
                 let picture = Picture::new(token.uid, &ext);
