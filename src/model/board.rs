@@ -72,7 +72,11 @@ impl Picture {
 
 fn make_thumbnail(content: &[u8], longest_edge: u32) -> Result<Vec<u8>> {
     let img = image::load_from_memory(content).map_err(|_| ApiError::new(BoardError::BadImage))?;
-    let img = img.thumbnail(longest_edge, longest_edge);
+    let is_horizontal: bool = img.width() > img.height();
+    let mut img = img.thumbnail(longest_edge, longest_edge);
+    if is_horizontal != (img.width() > img.height()) {
+        img = img.rotate90();
+    }
 
     let encoder: Encoder = Encoder::from_image(&img).unwrap();
     let encoded_webp: WebPMemory = encoder.encode(70f32);
@@ -121,6 +125,7 @@ pub async fn insert_db(pool: &PgPool, pic: &Picture) -> Result<()> {
 pub async fn get_picture_list(pool: &PgPool, page: &PageView) -> Result<Vec<PictureSummary>> {
     let result: Vec<PictureSummary> = sqlx::query_as(
         "SELECT id, '' AS publisher, thumbnail, path AS origin, ts FROM board.picture
+        WHERE deleted = FALSE
         ORDER BY ts DESC
         LIMIT $1 OFFSET $2;",
     )
