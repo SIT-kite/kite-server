@@ -29,6 +29,37 @@ pub struct GameRecord {
 
 /// 映射学院名称. 输入学号
 fn map_school(student_id: &str) -> &str {
+    if student_id.len() == 9 {
+        map_post_graduate_school(student_id)
+    } else {
+        map_under_graduate_school(student_id)
+    }
+}
+
+/// 研究生学号映射规则
+fn map_post_graduate_school(student_id: &str) -> &str {
+   let index: i32 = student_id[3..5].parse().unwrap_or_default();
+
+   match index {
+        06 => "化工",
+        07 => "香料",
+        08 => "材料",
+        09 => "机械",
+        10 => "电气",
+        11 => "生态",
+        12 => "经管",
+        13 => "城建",
+        14 => "计算机",
+        15 => "轨交",
+        16 => "人文",
+        17 => "艺术",
+        18 => "理学院",
+        _ => "未知",
+   }
+}
+
+/// 本科生学号映射规则
+fn map_under_graduate_school(student_id: &str) -> &str {
     let index: i32 = student_id[3..5].parse().unwrap_or_default();
 
     match index {
@@ -44,10 +75,11 @@ fn map_school(student_id: &str) -> &str {
         11 => "外国语",
         14 => "生态",
         15 => "轨交",
+        16 => "化妆品",
         21 => "人文",
         22 => "理学院",
         24 => "工创",
-        _ => "",
+        _ => "未知",
     }
 }
 
