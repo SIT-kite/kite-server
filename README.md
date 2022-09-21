@@ -51,6 +51,10 @@ db = "postgresql://user:password@address:port/database"
 secret = "secret"
 # Directory path should be end with "\"
 attachment = "D:\\tmp\\"
+# secret for weather APi
+qweather_key = "secret"
+
+
 ```
 
 执行下面命令即可运行，目标二进制文件存放在 `target` 目录下。
