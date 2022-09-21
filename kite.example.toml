@@ -6,3 +6,5 @@ db = "postgresql://user:password@address:port/database"
 secret = "secret"
 # Directory path should be end with "\"
 attachment = "D:\\tmp\\"
+# secret for weather APi
+qweather_key = "secret"
