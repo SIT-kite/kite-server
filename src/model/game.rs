@@ -96,19 +96,21 @@ fn map_student_id(student_id: &str, name: &str) -> String {
     }
 }
 
-pub async fn get_ranking(pool: &PgPool, student_id: Option<String>, game: i32) -> Result<Vec<PublicGameRecord>> {
+pub async fn get_ranking(pool: &PgPool, student_id: Option<String>, game: i32,
+                         after: String) -> Result<Vec<PublicGameRecord>> {
     let ranking: Vec<PublicGameRecord> = sqlx::query_as(
         "SELECT student_id, name, score
         FROM \"user\".account,
         (SELECT account AS student_id, MAX(score) AS score
         FROM game.record, \"user\".account
         WHERE record.uid = account.uid
-                    AND game = $1
+                    AND game = $1 And ts>= to_date($2, 'YYYY-MM-DD')
                 GROUP BY student_id) rank
         WHERE account.account = rank.student_id
         ORDER BY score DESC;",
     )
     .bind(game)
+    .bind(after)
     .fetch_all(pool)
     .await?
     .into_iter()
