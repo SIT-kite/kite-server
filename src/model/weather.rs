@@ -85,7 +85,7 @@ async fn save_weather(db: &PgPool, param: &WeatherParam, data: &serde_json::Valu
     Ok(())
 }
 
-pub async fn get_recent_weather(pool: &PgPool, campus: i32) -> Result<WeatherSummary> {
+pub async fn get_recent_weather(pool: &PgPool, campus: i32, lang: i32) -> Result<WeatherSummary> {
     let result = sqlx::query_as(
         "SELECT
             CAST(data->>'temp' AS integer) AS temperature,
@@ -93,11 +93,12 @@ pub async fn get_recent_weather(pool: &PgPool, campus: i32) -> Result<WeatherSum
             data->>'icon' AS icon,
             CAST(data->>'obsTime' AS timestamptz) AS ts
         FROM weather.record
-        WHERE campus = $1
+        WHERE campus = $1 AND lang = $2
         ORDER BY record.ts DESC
         LIMIT 1;",
     )
     .bind(campus)
+    .bind(lang)
     .fetch_one(pool)
     .await?;
 
