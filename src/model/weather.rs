@@ -7,10 +7,41 @@ use crate::config::CONFIG;
 use crate::error::Result;
 use crate::model::{CAMPUS_FENGXIAN, CAMPUS_XUHUI};
 
-/// 奉贤校区, campus = 1
-const LOCATION_FENGXIAN: &str = "101021000";
-/// 徐汇校区及其他, campus = 2
-const LOCATION_XUHUI: &str = "101021200";
+#[derive(Clone, Copy)]
+pub enum Campus {
+    FengXian = 1,
+    Xuhui = 2,
+}
+
+impl From<Campus> for String {
+    fn from(campus: Campus) -> String {
+        match campus {
+            Campus::FengXian => "101021000",
+            Campus::Xuhui => "101021200",
+        }.to_string()
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum Language {
+    SimplifiedChinese = 1,
+    TraditionalChinese = 2,
+    English = 3,
+}
+
+impl From<Language> for String {
+    fn from(language: Language) -> String {
+        match language {
+            Language::SimplifiedChinese => "zh",
+            Language::TraditionalChinese => "zh-hant",
+            Language::English => "en",
+        }.to_string()
+    }
+}
+pub struct WeatherParam {
+    pub campus: Campus,
+    pub lang: Language,
+}
 
 #[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub struct WeatherSummary {
@@ -24,21 +55,18 @@ pub struct WeatherSummary {
     pub ts: DateTime<Local>,
 }
 
-fn make_api_url(campus: i32) -> String {
-    let location = if campus == CAMPUS_FENGXIAN {
-        LOCATION_FENGXIAN
-    } else {
-        LOCATION_XUHUI
-    };
+fn make_api_url(param: &WeatherParam) -> String {
+    let location = String::from(param.campus);
+    let lang = String::from(param.lang);
     let key = CONFIG.get().unwrap().qweather_key.as_str();
     format!(
-        "https://devapi.qweather.com/v7/weather/now?key={}&location={}",
-        key, location
+        "https://devapi.qweather.com/v7/weather/now?key={}&location={}&lang={}",
+        key, location, lang
     )
 }
 
-async fn get_weather_from_qweather(campus: i32) -> Result<serde_json::Value> {
-    let url = make_api_url(campus);
+async fn get_weather_from_qweather(param: &WeatherParam) -> Result<serde_json::Value> {
+    let url = make_api_url(param);
     let response = reqwest::get(&url).await?;
 
     // Note: QWeather returns data with gzip compressed, so you should add feature "gzip"
@@ -47,10 +75,11 @@ async fn get_weather_from_qweather(campus: i32) -> Result<serde_json::Value> {
     Ok(serde_json::Value::from_str(&text)?)
 }
 
-async fn save_weather(db: &PgPool, campus: i32, data: &serde_json::Value) -> Result<()> {
-    sqlx::query("INSERT INTO weather.record (ts, campus, data) VALUES (now(), $1, $2);")
-        .bind(campus)
+async fn save_weather(db: &PgPool, param: &WeatherParam, data: &serde_json::Value) -> Result<()> {
+    sqlx::query("INSERT INTO weather.record (ts, campus, data, lang) VALUES (now(), $1, $2, $3);")
+        .bind(param.campus as i32)
         .bind(data)
+        .bind(param.lang as i32)
         .execute(db)
         .await?;
     Ok(())
@@ -76,9 +105,12 @@ pub async fn get_recent_weather(pool: &PgPool, campus: i32) -> Result<WeatherSum
 }
 
 async fn update_all_weather(pool: &PgPool) -> Result<()> {
-    for campus_id in vec![CAMPUS_FENGXIAN, CAMPUS_XUHUI] {
-        let weather = get_weather_from_qweather(campus_id).await?;
-        save_weather(pool, campus_id, &weather["now"]).await?;
+    for campus in vec![Campus::FengXian, Campus::Xuhui] {
+        for lang in vec![Language::SimplifiedChinese, Language::TraditionalChinese, Language::English] {
+            let param = WeatherParam { campus, lang };
+            let weather = get_weather_from_qweather(&param).await?;
+            save_weather(pool, &param, &weather["now"]).await?;
+        }
     }
     Ok(())
 }
