@@ -122,6 +122,6 @@ pub async fn weather_daemon(pool: PgPool) -> Result<()> {
             println!("Error occurred while update weather: {}", e);
         }
         // Wait 10 minutes.
-        tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(900)).await;
     }
 }
