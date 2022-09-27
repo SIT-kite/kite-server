@@ -27,6 +27,7 @@ mod notice;
 mod report;
 mod user;
 mod weather;
+mod edu;
 
 fn create_route() -> Route {
     use classroom::*;
@@ -36,6 +37,7 @@ fn create_route() -> Route {
     use report::*;
     use user::*;
     use weather::*;
+    use edu::*;
 
     let route = Route::new()
         .at("/report/exception", post(post_exception))
@@ -97,6 +99,11 @@ fn create_route() -> Route {
             Route::new()
                 .at("/", get(board::get_picture_list))
                 .at("/new", post(board::upload)),
+        )
+        .nest(
+            "/edu",
+            Route::new()
+                .at("/calendar/temp", post(edu::upload_temporary_calendar))
         );
     Route::new().nest("/v2", route)
 }
