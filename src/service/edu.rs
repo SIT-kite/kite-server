@@ -1,13 +1,12 @@
 use std::time::Duration;
 
-use poem::web::{Json};
+use poem::web::Json;
 use poem::{handler, Result};
 use tokio::io::AsyncWriteExt;
 
 use crate::config::CONFIG;
 use crate::response::ApiResponse;
 use crate::service::JwtToken;
-
 
 #[handler]
 pub async fn upload_temporary_calendar(text: String, _token: JwtToken) -> Result<Json<serde_json::Value>> {

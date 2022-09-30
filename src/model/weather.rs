@@ -18,7 +18,8 @@ impl From<Campus> for String {
         match campus {
             Campus::FengXian => "101021000",
             Campus::Xuhui => "101021200",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -35,7 +36,8 @@ impl From<Language> for String {
             Language::SimplifiedChinese => "zh",
             Language::TraditionalChinese => "zh-hant",
             Language::English => "en",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 pub struct WeatherParam {
@@ -107,7 +109,11 @@ pub async fn get_recent_weather(pool: &PgPool, campus: i32, lang: i32) -> Result
 
 async fn update_all_weather(pool: &PgPool) -> Result<()> {
     for campus in vec![Campus::FengXian, Campus::Xuhui] {
-        for lang in vec![Language::SimplifiedChinese, Language::TraditionalChinese, Language::English] {
+        for lang in vec![
+            Language::SimplifiedChinese,
+            Language::TraditionalChinese,
+            Language::English,
+        ] {
             let param = WeatherParam { campus, lang };
             let weather = get_weather_from_qweather(&param).await?;
             save_weather(pool, &param, &weather["now"]).await?;

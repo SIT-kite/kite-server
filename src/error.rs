@@ -1,4 +1,3 @@
-use std::io::Error as IoError;
 use jsonwebtoken::errors::Error as JwtError;
 use num_traits::ToPrimitive;
 use poem::error::ResponseError;
@@ -7,6 +6,7 @@ use reqwest::Error as ReqwestError;
 use serde::de::StdError;
 use serde_json::Error as JsonError;
 use sqlx::error::Error as SqlxError;
+use std::io::Error as IoError;
 
 pub type Result<T> = std::result::Result<T, ApiError>;
 

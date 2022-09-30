@@ -1,7 +1,7 @@
 use poem::web::{Data, Json, Path, Query};
 use poem::{handler, Result};
-use sqlx::PgPool;
 use serde::Deserialize;
+use sqlx::PgPool;
 
 use crate::model::{game, user};
 use crate::response::ApiResponse;
@@ -9,9 +9,8 @@ use crate::service::jwt::JwtToken;
 
 #[derive(Debug, Deserialize)]
 pub struct GamesReqSecret {
-    pub after:Option<String>,
+    pub after: Option<String>,
 }
-
 
 #[handler]
 pub async fn get_ranking(
@@ -20,22 +19,18 @@ pub async fn get_ranking(
     Query(parameters): Query<GamesReqSecret>,
     token: Option<JwtToken>,
 ) -> Result<Json<serde_json::Value>> {
-
-    let after=parameters.after;
-    let after_time= match after{
-        Some(x)=>x,
-        None=>"2010-01-10".to_string()
+    let after = parameters.after;
+    let after_time = match after {
+        Some(x) => x,
+        None => "2010-01-10".to_string(),
     };
-
 
     let user = if let Some(token) = token {
         user::get(&pool, token.uid).await?
     } else {
         None
     };
-
-
-    let data = game::get_ranking(&pool, user.map(|x| x.account), game,after_time).await?;
+    let data = game::get_ranking(&pool, user.map(|x| x.account), game, after_time).await?;
     let response: serde_json::Value = ApiResponse::normal(data).into();
 
     Ok(Json(response))

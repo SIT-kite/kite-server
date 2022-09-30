@@ -38,9 +38,9 @@ fn map_school(student_id: &str) -> &str {
 
 /// 研究生学号映射规则
 fn map_post_graduate_school(student_id: &str) -> &str {
-   let index: i32 = student_id[3..5].parse().unwrap_or_default();
+    let index: i32 = student_id[3..5].parse().unwrap_or_default();
 
-   match index {
+    match index {
         06 => "化工",
         07 => "香料",
         08 => "材料",
@@ -55,7 +55,7 @@ fn map_post_graduate_school(student_id: &str) -> &str {
         17 => "艺术",
         18 => "理学院",
         _ => "未知",
-   }
+    }
 }
 
 /// 本科生学号映射规则
@@ -96,8 +96,12 @@ fn map_student_id(student_id: &str, name: &str) -> String {
     }
 }
 
-pub async fn get_ranking(pool: &PgPool, student_id: Option<String>, game: i32,
-                         after: String) -> Result<Vec<PublicGameRecord>> {
+pub async fn get_ranking(
+    pool: &PgPool,
+    student_id: Option<String>,
+    game: i32,
+    after: String,
+) -> Result<Vec<PublicGameRecord>> {
     let ranking: Vec<PublicGameRecord> = sqlx::query_as(
         "SELECT student_id, name, score
         FROM \"user\".account,
