@@ -44,7 +44,7 @@ fn create_route() -> Route {
         (weather::WeatherApi, notice::NoticeApi,electricity::ElectricityApi,report::ReportApi),
         "Kite Api",
         "1.0",
-    ).server("/v2");
+    ).server("/api/v2");
 
     let service_ui = service.swagger_ui();
 
