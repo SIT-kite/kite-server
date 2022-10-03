@@ -41,7 +41,7 @@ fn create_route() -> Route {
     use weather::*;
 
     let service = OpenApiService::new(
-        (weather::WeatherApi, notice::NoticeApi),
+        (weather::WeatherApi, notice::NoticeApi,electricity::ElectricityApi,report::ReportApi),
         "Kite Api",
         "1.0",
     ).server("/v2");
@@ -50,19 +50,9 @@ fn create_route() -> Route {
 
     let route = Route::new()
         .nest("/", service)
-        .at("/report/exception", post(post_exception))
-        .at("/report/event", post(post_user_event))
         .at("/session", post(login))
         .at("/contact", get(query_all_contacts))
         .at("/classroom/available", get(query_available_classrooms))
-        .nest(
-            "/electricity",
-            Route::new()
-                .at("/room/:room", get(query_room_balance))
-                .at("/room/:room/rank", get(query_room_consumption_rank))
-                .at("/room/:room/bill/days", get(query_room_bills_by_day))
-                .at("/room/:room/bill/hours", get(query_room_bills_by_hour)),
-        )
         .nest(
             "/badge",
             Route::new()

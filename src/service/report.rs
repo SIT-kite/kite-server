@@ -1,19 +1,16 @@
-use poem::handler;
-use poem::web::{Data, Json};
+
+use poem::web::Data;
+use poem_openapi::{
+    param::{Path, Query},
+    payload::Json,
+    OpenApi,
+};
 use sqlx::PgPool;
 
-use crate::model::report;
+use crate::model::{report, user::User};
 use crate::model::report::UserEvent;
 use crate::response::ApiResponse;
 
-#[handler]
-pub async fn post_exception(
-    pool: Data<&PgPool>,
-    Json(exception): Json<report::Exception>,
-) -> poem::Result<Json<serde_json::Value>> {
-    report::save_exception(&pool, &exception).await?;
-    Ok(Json(ApiResponse::<()>::empty().into()))
-}
 
 #[derive(serde::Deserialize)]
 pub struct UserEventBody {
@@ -23,13 +20,31 @@ pub struct UserEventBody {
     pub events: Vec<UserEvent>,
 }
 
-#[handler]
-pub async fn post_user_event(
-    pool: Data<&PgPool>,
-    Json(body): Json<UserEventBody>,
-) -> poem::Result<Json<serde_json::Value>> {
-    report::append_user_event(&pool, &body.user, &body.events).await?;
+pub struct ReportApi;
 
-    let response: serde_json::Value = ApiResponse::<()>::empty().into();
-    Ok(Json(response))
+#[OpenApi]
+impl ReportApi {
+    #[oai(path = "/report/exception", method = "post")]
+    pub async fn post_exception(
+        &self,
+        pool: Data<&PgPool>,
+        exception: Json<serde_json::Value>,
+    ) -> poem::Result<Json<serde_json::Value>> {
+        let exception_value = serde_json::from_value::<report::Exception>(exception.0).unwrap();
+        report::save_exception(&pool,&exception_value).await?;
+        Ok(Json(ApiResponse::<()>::empty().into()))
+    }
+    
+    #[oai(path = "/report/event", method = "post")]
+    pub async fn post_user_event(
+        &self,
+        pool: Data<&PgPool>,
+        body: Json<serde_json::Value>,
+    ) -> poem::Result<Json<serde_json::Value>> {
+        let user_event = serde_json::from_value::<UserEventBody>(body.0).unwrap();
+        report::append_user_event(&pool, &user_event.user, &user_event.events).await?;
+        let response: serde_json::Value = ApiResponse::<()>::empty().into();
+        Ok(Json(response))
+    }
+    
 }
