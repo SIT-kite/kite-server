@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: [ master ]
+    branches: [ v2 ]
   pull_request:
-    branches: [ master ]
+    branches: [ v2 ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -27,7 +27,7 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_SECRET }}
-        source: "target/release/kite-server"
+        source: target/release/kite-server
         target: ${{ secrets.DEPLOY_PATH }}/kite-server.tmp
         
     - name: SSH Remote Commands
@@ -37,7 +37,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_SECRET }}
         script: |
-          systemctl stop kite
-          mv ${{ secrets.DEPLOY_PATH }}/kite-server.tmp/target/release/kite-server ${{ secrets.DEPLOY_PATH }}/kite-server
-          systemctl start kite
-    
+          cp ${{ secrets.DEPLOY_PATH }}/kite-server-v2 ${{ secrets.DEPLOY_PATH }}/kite-server-v2.bak
+          mv ${{ secrets.DEPLOY_PATH }}/kite-server.tmp/target/release/kite-server ${{ secrets.DEPLOY_PATH }}/kite-server-v2
+          systemctl stop kite2.service
+          systemctl start kite2.service
