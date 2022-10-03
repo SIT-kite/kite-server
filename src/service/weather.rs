@@ -1,20 +1,29 @@
-use poem::web::{Data, Json, Path, Query};
-use poem::{handler, Result};
-use serde::Deserialize;
+use poem::web::Data;
+use poem::Result;
+use poem_openapi::{
+    param::{Path, Query},
+    payload::Json,
+    OpenApi,
+};
 use sqlx::PgPool;
 
 use crate::model::weather;
 use crate::response::ApiResponse;
 
-#[derive(Deserialize)]
-pub struct WeatherParam {
-    lang: Option<i32>,
-}
+pub struct WeatherApi;
 
-#[handler]
-pub async fn get_weather(pool: Data<&PgPool>, Path(campus): Path<i32>, Query(param): Query<WeatherParam>) -> Result<Json<serde_json::Value>> {
-    let data = weather::get_recent_weather(&pool, campus, param.lang.unwrap_or(1)).await?;
-    let response: serde_json::Value = ApiResponse::normal(data).into();
+#[OpenApi]
+impl WeatherApi {
+    #[oai(path = "/weather/:campus", method = "get")]
+    pub async fn get_weather(
+        &self,
+        pool: Data<&PgPool>,
+        campus: Path<i32>,
+        lang: Query<Option<i32>>,
+    ) -> Result<Json<serde_json::Value>> {
+        let data = weather::get_recent_weather(&pool, campus.0, lang.0.unwrap_or(1)).await?;
+        let response: serde_json::Value = ApiResponse::normal(data).into();
 
-    Ok(Json(response))
+        Ok(Json(response))
+    }
 }

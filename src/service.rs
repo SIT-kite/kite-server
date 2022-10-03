@@ -5,6 +5,7 @@
 use poem::http::Method;
 use poem::middleware::{AddData, Cors};
 use poem::{get, listener::TcpListener, patch, post, put, EndpointExt, Route, Server};
+use poem_openapi::OpenApiService;
 use reqwest::redirect::Policy;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
@@ -18,6 +19,7 @@ mod badge;
 mod board;
 mod classroom;
 mod contact;
+mod edu;
 mod electricity;
 mod freshman;
 mod game;
@@ -27,25 +29,31 @@ mod notice;
 mod report;
 mod user;
 mod weather;
-mod edu;
 
 fn create_route() -> Route {
     use classroom::*;
     use contact::*;
+    use edu::*;
     use electricity::*;
     use notice::*;
     use report::*;
     use user::*;
     use weather::*;
-    use edu::*;
+
+    let service = OpenApiService::new(
+        (weather::WeatherApi, notice::NoticeApi),
+        "Kite Api",
+        "1.0",
+    ).server("/v2");
+
+    let service_ui = service.swagger_ui();
 
     let route = Route::new()
+        .nest("/", service)
         .at("/report/exception", post(post_exception))
         .at("/report/event", post(post_user_event))
         .at("/session", post(login))
-        .at("/notice", get(get_notice_list))
         .at("/contact", get(query_all_contacts))
-        .at("/weather/:campus", get(get_weather))
         .at("/classroom/available", get(query_available_classrooms))
         .nest(
             "/electricity",
@@ -102,10 +110,10 @@ fn create_route() -> Route {
         )
         .nest(
             "/edu",
-            Route::new()
-                .at("/calendar/temp", post(edu::upload_temporary_calendar))
+            Route::new().at("/calendar/temp", post(edu::upload_temporary_calendar)),
         );
-    Route::new().nest("/v2", route)
+
+    Route::new().nest("/v2", route).nest("/v2_ui", service_ui)
 }
 
 pub async fn server_main() -> std::io::Result<()> {

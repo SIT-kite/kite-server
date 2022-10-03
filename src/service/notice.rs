@@ -1,17 +1,35 @@
-use poem::handler;
-use poem::web::{Data, Json, Query};
+use poem::web::Data;
+use poem_openapi::{
+    param::Query,
+    payload::Json,
+    OpenApi,
+};
 use sqlx::PgPool;
 
 use crate::model::{notice, PageView};
 use crate::response::ApiResponse;
 
-#[handler]
-pub async fn get_notice_list(
-    pool: Data<&PgPool>,
-    Query(page): Query<PageView>,
-) -> poem::Result<Json<serde_json::Value>> {
-    let data = notice::get_recent_notice(&pool, &page).await?;
-    let response: serde_json::Value = ApiResponse::normal(data).into();
+pub struct NoticeApi;
 
-    Ok(Json(response))
+#[OpenApi]
+impl NoticeApi {
+    #[oai(path = "/notice", method = "get")]
+    pub async fn get_notice_list(
+        &self,
+        pool: Data<&PgPool>,
+        index: Query<Option<i32>>,
+        count: Query<Option<i32>>,
+    ) -> poem::Result<Json<serde_json::Value>> {
+        let data = notice::get_recent_notice(
+            &pool,
+            &PageView {
+                index: index.0,
+                count: count.0,
+            },
+        )
+        .await?;
+        let response: serde_json::Value = ApiResponse::normal(data).into();
+
+        Ok(Json(response))
+    }
 }
