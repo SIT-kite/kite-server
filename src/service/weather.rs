@@ -9,12 +9,13 @@ use sqlx::PgPool;
 
 use crate::model::weather;
 use crate::response::ApiResponse;
+use super::ApiTags;
 
 pub struct WeatherApi;
 
 #[OpenApi]
 impl WeatherApi {
-    #[oai(path = "/weather/:campus", method = "get")]
+    #[oai(path = "/weather/:campus", method = "get", tag = "ApiTags::Weather")]
     pub async fn get_weather(
         &self,
         pool: Data<&PgPool>,

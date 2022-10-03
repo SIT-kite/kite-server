@@ -7,10 +7,11 @@ use poem_openapi::{
 };
 use sqlx::PgPool;
 
-use crate::model::{report, user::User};
+use crate::model::report;
 use crate::model::report::UserEvent;
 use crate::response::ApiResponse;
 
+use super::ApiTags;
 
 #[derive(serde::Deserialize)]
 pub struct UserEventBody {
@@ -24,7 +25,7 @@ pub struct ReportApi;
 
 #[OpenApi]
 impl ReportApi {
-    #[oai(path = "/report/exception", method = "post")]
+    #[oai(path = "/report/exception", method = "post", tag = "ApiTags::Report")]
     pub async fn post_exception(
         &self,
         pool: Data<&PgPool>,
@@ -35,7 +36,7 @@ impl ReportApi {
         Ok(Json(ApiResponse::<()>::empty().into()))
     }
     
-    #[oai(path = "/report/event", method = "post")]
+    #[oai(path = "/report/event", method = "post", tag = "ApiTags::Report")]
     pub async fn post_user_event(
         &self,
         pool: Data<&PgPool>,

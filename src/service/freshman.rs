@@ -2,7 +2,7 @@
 use poem_openapi::{
     param::{Path, Query},
     payload::Json,
-    OpenApi,
+    OpenApi, Tags,
 };
 
 use crate::error::ApiError;
@@ -11,6 +11,8 @@ use crate::response::ApiResponse;
 use poem::web::Data;
 use poem::Result;
 use sqlx::PgPool;
+
+use super::ApiTags;
 
 pub struct FreshmanApi;
 
@@ -21,9 +23,11 @@ pub struct UpdateInfo {
     pub secret: String,
 }
 
+
+
 #[OpenApi]
 impl FreshmanApi {
-    #[oai(path = "/freshman/:account", method = "get")]
+    #[oai(path = "/freshman/:account", method = "get", tag = "ApiTags::Freshman")]
     pub async fn get_basic_info(
         &self,
         pool: Data<&PgPool>,
@@ -43,7 +47,7 @@ impl FreshmanApi {
         // }
         Ok(Json(ApiResponse::normal(freshman).into()))
     }
-    #[oai(path = "/freshman/update", method = "put")]
+    #[oai(path = "/freshman/update", method = "put", tag = "ApiTags::Freshman")]
     pub async fn update_account(
         &self,
         pool: Data<&PgPool>,
@@ -75,7 +79,7 @@ impl FreshmanApi {
         Ok(Json(ApiResponse::<()>::empty().into()))
     }
 
-    #[oai(path = "/freshman/:account/roommate", method = "get")]
+    #[oai(path = "/freshman/:account/roommate", method = "get", tag = "ApiTags::Freshman")]
     pub async fn get_roommate(
         &self,
         pool: Data<&PgPool>,
@@ -98,7 +102,7 @@ impl FreshmanApi {
         Ok(Json(ApiResponse::normal(response).into()))
     }
 
-    #[oai(path = "/freshman/:account/familiar", method = "get")]
+    #[oai(path = "/freshman/:account/familiar", method = "get", tag = "ApiTags::Freshman")]
     pub async fn get_people_familiar(
         &self,
         pool: Data<&PgPool>,
@@ -120,7 +124,7 @@ impl FreshmanApi {
         Ok(Json(ApiResponse::normal(response).into()))
     }
 
-    #[oai(path = "/freshman/:account/classmate", method = "get")]
+    #[oai(path = "/freshman/:account/classmate", method = "get", tag = "ApiTags::Freshman")]
     pub async fn get_classmate(
         &self,
         pool: Data<&PgPool>,
@@ -142,7 +146,7 @@ impl FreshmanApi {
         Ok(Json(ApiResponse::normal(response).into()))
     }
 
-    #[oai(path = "/freshman/:account/analysis", method = "get")]
+    #[oai(path = "/freshman/:account/analysis", method = "get", tag = "ApiTags::Freshman")]
     pub async fn get_analysis_data(
         &self,
         pool: Data<&PgPool>,
@@ -164,7 +168,7 @@ impl FreshmanApi {
         Ok(Json(ApiResponse::normal(response).into()))
     }
 
-    #[oai(path = "/freshman/:account/analysis/log", method = "post")]
+    #[oai(path = "/freshman/:account/analysis/log", method = "post", tag = "ApiTags::Freshman")]
     pub async fn post_analysis_log(
         &self,
         pool: Data<&PgPool>,

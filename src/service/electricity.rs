@@ -11,6 +11,7 @@ use std::ops::Sub;
 
 use crate::model::electricity;
 use crate::response::ApiResponse;
+use super::ApiTags;
 
 /**********************************************************************
  Interfaces in this module:
@@ -24,7 +25,7 @@ pub struct ElectricityApi;
 
 #[OpenApi]
 impl ElectricityApi {
-    #[oai(path = "/electricity/room/:room", method = "get")]
+    #[oai(path = "/electricity/room/:room", method = "get", tag = "ApiTags::Electricity")]
     pub async fn query_room_balance(&self, pool: Data<&PgPool>, room: Path<i32>) -> Result<Json<serde_json::Value>> {
         let data = electricity::query_last_balance(&pool, room.0).await?;
         let response: serde_json::Value = ApiResponse::normal(data).into();
@@ -32,7 +33,7 @@ impl ElectricityApi {
         Ok(Json(response))
     }
 
-    #[oai(path = "/electricity/room/:room/rank", method = "get")]
+    #[oai(path = "/electricity/room/:room/rank", method = "get", tag = "ApiTags::Electricity")]
     pub async fn query_room_consumption_rank(
         &self,
         pool: Data<&PgPool>,
@@ -44,7 +45,7 @@ impl ElectricityApi {
         Ok(Json(response))
     }
 
-    #[oai(path = "/electricity/room/:room/bill/days", method = "get")]
+    #[oai(path = "/electricity/room/:room/bill/days", method = "get", tag = "ApiTags::Electricity")]
     pub async fn query_room_bills_by_day(
         &self,
         pool: Data<&PgPool>,
@@ -64,7 +65,7 @@ impl ElectricityApi {
         Ok(Json(response))
     }
 
-    #[oai(path = "/electricity/room/:room/bill/hours", method = "get")]
+    #[oai(path = "/electricity/room/:room/bill/hours", method = "get", tag = "ApiTags::Electricity")]
     pub async fn query_room_bills_by_hour(
         &self,
         pool: Data<&PgPool>,

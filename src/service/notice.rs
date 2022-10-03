@@ -8,12 +8,13 @@ use sqlx::PgPool;
 
 use crate::model::{notice, PageView};
 use crate::response::ApiResponse;
+use super::ApiTags;
 
 pub struct NoticeApi;
 
 #[OpenApi]
 impl NoticeApi {
-    #[oai(path = "/notice", method = "get")]
+    #[oai(path = "/notice", method = "get", tag = "ApiTags::Notice")]
     pub async fn get_notice_list(
         &self,
         pool: Data<&PgPool>,

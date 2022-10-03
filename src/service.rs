@@ -5,7 +5,7 @@
 use poem::http::Method;
 use poem::middleware::{AddData, Cors};
 use poem::{get, listener::TcpListener, patch, post, put, EndpointExt, Route, Server};
-use poem_openapi::OpenApiService;
+use poem_openapi::{OpenApiService, Tags};
 use reqwest::redirect::Policy;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
@@ -29,6 +29,21 @@ mod notice;
 mod report;
 mod user;
 mod weather;
+
+#[derive(Tags)]
+enum ApiTags {
+    /// 新生模块
+    Freshman,
+    /// 天气
+    Weather,
+    /// 公告
+    Notice,
+    /// 电费
+    Electricity,
+    /// 用户日志上报
+    Report,
+}
+
 
 fn create_route() -> Route {
     use classroom::*;
