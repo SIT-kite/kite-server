@@ -4,6 +4,8 @@ use chrono::{DateTime, Local};
 use sqlx::PgPool;
 use substring::Substring;
 
+use super::PageView;
+
 #[derive(serde::Serialize, sqlx::FromRow)]
 pub struct PublicGameRecord {
     /// 学号
@@ -101,20 +103,24 @@ pub async fn get_ranking(
     student_id: Option<String>,
     game: i32,
     after: String,
+    page: PageView
 ) -> Result<Vec<PublicGameRecord>> {
     let ranking: Vec<PublicGameRecord> = sqlx::query_as(
         "SELECT student_id, name, score
         FROM \"user\".account,
-        (SELECT account AS student_id, MAX(score) AS score
-        FROM game.record, \"user\".account
-        WHERE record.uid = account.uid
-                    AND game = $1 And ts>= to_date($2, 'YYYY-MM-DD')
-                GROUP BY student_id) rank
+            (SELECT account AS student_id, MAX(score) AS score
+            FROM game.record, \"user\".account
+            WHERE record.uid = account.uid
+                AND game = $1 AND ts >= to_date($2, 'YYYY-MM-DD')
+        GROUP BY student_id) rank
         WHERE account.account = rank.student_id
-        ORDER BY score DESC;",
+        ORDER BY score DESC
+        LIMIT $3 OFFSET $4;",
     )
     .bind(game)
     .bind(after)
+    .bind(page.count(20))
+    .bind(page.offset(20))
     .fetch_all(pool)
     .await?
     .into_iter()
