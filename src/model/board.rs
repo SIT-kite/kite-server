@@ -2,6 +2,9 @@ use chrono::{DateTime, Local};
 use image::EncodableLayout;
 use sqlx::PgPool;
 use tokio::io::AsyncWriteExt;
+use poem::web::{Path, Query};
+
+use uuid::{Error, Uuid};
 use webp::{Encoder, WebPMemory};
 
 use super::PageView;
@@ -108,15 +111,15 @@ pub async fn insert_db(pool: &PgPool, pic: &Picture) -> Result<()> {
         "INSERT INTO board.picture (id, uid, path, thumbnail, ts, deleted, ext)
         VALUES ($1, $2, $3, $4, $5, $6, $7);",
     )
-    .bind(&pic.id)
-    .bind(pic.uid)
-    .bind(&pic.path)
-    .bind(&pic.thumbnail)
-    .bind(&pic.ts)
-    .bind(pic.deleted)
-    .bind(&pic.ext)
-    .execute(pool)
-    .await?;
+        .bind(&pic.id)
+        .bind(pic.uid)
+        .bind(&pic.path)
+        .bind(&pic.thumbnail)
+        .bind(&pic.ts)
+        .bind(pic.deleted)
+        .bind(&pic.ext)
+        .execute(pool)
+        .await?;
 
     Ok(())
 }
@@ -128,10 +131,49 @@ pub async fn get_picture_list(pool: &PgPool, page: &PageView) -> Result<Vec<Pict
         ORDER BY ts DESC
         LIMIT $1 OFFSET $2;",
     )
-    .bind(page.count(20))
-    .bind(page.offset(20))
-    .fetch_all(pool)
-    .await?;
+        .bind(page.count(20))
+        .bind(page.offset(20))
+        .fetch_all(pool)
+        .await?;
 
     Ok(result)
+}
+
+pub async fn post_like(pool: &PgPool, id: String, uid: i32, like_type: i32) -> Result<()> {
+    let mid = Uuid::parse_str(&id);
+    let mid2 = match mid {
+        Ok(x) => x,
+        Err(..) => uuid::uuid!("e65162d0-9127-4efe-8f84-aef706ffffff"),
+    };
+
+
+    if &like_type == &-1 || &mid2 == &uuid::uuid!("e65162d0-9127-4efe-8f84-aef706ffffff") {
+        return Err(ApiError { code: 400, msg: Option::from("参数有错".to_string()) });
+    }
+
+    if &like_type == &0 {
+        sqlx::query(
+            "DELETE FROM board.like_record WHERE \"id\"=$1 AND uid=$2"
+        )
+            .bind(&mid2)
+            .bind(&uid)
+            .execute(pool)
+            .await?;
+    }
+
+    if like_type > 0 && like_type < 6 {
+        sqlx::query(
+            "INSERT INTO board.like_record (\"id\",uid,like_type )VALUES ($1,$2,$3 ) \
+        ON  CONFLICT(\"id\",uid) DO UPDATE SET like_type=$3;"
+        )
+            .bind(&mid2)
+            .bind(&uid)
+            .bind(&like_type)
+            .execute(pool)
+            .await?;
+    }
+
+
+    // println!("{}", &id);
+    Ok(())
 }
