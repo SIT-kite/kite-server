@@ -19,6 +19,7 @@ mod badge;
 mod board;
 mod classroom;
 mod contact;
+mod edu;
 mod electricity;
 mod freshman;
 mod game;
@@ -107,8 +108,7 @@ fn create_route() -> Route {
             "/board",
             Route::new()
                 .at("/", get(board::get_picture_list))
-                .at("/new", post(board::upload))
-                .at("/like/:id", post(board::post_like)),
+                .at("/new", post(board::upload)),
         )
         .nest(
             "/edu",

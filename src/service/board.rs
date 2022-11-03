@@ -1,5 +1,4 @@
-use poem::web::{Data, Json, Multipart, Path, Query};
-use serde::Deserialize;
+use poem::web::{Data, Json, Multipart, Query};
 use sqlx::PgPool;
 
 use super::jwt::JwtToken;
@@ -11,12 +10,6 @@ use crate::{
     },
     response::ApiResponse,
 };
-
-#[derive(Debug, Deserialize)]
-pub struct LikeType {
-    pub like_type: Option<i32>,
-}
-
 
 #[poem::handler]
 pub async fn upload(pool: Data<&PgPool>, mut multipart: Multipart, token: JwtToken) -> Result<Json<serde_json::Value>> {
@@ -43,19 +36,6 @@ pub async fn upload(pool: Data<&PgPool>, mut multipart: Multipart, token: JwtTok
 #[poem::handler]
 pub async fn get_picture_list(pool: Data<&PgPool>, Query(page): Query<PageView>) -> Result<Json<serde_json::Value>> {
     let result = board::get_picture_list(&pool, &page).await?;
-    let response: serde_json::Value = ApiResponse::normal(result).into();
-
-    Ok(Json(response))
-}
-
-#[poem::handler]
-pub async fn post_like(pool: Data<&PgPool>, Path(id): Path<String>, Query(parameters): Query<LikeType>, token: JwtToken) -> Result<Json<serde_json::Value>> {
-    let like_type = match parameters.like_type {
-        Some(x) => x,
-        None => -1
-    };
-
-    let result = board::post_like(&pool, id, token.uid, like_type).await?;
     let response: serde_json::Value = ApiResponse::normal(result).into();
 
     Ok(Json(response))
