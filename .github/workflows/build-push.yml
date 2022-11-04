@@ -18,7 +18,7 @@ jobs:
       run: cargo build --release
 
     - name: Copy file via SSH
-      uses: appleboy/scp-action@v0.1
+      uses: appleboy/scp-action@v0
       with:
         host: ${{ secrets.SERVER_HOST }}
         port: ${{ secrets.SERVER_PORT }}
@@ -28,7 +28,7 @@ jobs:
         target: ${{ secrets.DEPLOY_PATH }}/kite-server-v2.tmp
 
     - name: Deploy & restart via SSH
-      uses: appleboy/ssh-action@v0.1
+      uses: appleboy/ssh-action@v0
       with:
         host: ${{ secrets.SERVER_HOST }}
         port: ${{ secrets.SERVER_PORT }}
