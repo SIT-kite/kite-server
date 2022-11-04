@@ -28,6 +28,7 @@ mod notice;
 mod report;
 mod user;
 mod weather;
+mod edu;
 
 #[derive(Tags)]
 enum ApiTags {
@@ -72,18 +73,8 @@ fn create_route() -> Route {
     let route = Route::new()
         .nest("/", service)
         .at("/session", post(login))
-        .at("/notice", get(get_notice_list))
         .at("/contact", get(query_all_contacts))
-        .at("/weather/:campus", get(get_weather))
         .at("/classroom/available", get(query_available_classrooms))
-        .nest(
-            "/electricity",
-            Route::new()
-                .at("/room/:room", get(query_room_balance))
-                .at("/room/:room/rank", get(query_room_consumption_rank))
-                .at("/room/:room/bill/days", get(query_room_bills_by_day))
-                .at("/room/:room/bill/hours", get(query_room_bills_by_hour)),
-        )
         .nest(
             "/badge",
             Route::new()
@@ -111,17 +102,6 @@ fn create_route() -> Route {
                     patch(library::update_application_status).delete(library::cancel),
                 )
                 .at("/current", get(library::get_current_period)),
-        )
-        .nest(
-            "/freshman",
-            Route::new()
-                .at("/:account", get(freshman::get_basic_info))
-                .at("/:account/update", put(freshman::update_account))
-                .at("/:account/roommate", get(freshman::get_roommate))
-                .at("/:account/familiar", get(freshman::get_people_familiar))
-                .at("/:account/classmate", get(freshman::get_classmate))
-                .at("/:account/analysis", get(freshman::get_analysis_data))
-                .at("/:account/analysis/log", post(freshman::post_analysis_log)),
         )
         .nest(
             "/board",
