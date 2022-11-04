@@ -1,10 +1,8 @@
 name: Rust
 
 on:
-  push:
-    branches: [ v2 ]
-  pull_request:
-    branches: [ v2 ]
+  push: { branches: [ v2 ] }
+  pull_request: { branches: [ v2 ] }
 
 env:
   CARGO_TERM_COLOR: always
@@ -18,19 +16,19 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build
       run: cargo build --release
-      
-    - name: Copy file via ssh password
-      uses: appleboy/scp-action@master
+
+    - name: Copy file via SSH
+      uses: appleboy/scp-action@v0.1
       with:
         host: ${{ secrets.SERVER_HOST }}
         port: ${{ secrets.SERVER_PORT }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_SECRET }}
         source: target/release/kite-server
-        target: ${{ secrets.DEPLOY_PATH }}/kite-server.tmp
-        
-    - name: SSH Remote Commands
-      uses: appleboy/ssh-action@v0.1.2
+        target: ${{ secrets.DEPLOY_PATH }}/kite-server-v2.tmp
+
+    - name: Deploy & restart via SSH
+      uses: appleboy/ssh-action@v0.1
       with:
         host: ${{ secrets.SERVER_HOST }}
         port: ${{ secrets.SERVER_PORT }}
@@ -38,6 +36,14 @@ jobs:
         password: ${{ secrets.SERVER_SECRET }}
         script: |
           cp ${{ secrets.DEPLOY_PATH }}/kite-server-v2 ${{ secrets.DEPLOY_PATH }}/kite-server-v2.bak
-          mv ${{ secrets.DEPLOY_PATH }}/kite-server.tmp/target/release/kite-server ${{ secrets.DEPLOY_PATH }}/kite-server-v2
+          mv ${{ secrets.DEPLOY_PATH }}/kite-server-v2.tmp/target/release/kite-server ${{ secrets.DEPLOY_PATH }}/kite-server-v2
           systemctl stop kite2.service
           systemctl start kite2.service
+
+# v2=${{ secrets.DEPLOY_PATH }}/kite-server-v2
+# cp ${v2} ${v2}.bak
+# mv ${v2}.tmp/target/release/kite-server $v2
+# systemctl stop kite2.service
+# systemctl start kite2.service
+
+
