@@ -177,3 +177,33 @@ pub async fn post_like(pool: &PgPool, id: String, uid: i32, like_type: i32) -> R
     // println!("{}", &id);
     Ok(())
 }
+
+
+pub async fn get_my_picture_list(pool: &PgPool, uid: i32, page: &PageView) -> Result<Vec<PictureSummary>> {
+    let result: Vec<PictureSummary> = sqlx::query_as(
+        "SELECT id, substring(name from 1 for 1) || '同学' AS publisher, thumbnail, path AS origin, ts FROM board.picture_view
+        WHERE deleted = FALSE AND uid=$3
+        ORDER BY ts DESC
+        LIMIT $1 OFFSET $2 ;",
+    )
+        .bind(page.count(20))
+        .bind(page.offset(20))
+        .bind(&uid)
+        .fetch_all(pool)
+        .await?;
+
+    Ok(result)
+}
+
+
+pub async fn post_delete(pool: &PgPool, id: String) -> Result<()> {
+    let mid = Uuid::parse_str(&id);
+
+    sqlx::query(
+        "UPDATE board.picture SET deleted='t' WHERE \"id\"=$1"
+    )
+        .bind(&mid)
+        .execute(pool)
+        .await?;
+    Ok(())
+}

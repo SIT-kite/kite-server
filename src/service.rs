@@ -14,6 +14,7 @@ use jwt::JwtToken;
 
 use crate::config::CONFIG;
 use crate::middleware::logger::Logger;
+use crate::model::board::post_delete;
 
 mod badge;
 mod board;
@@ -66,7 +67,7 @@ fn create_route() -> Route {
         "Kite Api",
         "1.0",
     )
-    .server("/api/v2");
+        .server("/api/v2");
 
     let service_ui = service.swagger_ui();
 
@@ -108,7 +109,9 @@ fn create_route() -> Route {
             Route::new()
                 .at("/", get(board::get_picture_list))
                 .at("/new", post(board::upload))
-                .at("/like/:id", post(board::post_like)),
+                .at("/like/:id", post(board::post_like))
+                .at("/my", get(board::get_my_picture_list))
+                .at("/delete/:id", post(board::post_delete)),
         )
         .nest(
             "/edu",

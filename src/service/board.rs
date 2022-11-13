@@ -60,3 +60,18 @@ pub async fn post_like(pool: Data<&PgPool>, Path(id): Path<String>, Query(parame
 
     Ok(Json(response))
 }
+
+#[poem::handler]
+pub async fn get_my_picture_list(pool: Data<&PgPool>, token: JwtToken, Query(page): Query<PageView>) -> Result<Json<serde_json::Value>> {
+    let result = board::get_my_picture_list(&pool, token.uid, &page).await?;
+    let response: serde_json::Value = ApiResponse::normal(result).into();
+    Ok(Json(response))
+}
+
+#[poem::handler]
+pub async fn post_delete(pool: Data<&PgPool>, Path(id): Path<String>) -> Result<Json<serde_json::Value>> {
+    let result = board::post_delete(&pool, id).await?;
+    let response: serde_json::Value = ApiResponse::normal(result).into();
+
+    Ok(Json(response))
+}
