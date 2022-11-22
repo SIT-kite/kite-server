@@ -73,7 +73,7 @@ pub fn convert_time_string(s: &str) -> i32 {
 }
 
 pub fn transform_date(s: &str) -> (i32, i32) {
-    let school_term_start: NaiveDate = NaiveDate::from_ymd(2021, 9, 6);
+    let school_term_start: NaiveDate = NaiveDate::from_ymd(2022, 9, 5);
     // Format the search date
     let fmt = "%Y-%m-%d";
     let result = NaiveDate::parse_from_str(s, fmt);
