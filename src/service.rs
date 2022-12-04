@@ -29,7 +29,6 @@ mod notice;
 mod report;
 mod user;
 mod weather;
-mod edu;
 
 #[derive(Tags)]
 enum ApiTags {

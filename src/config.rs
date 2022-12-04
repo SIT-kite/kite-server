@@ -23,6 +23,9 @@ pub struct ServerConfig {
     /* External API */
     /// QWeather.com API key.
     pub qweather_key: String,
+
+    /// 静态 api 资源文件夹
+    pub static_api_dir: String,
 }
 
 fn get_config_path() -> String {

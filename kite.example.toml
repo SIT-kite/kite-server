@@ -8,3 +8,7 @@ secret = "secret"
 attachment = "D:\\tmp\\"
 # secret for weather APi
 qweather_key = "secret"
+
+
+# 静态 api 资源文件夹
+static_api_dir = "/var/kite/web"
