@@ -1,0 +1,5 @@
+GET {{prefix}}/badge/card/
+Authorization: Bearer {{jwt}}
+Accept: application/json
+
+###
