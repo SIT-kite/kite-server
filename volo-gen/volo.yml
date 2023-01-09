@@ -3,7 +3,51 @@ entries:
     protocol: protobuf
     filename: volo_gen.rs
     idls:
-    - source: local
-      path: ../idl/ping.proto
-      includes:
-      - ../idl
+      - source: local
+        path: ../proto/campus.proto
+      - source: local
+        path: ../proto/template.proto
+      - source: local
+        path: ../proto/token.proto
+        includes:
+          - ../
+      - source: local
+        path: ../proto/ping.proto
+        includes:
+        - ../
+      - source: local
+        path: ../proto/badge.proto
+        includes:
+        - ../
+      - source: local
+        path: ../proto/balance.proto
+        includes:
+        - ../
+      - source: local
+        path: ../proto/board.proto
+        includes:
+        - ../
+      - source: local
+        path: ../proto/classroom_browser.proto
+        includes:
+          - ../
+      - source: local
+        path: ../proto/exception.proto
+        includes:
+          - ../
+      - source: local
+        path: ../proto/freshman.proto
+        includes:
+          - ../
+      - source: local
+        path: ../proto/game.proto
+        includes:
+          - ../
+      - source: local
+        path: ../proto/user.proto
+        includes:
+          - ../
+      - source: local
+        path: ../proto/yellow_page.proto
+        includes:
+          - ../

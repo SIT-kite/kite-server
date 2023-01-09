@@ -13,6 +13,7 @@ async fn main() {
 
     Server::new()
         .add_service(ServiceBuilder::new(volo_gen::kite::ping::PingServiceServer::new(S)).build())
+        .add_service(ServiceBuilder::new(volo_gen::kite::badge::BadgeServiceServer::new(S)).build())
         .run(addr)
         .await
         .unwrap();
