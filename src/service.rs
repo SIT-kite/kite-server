@@ -1,11 +1,14 @@
-use crate::config;
 use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
 use tonic::transport::Server;
 
+use crate::config;
+
 pub mod gen;
 
+mod badge;
 mod ping;
 
+#[derive(Clone)]
 pub struct KiteGrpcServer {
     // Postgres instance.
     db: PgPool,
@@ -26,10 +29,16 @@ async fn get_db() -> PgPool {
 }
 
 pub async fn grpc_server() {
-    let addr = "[::1]:50051".parse().unwrap();
+    let addr = config::get().bind.parse().unwrap();
     let server = KiteGrpcServer { db: get_db().await };
 
-    let ping = ping::ping_service_server::PingServiceServer::new(server);
+    let ping = ping::ping_service_server::PingServiceServer::new(server.clone());
+    let badge = badge::badge_service_server::BadgeServiceServer::new(server.clone());
 
-    Server::builder().add_service(ping).serve(addr).await.unwrap()
+    Server::builder()
+        .add_service(ping)
+        .add_service(badge)
+        .serve(addr)
+        .await
+        .unwrap()
 }
