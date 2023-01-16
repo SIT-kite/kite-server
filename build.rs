@@ -1,6 +1,6 @@
 
 fn main() {
-    let out_dir = std::path::PathBuf::from("src/service/gen");
+    let out_dir = std::path::PathBuf::from("src/service/gen/");
 
     tonic_build::configure()
         .build_server(true)
