@@ -1,13 +1,12 @@
-use tonic::Response;
-pub use crate::service::gen::ping::*;
+use tonic::{Request, Response, Status};
+
+pub use crate::service::gen::ping as gen;
 
 #[tonic::async_trait]
-impl ping_service_server::PingService for super::KiteGrpcServer {
-    async fn ping(&self, request: tonic::Request<PingRequest>) -> Result<tonic::Response<PongResponse>, tonic::Status> {
+impl gen::ping_service_server::PingService for super::KiteGrpcServer {
+    async fn ping(&self, request: Request<gen::PingRequest>) -> Result<Response<gen::PongResponse>, Status> {
         let request = request.into_inner();
 
-        Ok(Response::new(PongResponse {
-            text: request.text
-        }))
+        Ok(Response::new(gen::PongResponse { text: request.text }))
     }
 }

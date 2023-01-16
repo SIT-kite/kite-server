@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
 use crate::config;
@@ -36,18 +35,20 @@ impl JwtToken {
     }
 }
 
-pub fn get_token_from_request<T>(req: tonic::Request<T>) -> anyhow::Result<JwtToken> {
+pub fn get_token_from_request<T>(req: tonic::Request<T>) -> Result<JwtToken, tonic::Status> {
     if let Some(token) = req.metadata().get("authorization") {
         let token = token
             .to_str()
-            .map_err(|e| anyhow!("Failed to parse token to str: {:?}", e))?;
+            .map_err(|e| tonic::Status::unauthenticated(format!("Failed to parse token to str: {:?}", e)))?;
         if let Some(token) = JwtToken::decode(token) {
             Ok(token)
         } else {
-            Err(anyhow!("Invalid token: May be expired?"))
+            Err(tonic::Status::unauthenticated("Invalid token: May be expired?"))
         }
     } else {
-        Err(anyhow!("No authorization can be found in your request."))
+        Err(tonic::Status::unauthenticated(
+            "No authorization can be found in your request.",
+        ))
     }
 }
 

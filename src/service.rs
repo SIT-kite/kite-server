@@ -33,8 +33,8 @@ pub async fn grpc_server() {
     let addr = config::get().bind.parse().unwrap();
     let server = KiteGrpcServer { db: get_db().await };
 
-    let ping = ping::ping_service_server::PingServiceServer::new(server.clone());
-    let badge = badge::badge_service_server::BadgeServiceServer::new(server.clone());
+    let ping = ping::gen::ping_service_server::PingServiceServer::new(server.clone());
+    let badge = badge::gen::badge_service_server::BadgeServiceServer::new(server.clone());
 
     Server::builder()
         .add_service(ping)
