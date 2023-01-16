@@ -62,6 +62,7 @@ impl badge_service_server::BadgeService for super::KiteGrpcServer {
         request: Request<EmptyRequestWithToken>,
     ) -> Result<Response<CardListResponse>, Status> {
         println!("{:?}", request);
+        super::auth::require_login(request)?;
 
         Ok(Response::new(CardListResponse { card_list: vec![] }))
     }

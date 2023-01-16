@@ -3,6 +3,7 @@ use tonic::transport::Server;
 
 use crate::config;
 
+pub mod auth;
 pub mod gen;
 
 mod badge;
