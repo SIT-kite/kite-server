@@ -1,7 +1,10 @@
 pub use convert::{ToDateTime, ToTimestamp};
+pub use template::*;
 
 pub mod badge;
 pub mod balance;
+pub mod board;
+pub mod template;
 
 pub mod convert {
     use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Timelike};

@@ -41,15 +41,18 @@ pub struct UploadRequest {
     pub payload: ::prost::alloc::vec::Vec<u8>,
 }
 /// Generated client implementations.
-pub mod board_client {
+pub mod board_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::*;
+
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
+
     #[derive(Debug, Clone)]
-    pub struct BoardClient<T> {
+    pub struct BoardServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl BoardClient<tonic::transport::Channel> {
+
+    impl BoardServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -60,7 +63,8 @@ pub mod board_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> BoardClient<T>
+
+    impl<T> BoardServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -75,24 +79,17 @@ pub mod board_client {
             let inner = tonic::client::Grpc::with_origin(inner, origin);
             Self { inner }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> BoardClient<InterceptedService<T, F>>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> BoardServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
                 http::Request<tonic::body::BoxBody>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
-                >,
+                Response = http::Response<<T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody>,
             >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error: Into<StdError> + Send + Sync,
         {
-            BoardClient::new(InterceptedService::new(inner, interceptor))
+            BoardServiceClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -110,43 +107,27 @@ pub mod board_client {
             self
         }
         /// 获取公共图片列表
-        pub async fn get_picture_list_response(
+        pub async fn get_picture_list(
             &mut self,
             request: impl tonic::IntoRequest<super::super::template::PageOption>,
         ) -> Result<tonic::Response<super::PictureListResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/board.Board/GetPictureListResponse",
-            );
+            let path = http::uri::PathAndQuery::from_static("/board.BoardService/GetPictureList");
             self.inner.unary(request.into_request(), path, codec).await
         }
         /// 获取用户自己上传列表
         pub async fn get_my_upload(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::super::template::EmptyRequestWithToken,
-            >,
+            request: impl tonic::IntoRequest<super::super::template::EmptyRequestWithToken>,
         ) -> Result<tonic::Response<super::PictureListResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/board.Board/GetMyUpload");
+            let path = http::uri::PathAndQuery::from_static("/board.BoardService/GetMyUpload");
             self.inner.unary(request.into_request(), path, codec).await
         }
         /// 上传图片
@@ -154,30 +135,27 @@ pub mod board_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UploadRequest>,
         ) -> Result<tonic::Response<super::Picture>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/board.Board/Upload");
+            let path = http::uri::PathAndQuery::from_static("/board.BoardService/Upload");
             self.inner.unary(request.into_request(), path, codec).await
         }
     }
 }
+
 /// Generated server implementations.
-pub mod board_server {
+pub mod board_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with BoardServer.
+
+    /// Generated trait containing gRPC methods that should be implemented for use with BoardServiceServer.
     #[async_trait]
-    pub trait Board: Send + Sync + 'static {
+    pub trait BoardService: Send + Sync + 'static {
         /// 获取公共图片列表
-        async fn get_picture_list_response(
+        async fn get_picture_list(
             &self,
             request: tonic::Request<super::super::template::PageOption>,
         ) -> Result<tonic::Response<super::PictureListResponse>, tonic::Status>;
@@ -192,14 +170,17 @@ pub mod board_server {
             request: tonic::Request<super::UploadRequest>,
         ) -> Result<tonic::Response<super::Picture>, tonic::Status>;
     }
+
     #[derive(Debug)]
-    pub struct BoardServer<T: Board> {
+    pub struct BoardServiceServer<T: BoardService> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
     }
+
     struct _Inner<T>(Arc<T>);
-    impl<T: Board> BoardServer<T> {
+
+    impl<T: BoardService> BoardServiceServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -211,10 +192,7 @@ pub mod board_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -233,44 +211,34 @@ pub mod board_server {
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for BoardServer<T>
+
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for BoardServiceServer<T>
     where
-        T: Board,
+        T: BoardService,
         B: Body + Send + 'static,
         B::Error: Into<StdError> + Send + 'static,
     {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/board.Board/GetPictureListResponse" => {
+                "/board.BoardService/GetPictureList" => {
                     #[allow(non_camel_case_types)]
-                    struct GetPictureListResponseSvc<T: Board>(pub Arc<T>);
-                    impl<
-                        T: Board,
-                    > tonic::server::UnaryService<super::super::template::PageOption>
-                    for GetPictureListResponseSvc<T> {
+                    struct GetPictureListSvc<T: BoardService>(pub Arc<T>);
+                    impl<T: BoardService> tonic::server::UnaryService<super::super::template::PageOption> for GetPictureListSvc<T> {
                         type Response = super::PictureListResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::super::template::PageOption>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_picture_list_response(request).await
-                            };
+                            let fut = async move { (*inner).get_picture_list(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -279,41 +247,27 @@ pub mod board_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = GetPictureListResponseSvc(inner);
+                        let method = GetPictureListSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                "/board.Board/GetMyUpload" => {
+                "/board.BoardService/GetMyUpload" => {
                     #[allow(non_camel_case_types)]
-                    struct GetMyUploadSvc<T: Board>(pub Arc<T>);
-                    impl<
-                        T: Board,
-                    > tonic::server::UnaryService<
-                        super::super::template::EmptyRequestWithToken,
-                    > for GetMyUploadSvc<T> {
+                    struct GetMyUploadSvc<T: BoardService>(pub Arc<T>);
+                    impl<T: BoardService> tonic::server::UnaryService<super::super::template::EmptyRequestWithToken> for GetMyUploadSvc<T> {
                         type Response = super::PictureListResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::super::template::EmptyRequestWithToken,
-                            >,
+                            request: tonic::Request<super::super::template::EmptyRequestWithToken>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_my_upload(request).await
-                            };
+                            let fut = async move { (*inner).get_my_upload(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -325,29 +279,19 @@ pub mod board_server {
                         let method = GetMyUploadSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                "/board.Board/Upload" => {
+                "/board.BoardService/Upload" => {
                     #[allow(non_camel_case_types)]
-                    struct UploadSvc<T: Board>(pub Arc<T>);
-                    impl<T: Board> tonic::server::UnaryService<super::UploadRequest>
-                    for UploadSvc<T> {
+                    struct UploadSvc<T: BoardService>(pub Arc<T>);
+                    impl<T: BoardService> tonic::server::UnaryService<super::UploadRequest> for UploadSvc<T> {
                         type Response = super::Picture;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::UploadRequest>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::UploadRequest>) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move { (*inner).upload(request).await };
                             Box::pin(fut)
@@ -361,31 +305,25 @@ pub mod board_server {
                         let method = UploadSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }
-    impl<T: Board> Clone for BoardServer<T> {
+
+    impl<T: BoardService> Clone for BoardServiceServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -395,17 +333,20 @@ pub mod board_server {
             }
         }
     }
-    impl<T: Board> Clone for _Inner<T> {
+
+    impl<T: BoardService> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(self.0.clone())
         }
     }
+
     impl<T: std::fmt::Debug> std::fmt::Debug for _Inner<T> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: Board> tonic::server::NamedService for BoardServer<T> {
-        const NAME: &'static str = "board.Board";
+
+    impl<T: BoardService> tonic::server::NamedService for BoardServiceServer<T> {
+        const NAME: &'static str = "board.BoardService";
     }
 }
