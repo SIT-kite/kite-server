@@ -1,7 +1,5 @@
-use crate::config::load_config;
-
-mod service;
 mod config;
+mod service;
 
 #[tokio::main]
 async fn main() {
