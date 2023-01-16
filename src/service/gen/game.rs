@@ -89,141 +89,12 @@ impl GameType {
         }
     }
 }
-/// Generated client implementations.
-pub mod game_service_client {
-    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::*;
-    use tonic::codegen::http::Uri;
-    #[derive(Debug, Clone)]
-    pub struct GameServiceClient<T> {
-        inner: tonic::client::Grpc<T>,
-    }
-    impl GameServiceClient<tonic::transport::Channel> {
-        /// Attempt to create a new client by connecting to a given endpoint.
-        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: std::convert::TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
-        {
-            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
-            Ok(Self::new(conn))
-        }
-    }
-    impl<T> GameServiceClient<T>
-    where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
-    {
-        pub fn new(inner: T) -> Self {
-            let inner = tonic::client::Grpc::new(inner);
-            Self { inner }
-        }
-        pub fn with_origin(inner: T, origin: Uri) -> Self {
-            let inner = tonic::client::Grpc::with_origin(inner, origin);
-            Self { inner }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> GameServiceClient<InterceptedService<T, F>>
-        where
-            F: tonic::service::Interceptor,
-            T::ResponseBody: Default,
-            T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
-                >,
-            >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
-        {
-            GameServiceClient::new(InterceptedService::new(inner, interceptor))
-        }
-        /// Compress requests with the given encoding.
-        ///
-        /// This requires the server to support it otherwise it might respond with an
-        /// error.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.send_compressed(encoding);
-            self
-        }
-        /// Enable decompressing responses.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.accept_compressed(encoding);
-            self
-        }
-        /// 保存用户游戏记录
-        pub async fn save_score(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GameRecord>,
-        ) -> Result<tonic::Response<super::super::template::Empty>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/game.GameService/SaveScore",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-        /// 获取公共游戏排名列表
-        pub async fn get_public_ranking(
-            &mut self,
-            request: impl tonic::IntoRequest<super::PublicRankingRequest>,
-        ) -> Result<tonic::Response<super::RecordListResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/game.GameService/GetPublicRanking",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-        /// 获取个人游戏记录
-        pub async fn get_my_record_list(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RecordListRequest>,
-        ) -> Result<tonic::Response<super::RecordListResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/game.GameService/GetMyRecordList",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-    }
-}
 /// Generated server implementations.
 pub mod game_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+
     use tonic::codegen::*;
+
     /// Generated trait containing gRPC methods that should be implemented for use with GameServiceServer.
     #[async_trait]
     pub trait GameService: Send + Sync + 'static {
@@ -262,10 +133,7 @@ pub mod game_service_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -293,10 +161,7 @@ pub mod game_service_server {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -305,17 +170,10 @@ pub mod game_service_server {
                 "/game.GameService/SaveScore" => {
                     #[allow(non_camel_case_types)]
                     struct SaveScoreSvc<T: GameService>(pub Arc<T>);
-                    impl<T: GameService> tonic::server::UnaryService<super::GameRecord>
-                    for SaveScoreSvc<T> {
+                    impl<T: GameService> tonic::server::UnaryService<super::GameRecord> for SaveScoreSvc<T> {
                         type Response = super::super::template::Empty;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::GameRecord>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::GameRecord>) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move { (*inner).save_score(request).await };
                             Box::pin(fut)
@@ -329,10 +187,7 @@ pub mod game_service_server {
                         let method = SaveScoreSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -341,23 +196,12 @@ pub mod game_service_server {
                 "/game.GameService/GetPublicRanking" => {
                     #[allow(non_camel_case_types)]
                     struct GetPublicRankingSvc<T: GameService>(pub Arc<T>);
-                    impl<
-                        T: GameService,
-                    > tonic::server::UnaryService<super::PublicRankingRequest>
-                    for GetPublicRankingSvc<T> {
+                    impl<T: GameService> tonic::server::UnaryService<super::PublicRankingRequest> for GetPublicRankingSvc<T> {
                         type Response = super::RecordListResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::PublicRankingRequest>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::PublicRankingRequest>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_public_ranking(request).await
-                            };
+                            let fut = async move { (*inner).get_public_ranking(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -369,10 +213,7 @@ pub mod game_service_server {
                         let method = GetPublicRankingSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -381,23 +222,12 @@ pub mod game_service_server {
                 "/game.GameService/GetMyRecordList" => {
                     #[allow(non_camel_case_types)]
                     struct GetMyRecordListSvc<T: GameService>(pub Arc<T>);
-                    impl<
-                        T: GameService,
-                    > tonic::server::UnaryService<super::RecordListRequest>
-                    for GetMyRecordListSvc<T> {
+                    impl<T: GameService> tonic::server::UnaryService<super::RecordListRequest> for GetMyRecordListSvc<T> {
                         type Response = super::RecordListResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::RecordListRequest>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::RecordListRequest>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_my_record_list(request).await
-                            };
+                            let fut = async move { (*inner).get_my_record_list(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -409,27 +239,20 @@ pub mod game_service_server {
                         let method = GetMyRecordListSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }

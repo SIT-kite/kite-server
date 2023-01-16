@@ -64,115 +64,17 @@ pub mod server_stream {
         TlsStream(::prost::alloc::vec::Vec<u8>),
     }
 }
-/// Generated client implementations.
-pub mod user_service_client {
-    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::*;
-    use tonic::codegen::http::Uri;
-    #[derive(Debug, Clone)]
-    pub struct UserServiceClient<T> {
-        inner: tonic::client::Grpc<T>,
-    }
-    impl UserServiceClient<tonic::transport::Channel> {
-        /// Attempt to create a new client by connecting to a given endpoint.
-        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: std::convert::TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
-        {
-            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
-            Ok(Self::new(conn))
-        }
-    }
-    impl<T> UserServiceClient<T>
-    where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
-    {
-        pub fn new(inner: T) -> Self {
-            let inner = tonic::client::Grpc::new(inner);
-            Self { inner }
-        }
-        pub fn with_origin(inner: T, origin: Uri) -> Self {
-            let inner = tonic::client::Grpc::with_origin(inner, origin);
-            Self { inner }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> UserServiceClient<InterceptedService<T, F>>
-        where
-            F: tonic::service::Interceptor,
-            T::ResponseBody: Default,
-            T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
-                >,
-            >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
-        {
-            UserServiceClient::new(InterceptedService::new(inner, interceptor))
-        }
-        /// Compress requests with the given encoding.
-        ///
-        /// This requires the server to support it otherwise it might respond with an
-        /// error.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.send_compressed(encoding);
-            self
-        }
-        /// Enable decompressing responses.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.accept_compressed(encoding);
-            self
-        }
-        /// 登录小风筝账户
-        ///
-        /// 受限于若干网络上的限制，需要使用用户侧手机作为 socks5 代理使用。该登录方案的原理是，建立一条 kite-server 和
-        /// authserver.sit.edu.cn 之间的 TLS 连接，以确保通信不被用户（也可能是潜在的攻击者）监听和篡改。
-        /// 该方案保证 server 可以可靠地验证用户提供的用户名和密码，同时避免了 IP 重试次数过多被防火墙封禁。
-        pub async fn login(
-            &mut self,
-            request: impl tonic::IntoStreamingRequest<Message = super::ClientStream>,
-        ) -> Result<
-            tonic::Response<tonic::codec::Streaming<super::ServerStream>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/user.UserService/Login");
-            self.inner.streaming(request.into_streaming_request(), path, codec).await
-        }
-    }
-}
 /// Generated server implementations.
 pub mod user_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+
     use tonic::codegen::*;
+
     /// Generated trait containing gRPC methods that should be implemented for use with UserServiceServer.
     #[async_trait]
     pub trait UserService: Send + Sync + 'static {
         /// Server streaming response type for the Login method.
-        type LoginStream: futures_core::Stream<
-                Item = Result<super::ServerStream, tonic::Status>,
-            >
-            + Send
-            + 'static;
+        type LoginStream: futures_core::Stream<Item = Result<super::ServerStream, tonic::Status>> + Send + 'static;
         /// 登录小风筝账户
         ///
         /// 受限于若干网络上的限制，需要使用用户侧手机作为 socks5 代理使用。该登录方案的原理是，建立一条 kite-server 和
@@ -202,10 +104,7 @@ pub mod user_service_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -233,10 +132,7 @@ pub mod user_service_server {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -245,21 +141,13 @@ pub mod user_service_server {
                 "/user.UserService/Login" => {
                     #[allow(non_camel_case_types)]
                     struct LoginSvc<T: UserService>(pub Arc<T>);
-                    impl<
-                        T: UserService,
-                    > tonic::server::StreamingService<super::ClientStream>
-                    for LoginSvc<T> {
+                    impl<T: UserService> tonic::server::StreamingService<super::ClientStream> for LoginSvc<T> {
                         type Response = super::ServerStream;
                         type ResponseStream = T::LoginStream;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::ResponseStream>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::ResponseStream>, tonic::Status>;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                tonic::Streaming<super::ClientStream>,
-                            >,
+                            request: tonic::Request<tonic::Streaming<super::ClientStream>>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move { (*inner).login(request).await };
@@ -274,27 +162,20 @@ pub mod user_service_server {
                         let method = LoginSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.streaming(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }

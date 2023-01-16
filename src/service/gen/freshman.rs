@@ -157,201 +157,12 @@ pub struct FreshmanToken {
     #[prost(string, optional, tag = "2")]
     pub entrance_year: ::core::option::Option<::prost::alloc::string::String>,
 }
-/// Generated client implementations.
-pub mod welcome_service_client {
-    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::*;
-    use tonic::codegen::http::Uri;
-    #[derive(Debug, Clone)]
-    pub struct WelcomeServiceClient<T> {
-        inner: tonic::client::Grpc<T>,
-    }
-    impl WelcomeServiceClient<tonic::transport::Channel> {
-        /// Attempt to create a new client by connecting to a given endpoint.
-        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: std::convert::TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
-        {
-            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
-            Ok(Self::new(conn))
-        }
-    }
-    impl<T> WelcomeServiceClient<T>
-    where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
-    {
-        pub fn new(inner: T) -> Self {
-            let inner = tonic::client::Grpc::new(inner);
-            Self { inner }
-        }
-        pub fn with_origin(inner: T, origin: Uri) -> Self {
-            let inner = tonic::client::Grpc::with_origin(inner, origin);
-            Self { inner }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> WelcomeServiceClient<InterceptedService<T, F>>
-        where
-            F: tonic::service::Interceptor,
-            T::ResponseBody: Default,
-            T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
-                >,
-            >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
-        {
-            WelcomeServiceClient::new(InterceptedService::new(inner, interceptor))
-        }
-        /// Compress requests with the given encoding.
-        ///
-        /// This requires the server to support it otherwise it might respond with an
-        /// error.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.send_compressed(encoding);
-            self
-        }
-        /// Enable decompressing responses.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.accept_compressed(encoding);
-            self
-        }
-        /// 类似登录操作，成功后返回一个通用 JWT 凭据
-        pub async fn check_credential(
-            &mut self,
-            request: impl tonic::IntoRequest<super::FreshmanCredential>,
-        ) -> Result<tonic::Response<super::super::token::UserToken>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/freshman.WelcomeService/CheckCredential",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-        /// 获取个人相关信息
-        pub async fn query_my_self(
-            &mut self,
-            request: impl tonic::IntoRequest<super::FreshmanToken>,
-        ) -> Result<tonic::Response<super::MySelf>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/freshman.WelcomeService/QueryMySelf",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-        /// 获取舍友列表
-        pub async fn get_roommates(
-            &mut self,
-            request: impl tonic::IntoRequest<super::FreshmanToken>,
-        ) -> Result<tonic::Response<super::StudentList>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/freshman.WelcomeService/GetRoommates",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-        /// 获取同班同学列表
-        pub async fn get_classmates(
-            &mut self,
-            request: impl tonic::IntoRequest<super::FreshmanToken>,
-        ) -> Result<tonic::Response<super::StudentList>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/freshman.WelcomeService/GetClassmates",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-        /// 获取 “可能认识的人” 列表
-        pub async fn get_people_may_know(
-            &mut self,
-            request: impl tonic::IntoRequest<super::FreshmanToken>,
-        ) -> Result<tonic::Response<super::StudentList>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/freshman.WelcomeService/GetPeopleMayKnow",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-        /// 获取个人数据分析（美名曰“新生大数据”），详见 `PersonalAnalysisResult`
-        pub async fn get_personal_analysis(
-            &mut self,
-            request: impl tonic::IntoRequest<super::FreshmanToken>,
-        ) -> Result<tonic::Response<super::PersonalAnalysisResult>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/freshman.WelcomeService/GetPersonalAnalysis",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-    }
-}
 /// Generated server implementations.
 pub mod welcome_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+
     use tonic::codegen::*;
+
     /// Generated trait containing gRPC methods that should be implemented for use with WelcomeServiceServer.
     #[async_trait]
     pub trait WelcomeService: Send + Sync + 'static {
@@ -405,10 +216,7 @@ pub mod welcome_service_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -436,10 +244,7 @@ pub mod welcome_service_server {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -448,23 +253,12 @@ pub mod welcome_service_server {
                 "/freshman.WelcomeService/CheckCredential" => {
                     #[allow(non_camel_case_types)]
                     struct CheckCredentialSvc<T: WelcomeService>(pub Arc<T>);
-                    impl<
-                        T: WelcomeService,
-                    > tonic::server::UnaryService<super::FreshmanCredential>
-                    for CheckCredentialSvc<T> {
+                    impl<T: WelcomeService> tonic::server::UnaryService<super::FreshmanCredential> for CheckCredentialSvc<T> {
                         type Response = super::super::token::UserToken;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::FreshmanCredential>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::FreshmanCredential>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).check_credential(request).await
-                            };
+                            let fut = async move { (*inner).check_credential(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -476,10 +270,7 @@ pub mod welcome_service_server {
                         let method = CheckCredentialSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -488,23 +279,12 @@ pub mod welcome_service_server {
                 "/freshman.WelcomeService/QueryMySelf" => {
                     #[allow(non_camel_case_types)]
                     struct QueryMySelfSvc<T: WelcomeService>(pub Arc<T>);
-                    impl<
-                        T: WelcomeService,
-                    > tonic::server::UnaryService<super::FreshmanToken>
-                    for QueryMySelfSvc<T> {
+                    impl<T: WelcomeService> tonic::server::UnaryService<super::FreshmanToken> for QueryMySelfSvc<T> {
                         type Response = super::MySelf;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::FreshmanToken>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::FreshmanToken>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).query_my_self(request).await
-                            };
+                            let fut = async move { (*inner).query_my_self(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -516,10 +296,7 @@ pub mod welcome_service_server {
                         let method = QueryMySelfSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -528,23 +305,12 @@ pub mod welcome_service_server {
                 "/freshman.WelcomeService/GetRoommates" => {
                     #[allow(non_camel_case_types)]
                     struct GetRoommatesSvc<T: WelcomeService>(pub Arc<T>);
-                    impl<
-                        T: WelcomeService,
-                    > tonic::server::UnaryService<super::FreshmanToken>
-                    for GetRoommatesSvc<T> {
+                    impl<T: WelcomeService> tonic::server::UnaryService<super::FreshmanToken> for GetRoommatesSvc<T> {
                         type Response = super::StudentList;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::FreshmanToken>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::FreshmanToken>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_roommates(request).await
-                            };
+                            let fut = async move { (*inner).get_roommates(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -556,10 +322,7 @@ pub mod welcome_service_server {
                         let method = GetRoommatesSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -568,23 +331,12 @@ pub mod welcome_service_server {
                 "/freshman.WelcomeService/GetClassmates" => {
                     #[allow(non_camel_case_types)]
                     struct GetClassmatesSvc<T: WelcomeService>(pub Arc<T>);
-                    impl<
-                        T: WelcomeService,
-                    > tonic::server::UnaryService<super::FreshmanToken>
-                    for GetClassmatesSvc<T> {
+                    impl<T: WelcomeService> tonic::server::UnaryService<super::FreshmanToken> for GetClassmatesSvc<T> {
                         type Response = super::StudentList;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::FreshmanToken>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::FreshmanToken>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_classmates(request).await
-                            };
+                            let fut = async move { (*inner).get_classmates(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -596,10 +348,7 @@ pub mod welcome_service_server {
                         let method = GetClassmatesSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -608,23 +357,12 @@ pub mod welcome_service_server {
                 "/freshman.WelcomeService/GetPeopleMayKnow" => {
                     #[allow(non_camel_case_types)]
                     struct GetPeopleMayKnowSvc<T: WelcomeService>(pub Arc<T>);
-                    impl<
-                        T: WelcomeService,
-                    > tonic::server::UnaryService<super::FreshmanToken>
-                    for GetPeopleMayKnowSvc<T> {
+                    impl<T: WelcomeService> tonic::server::UnaryService<super::FreshmanToken> for GetPeopleMayKnowSvc<T> {
                         type Response = super::StudentList;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::FreshmanToken>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::FreshmanToken>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_people_may_know(request).await
-                            };
+                            let fut = async move { (*inner).get_people_may_know(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -636,10 +374,7 @@ pub mod welcome_service_server {
                         let method = GetPeopleMayKnowSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -648,23 +383,12 @@ pub mod welcome_service_server {
                 "/freshman.WelcomeService/GetPersonalAnalysis" => {
                     #[allow(non_camel_case_types)]
                     struct GetPersonalAnalysisSvc<T: WelcomeService>(pub Arc<T>);
-                    impl<
-                        T: WelcomeService,
-                    > tonic::server::UnaryService<super::FreshmanToken>
-                    for GetPersonalAnalysisSvc<T> {
+                    impl<T: WelcomeService> tonic::server::UnaryService<super::FreshmanToken> for GetPersonalAnalysisSvc<T> {
                         type Response = super::PersonalAnalysisResult;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::FreshmanToken>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::FreshmanToken>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_personal_analysis(request).await
-                            };
+                            let fut = async move { (*inner).get_personal_analysis(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -676,27 +400,20 @@ pub mod welcome_service_server {
                         let method = GetPersonalAnalysisSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }
