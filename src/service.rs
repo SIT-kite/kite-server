@@ -1,5 +1,6 @@
 use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
 use tonic::transport::Server;
+use tonic_reflection::server::{ServerReflection, ServerReflectionServer};
 
 use crate::config;
 
@@ -33,6 +34,16 @@ async fn get_db() -> PgPool {
         .expect("Could not create database pool")
 }
 
+/// Used for gRPC reflection.
+fn load_reflection() -> ServerReflectionServer<impl ServerReflection> {
+    let file_descriptor = include_bytes!("../target/compiled-descriptor.bin");
+
+    tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(file_descriptor)
+        .build()
+        .unwrap()
+}
+
 pub async fn grpc_server() {
     let addr = config::get().bind.parse().unwrap();
     let server = KiteGrpcServer { db: get_db().await };
@@ -45,6 +56,7 @@ pub async fn grpc_server() {
         classroom_browser::gen::classroom_browser_service_server::ClassroomBrowserServiceServer::new(server.clone());
 
     Server::builder()
+        .add_service(load_reflection())
         .add_service(ping)
         .add_service(badge)
         .add_service(balance)
