@@ -5,7 +5,7 @@ use crate::error::ToStatus;
 use crate::model::badge as model;
 use crate::service::auth::get_token_from_request;
 pub use crate::service::gen::badge as gen;
-use crate::service::gen::template::{Empty, EmptyRequestWithToken};
+use crate::service::gen::template::{Empty, EmptyRequest};
 
 impl Into<gen::Card> for model::Card {
     fn into(self) -> gen::Card {
@@ -41,7 +41,7 @@ async fn append_share_log(pool: &PgPool, uid: i32) -> anyhow::Result<()> {
 impl gen::badge_service_server::BadgeService for super::KiteGrpcServer {
     async fn get_user_card_storage(
         &self,
-        request: Request<EmptyRequestWithToken>,
+        request: Request<EmptyRequest>,
     ) -> Result<Response<gen::CardListResponse>, Status> {
         let token = get_token_from_request(request)?;
         let result = get_cards_list(&self.db, token.uid).await.map_err(ToStatus::to_status)?;
@@ -49,7 +49,7 @@ impl gen::badge_service_server::BadgeService for super::KiteGrpcServer {
         Ok(Response::new(gen::CardListResponse { card_list: result }))
     }
 
-    async fn append_share_log(&self, request: Request<EmptyRequestWithToken>) -> Result<Response<Empty>, Status> {
+    async fn append_share_log(&self, request: Request<EmptyRequest>) -> Result<Response<Empty>, Status> {
         let token = get_token_from_request(request)?;
 
         append_share_log(&self.db, token.uid)

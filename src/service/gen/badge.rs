@@ -71,8 +71,10 @@ impl ScanResult {
 /// Generated client implementations.
 pub mod badge_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::*;
+
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
+
     #[derive(Debug, Clone)]
     pub struct BadgeServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -103,22 +105,15 @@ pub mod badge_service_client {
             let inner = tonic::client::Grpc::with_origin(inner, origin);
             Self { inner }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> BadgeServiceClient<InterceptedService<T, F>>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> BadgeServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
                 http::Request<tonic::body::BoxBody>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
-                >,
+                Response = http::Response<<T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody>,
             >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error: Into<StdError> + Send + Sync,
         {
             BadgeServiceClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -140,46 +135,26 @@ pub mod badge_service_client {
         /// 获取用户所抽到的所有卡片
         pub async fn get_user_card_storage(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::super::template::EmptyRequestWithToken,
-            >,
+            request: impl tonic::IntoRequest<super::super::template::EmptyRequest>,
         ) -> Result<tonic::Response<super::CardListResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/badge.BadgeService/GetUserCardStorage",
-            );
+            let path = http::uri::PathAndQuery::from_static("/badge.BadgeService/GetUserCardStorage");
             self.inner.unary(request.into_request(), path, codec).await
         }
         /// 记录用户分享事件
         /// 该方法用于增加用户抽卡次数（2022春节）
         pub async fn append_share_log(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::super::template::EmptyRequestWithToken,
-            >,
+            request: impl tonic::IntoRequest<super::super::template::EmptyRequest>,
         ) -> Result<tonic::Response<super::super::template::Empty>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/badge.BadgeService/AppendShareLog",
-            );
+            let path = http::uri::PathAndQuery::from_static("/badge.BadgeService/AppendShareLog");
             self.inner.unary(request.into_request(), path, codec).await
         }
     }
@@ -187,20 +162,22 @@ pub mod badge_service_client {
 /// Generated server implementations.
 pub mod badge_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+
     use tonic::codegen::*;
+
     /// Generated trait containing gRPC methods that should be implemented for use with BadgeServiceServer.
     #[async_trait]
     pub trait BadgeService: Send + Sync + 'static {
         /// 获取用户所抽到的所有卡片
         async fn get_user_card_storage(
             &self,
-            request: tonic::Request<super::super::template::EmptyRequestWithToken>,
+            request: tonic::Request<super::super::template::EmptyRequest>,
         ) -> Result<tonic::Response<super::CardListResponse>, tonic::Status>;
         /// 记录用户分享事件
         /// 该方法用于增加用户抽卡次数（2022春节）
         async fn append_share_log(
             &self,
-            request: tonic::Request<super::super::template::EmptyRequestWithToken>,
+            request: tonic::Request<super::super::template::EmptyRequest>,
         ) -> Result<tonic::Response<super::super::template::Empty>, tonic::Status>;
     }
     #[derive(Debug)]
@@ -222,10 +199,7 @@ pub mod badge_service_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -253,10 +227,7 @@ pub mod badge_service_server {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -265,26 +236,15 @@ pub mod badge_service_server {
                 "/badge.BadgeService/GetUserCardStorage" => {
                     #[allow(non_camel_case_types)]
                     struct GetUserCardStorageSvc<T: BadgeService>(pub Arc<T>);
-                    impl<
-                        T: BadgeService,
-                    > tonic::server::UnaryService<
-                        super::super::template::EmptyRequestWithToken,
-                    > for GetUserCardStorageSvc<T> {
+                    impl<T: BadgeService> tonic::server::UnaryService<super::super::template::EmptyRequest> for GetUserCardStorageSvc<T> {
                         type Response = super::CardListResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::super::template::EmptyRequestWithToken,
-                            >,
+                            request: tonic::Request<super::super::template::EmptyRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_user_card_storage(request).await
-                            };
+                            let fut = async move { (*inner).get_user_card_storage(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -296,10 +256,7 @@ pub mod badge_service_server {
                         let method = GetUserCardStorageSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -308,26 +265,15 @@ pub mod badge_service_server {
                 "/badge.BadgeService/AppendShareLog" => {
                     #[allow(non_camel_case_types)]
                     struct AppendShareLogSvc<T: BadgeService>(pub Arc<T>);
-                    impl<
-                        T: BadgeService,
-                    > tonic::server::UnaryService<
-                        super::super::template::EmptyRequestWithToken,
-                    > for AppendShareLogSvc<T> {
+                    impl<T: BadgeService> tonic::server::UnaryService<super::super::template::EmptyRequest> for AppendShareLogSvc<T> {
                         type Response = super::super::template::Empty;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::super::template::EmptyRequestWithToken,
-                            >,
+                            request: tonic::Request<super::super::template::EmptyRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).append_share_log(request).await
-                            };
+                            let fut = async move { (*inner).append_share_log(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -339,27 +285,20 @@ pub mod badge_service_server {
                         let method = AppendShareLogSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }

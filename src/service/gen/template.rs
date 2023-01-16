@@ -2,17 +2,10 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Empty {}
-/// Empty request without token
+/// Empty request
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EmptyRequest {}
-/// Empty request with token
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EmptyRequestWithToken {
-    #[prost(message, optional, tag = "1")]
-    pub token: ::core::option::Option<super::token::UserToken>,
-}
 /// Page options
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

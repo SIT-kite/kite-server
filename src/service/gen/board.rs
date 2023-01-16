@@ -51,7 +51,6 @@ pub mod board_service_client {
     pub struct BoardServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-
     impl BoardServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
@@ -63,7 +62,6 @@ pub mod board_service_client {
             Ok(Self::new(conn))
         }
     }
-
     impl<T> BoardServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
@@ -121,7 +119,7 @@ pub mod board_service_client {
         /// 获取用户自己上传列表
         pub async fn get_my_upload(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::template::EmptyRequestWithToken>,
+            request: impl tonic::IntoRequest<super::super::template::EmptyRequest>,
         ) -> Result<tonic::Response<super::PictureListResponse>, tonic::Status> {
             self.inner.ready().await.map_err(|e| {
                 tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
@@ -144,7 +142,6 @@ pub mod board_service_client {
         }
     }
 }
-
 /// Generated server implementations.
 pub mod board_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
@@ -162,7 +159,7 @@ pub mod board_service_server {
         /// 获取用户自己上传列表
         async fn get_my_upload(
             &self,
-            request: tonic::Request<super::super::template::EmptyRequestWithToken>,
+            request: tonic::Request<super::super::template::EmptyRequest>,
         ) -> Result<tonic::Response<super::PictureListResponse>, tonic::Status>;
         /// 上传图片
         async fn upload(
@@ -170,16 +167,13 @@ pub mod board_service_server {
             request: tonic::Request<super::UploadRequest>,
         ) -> Result<tonic::Response<super::Picture>, tonic::Status>;
     }
-
     #[derive(Debug)]
     pub struct BoardServiceServer<T: BoardService> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
     }
-
     struct _Inner<T>(Arc<T>);
-
     impl<T: BoardService> BoardServiceServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
@@ -211,7 +205,6 @@ pub mod board_service_server {
             self
         }
     }
-
     impl<T, B> tonic::codegen::Service<http::Request<B>> for BoardServiceServer<T>
     where
         T: BoardService,
@@ -259,12 +252,12 @@ pub mod board_service_server {
                 "/board.BoardService/GetMyUpload" => {
                     #[allow(non_camel_case_types)]
                     struct GetMyUploadSvc<T: BoardService>(pub Arc<T>);
-                    impl<T: BoardService> tonic::server::UnaryService<super::super::template::EmptyRequestWithToken> for GetMyUploadSvc<T> {
+                    impl<T: BoardService> tonic::server::UnaryService<super::super::template::EmptyRequest> for GetMyUploadSvc<T> {
                         type Response = super::PictureListResponse;
                         type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::template::EmptyRequestWithToken>,
+                            request: tonic::Request<super::super::template::EmptyRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move { (*inner).get_my_upload(request).await };
@@ -322,7 +315,6 @@ pub mod board_service_server {
             }
         }
     }
-
     impl<T: BoardService> Clone for BoardServiceServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
@@ -333,19 +325,16 @@ pub mod board_service_server {
             }
         }
     }
-
     impl<T: BoardService> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(self.0.clone())
         }
     }
-
     impl<T: std::fmt::Debug> std::fmt::Debug for _Inner<T> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "{:?}", self.0)
         }
     }
-
     impl<T: BoardService> tonic::server::NamedService for BoardServiceServer<T> {
         const NAME: &'static str = "board.BoardService";
     }

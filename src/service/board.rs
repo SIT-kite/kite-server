@@ -5,7 +5,7 @@ use crate::error::ToStatus;
 use crate::model::board as model;
 use crate::service::board::gen::{Picture, PictureListResponse, UploadRequest};
 pub use crate::service::gen::board as gen;
-use crate::service::gen::template::{EmptyRequestWithToken, PageOption};
+use crate::service::gen::template::{EmptyRequest, PageOption};
 use crate::service::template::ToPageView;
 
 impl Into<gen::Picture> for model::Picture {
@@ -51,10 +51,7 @@ impl gen::board_service_server::BoardService for super::KiteGrpcServer {
             .map_err(ToStatus::to_status)
     }
 
-    async fn get_my_upload(
-        &self,
-        request: Request<EmptyRequestWithToken>,
-    ) -> Result<Response<PictureListResponse>, Status> {
+    async fn get_my_upload(&self, request: Request<EmptyRequest>) -> Result<Response<PictureListResponse>, Status> {
         Err(tonic::Status::unimplemented("todo"))
     }
 

@@ -12,7 +12,6 @@ pub struct RoomBalance {
     #[prost(message, optional, tag = "4")]
     pub ts: ::core::option::Option<::prost_types::Timestamp>,
 }
-
 /// 消费情况
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -27,7 +26,6 @@ pub struct BillItem {
     #[prost(oneof = "bill_item::Identifier", tags = "1, 2")]
     pub identifier: ::core::option::Option<bill_item::Identifier>,
 }
-
 /// Nested message and enum types in `BillItem`.
 pub mod bill_item {
     /// 横坐标信息，判断是天还是小时
@@ -63,7 +61,6 @@ pub struct BalanceRequest {
     #[prost(int32, tag = "1")]
     pub room_number: i32,
 }
-
 /// 电费使用情况请求
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -73,7 +70,6 @@ pub struct BillRequest {
     #[prost(enumeration = "BillType", tag = "2")]
     pub r#type: i32,
 }
-
 /// 电费使用情况结果
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
