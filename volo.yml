@@ -1,7 +1,0 @@
-entries:
-  default:
-    protocol: protobuf
-    filename: volo_gen.rs
-    idls:
-    - source: local
-      path: idl/ping.proto
