@@ -1,0 +1,7 @@
+bind = "0.0.0.0:8000"
+secret = "secret"
+
+db = "postgresql://postgres:953bdfffb2e2fc54@localhost:2000/kite"
+db_conn = 2
+
+qweather_key = "xxx"

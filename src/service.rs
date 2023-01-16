@@ -7,6 +7,7 @@ pub mod auth;
 pub mod gen;
 
 mod badge;
+mod balance;
 mod ping;
 
 #[derive(Clone)]
@@ -35,10 +36,12 @@ pub async fn grpc_server() {
 
     let ping = ping::gen::ping_service_server::PingServiceServer::new(server.clone());
     let badge = badge::gen::badge_service_server::BadgeServiceServer::new(server.clone());
+    let balance = balance::gen::balance_service_server::BalanceServiceServer::new(server.clone());
 
     Server::builder()
         .add_service(ping)
         .add_service(badge)
+        .add_service(balance)
         .serve(addr)
         .await
         .unwrap()

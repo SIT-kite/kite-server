@@ -12,10 +12,11 @@ pub struct RoomBalance {
     #[prost(message, optional, tag = "4")]
     pub ts: ::core::option::Option<::prost_types::Timestamp>,
 }
+
 /// 消费情况
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Bill {
+pub struct BillItem {
     /// 电费较上一单位时间增加值，用于统计电费充值情况
     #[prost(float, tag = "3")]
     pub increment: f32,
@@ -23,11 +24,12 @@ pub struct Bill {
     #[prost(float, tag = "4")]
     pub decrement: f32,
     /// 横坐标信息，判断是天还是小时
-    #[prost(oneof = "bill::Identifier", tags = "1, 2")]
-    pub identifier: ::core::option::Option<bill::Identifier>,
+    #[prost(oneof = "bill_item::Identifier", tags = "1, 2")]
+    pub identifier: ::core::option::Option<bill_item::Identifier>,
 }
-/// Nested message and enum types in `Bill`.
-pub mod bill {
+
+/// Nested message and enum types in `BillItem`.
+pub mod bill_item {
     /// 横坐标信息，判断是天还是小时
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
@@ -61,6 +63,7 @@ pub struct BalanceRequest {
     #[prost(int32, tag = "1")]
     pub room_number: i32,
 }
+
 /// 电费使用情况请求
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -69,6 +72,14 @@ pub struct BillRequest {
     pub room_number: i32,
     #[prost(enumeration = "BillType", tag = "2")]
     pub r#type: i32,
+}
+
+/// 电费使用情况结果
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BillResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub bill_list: ::prost::alloc::vec::Vec<BillItem>,
 }
 /// 统计类型
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -102,8 +113,10 @@ impl BillType {
 /// Generated client implementations.
 pub mod balance_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::*;
+
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
+
     #[derive(Debug, Clone)]
     pub struct BalanceServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -134,22 +147,15 @@ pub mod balance_service_client {
             let inner = tonic::client::Grpc::with_origin(inner, origin);
             Self { inner }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> BalanceServiceClient<InterceptedService<T, F>>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> BalanceServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
                 http::Request<tonic::body::BoxBody>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
-                >,
+                Response = http::Response<<T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody>,
             >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error: Into<StdError> + Send + Sync,
         {
             BalanceServiceClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -173,19 +179,11 @@ pub mod balance_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::BalanceRequest>,
         ) -> Result<tonic::Response<super::RoomBalance>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/balance.BalanceService/GetRoomBalance",
-            );
+            let path = http::uri::PathAndQuery::from_static("/balance.BalanceService/GetRoomBalance");
             self.inner.unary(request.into_request(), path, codec).await
         }
         /// 请求单一房间电费排名情况
@@ -193,39 +191,23 @@ pub mod balance_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::BalanceRequest>,
         ) -> Result<tonic::Response<super::ConsumptionRank>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/balance.BalanceService/GetConsumptionRank",
-            );
+            let path = http::uri::PathAndQuery::from_static("/balance.BalanceService/GetConsumptionRank");
             self.inner.unary(request.into_request(), path, codec).await
         }
         /// 按类型请求电费统计情况
         pub async fn get_bill(
             &mut self,
             request: impl tonic::IntoRequest<super::BillRequest>,
-        ) -> Result<tonic::Response<super::Bill>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> Result<tonic::Response<super::BillResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/balance.BalanceService/GetBill",
-            );
+            let path = http::uri::PathAndQuery::from_static("/balance.BalanceService/GetBill");
             self.inner.unary(request.into_request(), path, codec).await
         }
     }
@@ -233,7 +215,9 @@ pub mod balance_service_client {
 /// Generated server implementations.
 pub mod balance_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+
     use tonic::codegen::*;
+
     /// Generated trait containing gRPC methods that should be implemented for use with BalanceServiceServer.
     #[async_trait]
     pub trait BalanceService: Send + Sync + 'static {
@@ -251,7 +235,7 @@ pub mod balance_service_server {
         async fn get_bill(
             &self,
             request: tonic::Request<super::BillRequest>,
-        ) -> Result<tonic::Response<super::Bill>, tonic::Status>;
+        ) -> Result<tonic::Response<super::BillResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct BalanceServiceServer<T: BalanceService> {
@@ -272,10 +256,7 @@ pub mod balance_service_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -303,10 +284,7 @@ pub mod balance_service_server {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -315,23 +293,12 @@ pub mod balance_service_server {
                 "/balance.BalanceService/GetRoomBalance" => {
                     #[allow(non_camel_case_types)]
                     struct GetRoomBalanceSvc<T: BalanceService>(pub Arc<T>);
-                    impl<
-                        T: BalanceService,
-                    > tonic::server::UnaryService<super::BalanceRequest>
-                    for GetRoomBalanceSvc<T> {
+                    impl<T: BalanceService> tonic::server::UnaryService<super::BalanceRequest> for GetRoomBalanceSvc<T> {
                         type Response = super::RoomBalance;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::BalanceRequest>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::BalanceRequest>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_room_balance(request).await
-                            };
+                            let fut = async move { (*inner).get_room_balance(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -343,10 +310,7 @@ pub mod balance_service_server {
                         let method = GetRoomBalanceSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -355,23 +319,12 @@ pub mod balance_service_server {
                 "/balance.BalanceService/GetConsumptionRank" => {
                     #[allow(non_camel_case_types)]
                     struct GetConsumptionRankSvc<T: BalanceService>(pub Arc<T>);
-                    impl<
-                        T: BalanceService,
-                    > tonic::server::UnaryService<super::BalanceRequest>
-                    for GetConsumptionRankSvc<T> {
+                    impl<T: BalanceService> tonic::server::UnaryService<super::BalanceRequest> for GetConsumptionRankSvc<T> {
                         type Response = super::ConsumptionRank;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::BalanceRequest>,
-                        ) -> Self::Future {
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::BalanceRequest>) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_consumption_rank(request).await
-                            };
+                            let fut = async move { (*inner).get_consumption_rank(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -383,10 +336,7 @@ pub mod balance_service_server {
                         let method = GetConsumptionRankSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -395,18 +345,10 @@ pub mod balance_service_server {
                 "/balance.BalanceService/GetBill" => {
                     #[allow(non_camel_case_types)]
                     struct GetBillSvc<T: BalanceService>(pub Arc<T>);
-                    impl<
-                        T: BalanceService,
-                    > tonic::server::UnaryService<super::BillRequest> for GetBillSvc<T> {
-                        type Response = super::Bill;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::BillRequest>,
-                        ) -> Self::Future {
+                    impl<T: BalanceService> tonic::server::UnaryService<super::BillRequest> for GetBillSvc<T> {
+                        type Response = super::BillResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(&mut self, request: tonic::Request<super::BillRequest>) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move { (*inner).get_bill(request).await };
                             Box::pin(fut)
@@ -420,27 +362,20 @@ pub mod balance_service_server {
                         let method = GetBillSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                            .apply_compression_config(accept_compression_encodings, send_compression_encodings);
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }

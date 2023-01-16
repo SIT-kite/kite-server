@@ -2,7 +2,9 @@ use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Timelike};
 use prost_types::Timestamp;
 
 pub mod badge;
+pub mod balance;
 
+// TODO: Add mod here.
 pub trait ToDateTime {
     fn timestamp(self) -> DateTime<Local>;
 }
