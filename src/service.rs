@@ -9,6 +9,7 @@ pub mod gen;
 mod badge;
 mod balance;
 mod board;
+mod classroom_browser;
 mod ping;
 mod template;
 
@@ -40,12 +41,15 @@ pub async fn grpc_server() {
     let badge = badge::gen::badge_service_server::BadgeServiceServer::new(server.clone());
     let balance = balance::gen::balance_service_server::BalanceServiceServer::new(server.clone());
     let board = board::gen::board_service_server::BoardServiceServer::new(server.clone());
+    let classroom_browser =
+        classroom_browser::gen::classroom_browser_service_server::ClassroomBrowserServiceServer::new(server.clone());
 
     Server::builder()
         .add_service(ping)
         .add_service(badge)
         .add_service(balance)
         .add_service(board)
+        .add_service(classroom_browser)
         .serve(addr)
         .await
         .unwrap()

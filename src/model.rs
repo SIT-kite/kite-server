@@ -4,6 +4,7 @@ pub use template::*;
 pub mod badge;
 pub mod balance;
 pub mod board;
+pub mod classroom_browser;
 pub mod template;
 
 pub mod convert {
