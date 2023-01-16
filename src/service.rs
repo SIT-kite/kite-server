@@ -1,6 +1,7 @@
-use crate::config::CONFIG;
+use crate::config;
 use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
 use tonic::transport::Server;
+
 pub mod gen;
 
 mod ping;
@@ -12,14 +13,14 @@ pub struct KiteGrpcServer {
 
 async fn get_db() -> PgPool {
     PgPoolOptions::new()
-        .max_connections(10)
+        .max_connections(config::get().db_conn)
         .after_connect(|conn, _| {
             Box::pin(async move {
                 conn.execute("SET TIME ZONE 'Asia/Shanghai';").await?;
                 Ok(())
             })
         })
-        .connect(CONFIG.get().unwrap().db.as_str())
+        .connect(config::get().db.as_str())
         .await
         .expect("Could not create database pool")
 }
