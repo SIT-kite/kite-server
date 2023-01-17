@@ -1,5 +1,7 @@
+use http::request;
 use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
-use tonic::transport::Server;
+use tonic::transport::{Body, Server};
+use tonic::Request;
 use tonic_reflection::server::{ServerReflection, ServerReflectionServer};
 
 use crate::config;
@@ -21,7 +23,8 @@ pub struct KiteGrpcServer {
 }
 
 async fn get_db() -> PgPool {
-    PgPoolOptions::new()
+    tracing::info!("Connecting to the main database...");
+    let pool = PgPoolOptions::new()
         .max_connections(config::get().db_conn)
         .after_connect(|conn, _| {
             Box::pin(async move {
@@ -31,7 +34,10 @@ async fn get_db() -> PgPool {
         })
         .connect(config::get().db.as_str())
         .await
-        .expect("Could not create database pool")
+        .expect("Could not create database pool");
+
+    tracing::info!("DB connected.");
+    pool
 }
 
 /// Used for gRPC reflection.
@@ -58,9 +64,14 @@ pub async fn grpc_server() {
     use tower_http::trace::{DefaultOnRequest, TraceLayer};
     use tracing::Level;
     let layer = tower::ServiceBuilder::new()
-        .layer(TraceLayer::new_for_grpc().on_request(DefaultOnRequest::new().level(Level::INFO)))
+        .layer(
+            TraceLayer::new_for_grpc().on_request(|req: &request::Request<Body>, _span: &tracing::Span| {
+                tracing::info!("Incoming request: {:?}", req)
+            }),
+        )
         .into_inner();
 
+    tracing::info!("Listening on {}...", addr);
     Server::builder()
         .layer(layer)
         .add_service(load_reflection())

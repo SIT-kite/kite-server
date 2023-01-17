@@ -43,6 +43,7 @@ pub fn load_config() -> ServerConfig {
 }
 
 pub fn initialize() {
+    tracing::debug!("Loading configuration...");
     CONFIG
         .set(load_config())
         .expect("Failed to load configuration file, which is kite.toml by default and can be set by KITE_CONFIG.");

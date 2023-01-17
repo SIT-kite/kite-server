@@ -32,6 +32,7 @@ impl SledCache {
 }
 
 pub fn initialize() {
+    tracing::debug!("Opening cache database...");
     let sled_path = config::get()
         .cache
         .clone()
