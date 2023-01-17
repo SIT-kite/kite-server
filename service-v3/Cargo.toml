@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 kite = { path = "../kite" }
+kite-rustls = { path = "../kite-rustls" }
 
 anyhow = "1"
 async-trait = "0.1"

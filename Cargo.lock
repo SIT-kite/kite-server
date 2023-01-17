@@ -834,6 +834,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "kite-rustls"
+version = "0.23.2"
+dependencies = [
+ "futures-util",
+ "http",
+ "hyper 0.14.23",
+ "log",
+ "rustls",
+ "rustls-native-certs",
+ "rustls-pemfile",
+ "tokio",
+ "tokio-rustls",
+ "webpki-roots",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1465,6 +1481,7 @@ dependencies = [
  "hyper-rustls",
  "jsonwebtoken",
  "kite",
+ "kite-rustls",
  "num-derive",
  "num-traits",
  "prost",

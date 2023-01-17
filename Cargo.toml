@@ -4,6 +4,7 @@
 members = [
     "kite",
     "loader",
+    "kite-rustls",
     "service-v3",
 ]
 
