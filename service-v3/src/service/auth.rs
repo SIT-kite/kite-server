@@ -45,11 +45,7 @@ impl JwtToken {
         let option = Validation::default();
         let token_data = decode::<Self>(token, &decoding_key, &option);
 
-        if let Ok(token_data) = token_data {
-            Some(token_data.claims)
-        } else {
-            None
-        }
+        token_data.ok().map(|t| t.claims)
     }
 }
 
@@ -58,11 +54,8 @@ pub fn get_token_from_request<T>(req: tonic::Request<T>) -> Result<JwtToken, ton
         let token = token
             .to_str()
             .map_err(|e| tonic::Status::unauthenticated(format!("Failed to parse token to str: {:?}", e)))?;
-        if let Some(token) = JwtToken::decode(token) {
-            Ok(token)
-        } else {
-            Err(tonic::Status::unauthenticated("Invalid token: May be expired?"))
-        }
+
+        JwtToken::decode(token).ok_or(tonic::Status::unauthenticated("Invalid token: May be expired?"))
     } else {
         Err(tonic::Status::unauthenticated(
             "No authorization can be found in your request.",
@@ -71,11 +64,7 @@ pub fn get_token_from_request<T>(req: tonic::Request<T>) -> Result<JwtToken, ton
 }
 
 pub fn require_login<T>(req: tonic::Request<T>) -> Result<(), tonic::Status> {
-    if let Err(e) = get_token_from_request(req) {
-        Err(tonic::Status::unauthenticated(e.to_string()))
-    } else {
-        Ok(())
-    }
+    get_token_from_request(req).map(|_| ())
 }
 
 pub fn require_user<T>(req: tonic::Request<T>, uid: i32) -> Result<(), tonic::Status> {
