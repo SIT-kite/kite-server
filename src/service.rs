@@ -55,7 +55,14 @@ pub async fn grpc_server() {
     let classroom_browser =
         classroom_browser::gen::classroom_browser_service_server::ClassroomBrowserServiceServer::new(server.clone());
 
+    use tower_http::trace::{DefaultOnRequest, TraceLayer};
+    use tracing::Level;
+    let layer = tower::ServiceBuilder::new()
+        .layer(TraceLayer::new_for_grpc().on_request(DefaultOnRequest::new().level(Level::INFO)))
+        .into_inner();
+
     Server::builder()
+        .layer(layer)
         .add_service(load_reflection())
         .add_service(ping)
         .add_service(badge)
