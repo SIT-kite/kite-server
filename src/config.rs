@@ -1,5 +1,4 @@
 use once_cell::sync::OnceCell;
-
 use serde::Deserialize;
 
 static CONFIG: OnceCell<ServerConfig> = OnceCell::new();
@@ -18,6 +17,9 @@ pub struct ServerConfig {
     pub db: String,
     /// Max db conn
     pub db_conn: u32,
+
+    /// Cache db
+    pub cache: Option<String>,
 
     /* External API */
     /// QWeather.com API key.
