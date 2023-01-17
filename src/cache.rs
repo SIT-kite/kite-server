@@ -50,7 +50,7 @@ macro_rules! this_function {
 /// BKDR String hash algorithm
 ///
 /// https://blog.csdn.net/djinglan/article/details/8812934
-fn bkdr_hash(s: &[u8]) -> u64 {
+pub fn bkdr_hash(s: &[u8]) -> u64 {
     let mut r = 0u64;
     for ch in s {
         let t = r.overflowing_mul(131).0;
@@ -59,7 +59,7 @@ fn bkdr_hash(s: &[u8]) -> u64 {
     r
 }
 
-fn u64_to_u8_array(mut n: u64) -> [u8; 8] {
+pub fn u64_to_u8_array(mut n: u64) -> [u8; 8] {
     let mut result = [0; 8];
     for byte in 0..8 {
         result[byte] = (n & 0xff) as u8;
@@ -71,24 +71,32 @@ fn u64_to_u8_array(mut n: u64) -> [u8; 8] {
 #[macro_export]
 macro_rules! cache_query {
     ($timeout: expr, $($arg: tt)*) => {{
-        let func: &str = this_function!();
-        let parameters: String = format!($($arg)*);
-        let key = format!("{}-{}", func, parameters).as_bytes();
-        let cache_key = u64_to_u8_array(bkdr_hash(key));
+        use crate::cache::CacheOperation;
 
-        crate::cache::get(cache_key, timeout)
+        let func: &str = crate::this_function!();
+        let parameters: String = format!($($arg)*);
+        let key = format!("{}-{}", func, parameters);
+        let hash_key = crate::cache::bkdr_hash(key.as_bytes());
+        let cache_key = crate::cache::u64_to_u8_array(hash_key);
+
+        let cache = crate::cache::get();
+        cache.get(&cache_key, $timeout)
     }};
 }
 
 #[macro_export]
 macro_rules! cache_save {
     ($value: expr, $($arg: tt)*) => {{
-        let func: &str = this_function!();
+        use crate::cache::CacheOperation;
+
+        let func: &str = crate::this_function!();
         let parameters: String = format!($($arg)*);
-        let key = format!("{}-{}", func, parameters).as_bytes();
+        let key = format!("{}-{}", func, parameters);
+        let hash_key = crate::cache::bkdr_hash(key.as_bytes());
+        let cache_key = crate::cache::u64_to_u8_array(hash_key);
 
         let cache = crate::cache::get();
-        cache.get(key, timeout)
+        cache.set(&cache_key, $value);
     }};
 }
 
@@ -156,6 +164,7 @@ where
         }
     }
 
+    // TODO: Consider to use reference type of T
     fn set(&self, key: &[u8], value: T) -> anyhow::Result<()> {
         let now = Local::now();
         let config = bincode::config::legacy();
