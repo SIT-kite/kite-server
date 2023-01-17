@@ -1,4 +1,5 @@
 use anyhow::Context;
+use chrono::{Duration, Local};
 use once_cell::sync::OnceCell;
 
 use crate::config;
@@ -8,18 +9,88 @@ const SLED_CACHE_PATH: &'static str = "./cache/";
 
 static CACHE: OnceCell<SledCache> = OnceCell::new();
 
-pub trait CacheOperation<T> {
-    fn should_update(&self, key: &str) -> bool;
+trait CacheItemOperation<T> {
+    fn is_expired(&self) -> bool;
+}
 
-    fn get(&self, key: &str) -> anyhow::Result<Option<T>>;
+pub trait CacheOperation<T>
+where
+    T: bincode::Encode + bincode::Decode,
+{
+    fn get(&self, key: &[u8], timeout: Duration) -> anyhow::Result<Option<T>>;
 
-    fn set(&self, key: &str, value: T);
+    fn set(&self, key: &[u8], value: T) -> anyhow::Result<()>;
 
-    fn flush(&self);
+    fn flush(&self) -> anyhow::Result<()>;
 }
 
 #[derive(Debug)]
 pub struct SledCache(sled::Db);
+
+#[derive(Debug, bincode::Decode, bincode::Encode)]
+struct CacheItem<T: bincode::Encode + bincode::Decode> {
+    /// Unix timestamp
+    pub last_update: i64,
+    /// Value
+    pub value: T,
+}
+
+#[macro_export]
+macro_rules! this_function {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        &name[..name.len() - 3]
+    }};
+}
+
+/// BKDR String hash algorithm
+///
+/// https://blog.csdn.net/djinglan/article/details/8812934
+fn bkdr_hash(s: &[u8]) -> u64 {
+    let mut r = 0u64;
+    for ch in s {
+        let t = r.overflowing_mul(131).0;
+        r = t.overflowing_add(*ch as u64).0;
+    }
+    r
+}
+
+fn u64_to_u8_array(mut n: u64) -> [u8; 8] {
+    let mut result = [0; 8];
+    for byte in 0..8 {
+        result[byte] = (n & 0xff) as u8;
+        n >>= 8;
+    }
+    result
+}
+
+#[macro_export]
+macro_rules! cache_query {
+    ($timeout: expr, $($arg: tt)*) => {{
+        let func: &str = this_function!();
+        let parameters: String = format!($($arg)*);
+        let key = format!("{}-{}", func, parameters).as_bytes();
+        let cache_key = u64_to_u8_array(bkdr_hash(key));
+
+        crate::cache::get(cache_key, timeout)
+    }};
+}
+
+#[macro_export]
+macro_rules! cache_save {
+    ($value: expr, $($arg: tt)*) => {{
+        let func: &str = this_function!();
+        let parameters: String = format!($($arg)*);
+        let key = format!("{}-{}", func, parameters).as_bytes();
+
+        let cache = crate::cache::get();
+        cache.get(key, timeout)
+    }};
+}
 
 impl SledCache {
     pub fn open(sled_path: &str) -> anyhow::Result<Self> {
@@ -28,6 +99,80 @@ impl SledCache {
             .path(sled_path)
             .open()?;
         Ok(Self(db))
+    }
+
+    /// Peek timestamp field without deserializing the hold CacheItem.
+    ///
+    /// Ref: https://github.com/bincode-org/bincode/blob/trunk/docs/spec.md
+    fn peek_timestamp(value: &sled::IVec) -> i64 {
+        // Assume that the machine use little endian
+        assert!(value.len() >= 8);
+
+        let mut result = 0i64;
+        let ts_binary: &[u8] = &value.subslice(0, 8);
+
+        // Following lines are equal to:
+        // result |= ts_binary[0];
+        // result |= ts_binary[1] << 8;
+        // result |= ts_binary[2] << 16;
+        // ...
+        for byte in 0..8 {
+            result |= (ts_binary[byte] as i64) << ((byte << 3) as i64);
+        }
+        result
+    }
+}
+
+impl<T> CacheOperation<T> for SledCache
+where
+    T: bincode::Encode + bincode::Decode,
+{
+    fn get(&self, key: &[u8], timeout: Duration) -> anyhow::Result<Option<T>> {
+        let result = self.0.get(key);
+        match result {
+            Ok(Some(value)) => {
+                let last_update = Self::peek_timestamp(&value);
+                let now = Local::now().timestamp();
+
+                // Cache hit
+                if now - last_update < timeout.num_seconds() {
+                    let config = bincode::config::legacy();
+                    // Note: if cache key is conflict, the decode process will return an error.
+                    // Caller should not mark the query failed.
+                    bincode::decode_from_slice(&value, config)
+                        .map(|(item, _): (CacheItem<T>, usize)| Some(item.value))
+                        .map_err(Into::into)
+                } else {
+                    // Cache expired
+                    // Remove the old and return none
+                    self.0
+                        .remove(key)
+                        .map(|_| None)
+                        .with_context(|| format!("Hit the expired item, failed to delete."))
+                }
+            }
+            Ok(None) => Ok(None),         // Cache miss
+            Err(e) => Err(Into::into(e)), // Operation failed.
+        }
+    }
+
+    fn set(&self, key: &[u8], value: T) -> anyhow::Result<()> {
+        let now = Local::now();
+        let config = bincode::config::legacy();
+        let item: CacheItem<T> = CacheItem {
+            last_update: now.timestamp(),
+            value,
+        };
+
+        let value = bincode::encode_to_vec(item, config).map_err(anyhow::Error::from)?;
+        self.0
+            .insert(key, value)
+            .map(|_| ())
+            .with_context(|| format!("Failed to write cache"))
+    }
+
+    fn flush(&self) -> anyhow::Result<()> {
+        self.0.flush().map(|_| ()).map_err(Into::into)
     }
 }
 
