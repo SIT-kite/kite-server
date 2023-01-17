@@ -1491,6 +1491,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "tokio-rustls",
+ "tokio-stream",
  "tonic",
  "tonic-build",
  "tonic-reflection",

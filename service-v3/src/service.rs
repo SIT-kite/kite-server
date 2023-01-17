@@ -30,9 +30,9 @@ mod badge;
 mod balance;
 mod board;
 mod classroom_browser;
-mod login;
 mod ping;
 mod template;
+mod user;
 
 #[derive(Clone)]
 pub struct KiteGrpcServer {

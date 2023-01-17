@@ -103,5 +103,6 @@ impl KiteTls {
                 ret?;
             }
         }
+        Ok(())
     }
 }
