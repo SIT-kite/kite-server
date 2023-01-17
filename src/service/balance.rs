@@ -6,7 +6,6 @@ use tonic::{Request, Response, Status};
 
 use crate::error::ToStatus;
 use crate::model::{balance as model, ToTimestamp};
-use crate::service::balance::gen::{BalanceRequest, BillRequest, ConsumptionRank, RoomBalance};
 pub use crate::service::gen::balance as gen;
 
 impl Into<gen::RoomBalance> for model::ElectricityBalance {
@@ -110,18 +109,28 @@ async fn get_bill_in_hour(
 }
 
 async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<model::RecentConsumptionRank, tonic::Status> {
-    // TODO: Cache them
-    sqlx::query_as("SELECT room, consumption, rank, room_count FROM dormitory.get_room_24hour_rank($1);")
-        .bind(room)
-        .fetch_optional(pool)
-        .await
-        .map_err(ToStatus::to_status)?
-        .ok_or_else(|| tonic::Status::not_found("No such room"))
+    // TODO: Use proc_macro to reduce boilerplate code
+    if let Ok(Some(cache)) = crate::cache_query!(Duration::hours(1), "{}", room) {
+        return Ok(cache);
+    }
+    let result: model::RecentConsumptionRank =
+        sqlx::query_as("SELECT room, consumption, rank, room_count FROM dormitory.get_room_24hour_rank($1);")
+            .bind(room)
+            .fetch_optional(pool)
+            .await
+            .map_err(ToStatus::to_status)?
+            .ok_or_else(|| tonic::Status::not_found("No such room"))?;
+
+    crate::cache_save!(result.clone(), "{}", room);
+    Ok(result)
 }
 
 #[tonic::async_trait]
 impl gen::balance_service_server::BalanceService for super::KiteGrpcServer {
-    async fn get_room_balance(&self, request: Request<BalanceRequest>) -> Result<Response<RoomBalance>, Status> {
+    async fn get_room_balance(
+        &self,
+        request: Request<gen::BalanceRequest>,
+    ) -> Result<Response<gen::RoomBalance>, Status> {
         let room = request.into_inner().room_number;
         let response = get_latest_balance(&self.db, room).await.map(Into::into)?;
 
@@ -130,15 +139,15 @@ impl gen::balance_service_server::BalanceService for super::KiteGrpcServer {
 
     async fn get_consumption_rank(
         &self,
-        request: Request<BalanceRequest>,
-    ) -> Result<Response<ConsumptionRank>, Status> {
+        request: Request<gen::BalanceRequest>,
+    ) -> Result<Response<gen::ConsumptionRank>, Status> {
         let room = request.into_inner().room_number;
         let response = get_consumption_rank(&self.db, room).await.map(Into::into)?;
 
         Ok(Response::new(response))
     }
 
-    async fn get_bill(&self, request: Request<BillRequest>) -> Result<Response<gen::BillResponse>, Status> {
+    async fn get_bill(&self, request: Request<gen::BillRequest>) -> Result<Response<gen::BillResponse>, Status> {
         let request = request.into_inner();
 
         // TODO:

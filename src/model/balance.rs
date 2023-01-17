@@ -1,6 +1,8 @@
+use bincode::{Decode, Encode};
 use chrono::{DateTime, Local};
+use sqlx::FromRow;
 
-#[derive(serde::Serialize, sqlx::FromRow)]
+#[derive(Encode, Decode, FromRow)]
 /// Electricity Balance for FengXian dormitory.
 pub struct ElectricityBalance {
     /// Room id in the format described in the doc.
@@ -8,11 +10,12 @@ pub struct ElectricityBalance {
     /// Total available amount
     pub balance: f32,
     /// Last update time
+    #[bincode(with_serde)]
     pub ts: DateTime<Local>,
 }
 
 /// Electricity usage statistics by day
-#[derive(serde::Serialize, sqlx::FromRow)]
+#[derive(FromRow)]
 pub struct DailyElectricityBill {
     /// Date string in 'yyyy-mm-dd'
     pub date: String,
@@ -23,7 +26,7 @@ pub struct DailyElectricityBill {
 }
 
 /// Electricity usage statistics by hour
-#[derive(serde::Serialize, sqlx::FromRow)]
+#[derive(FromRow)]
 pub struct HourlyElectricityBill {
     /// Hour string in 'yyyy-mm-dd HH24:00'
     pub time: String,
@@ -34,8 +37,7 @@ pub struct HourlyElectricityBill {
 }
 
 /// Rank of recent-24hour consumption
-#[derive(serde::Serialize, sqlx::FromRow)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Encode, Decode, FromRow)]
 pub struct RecentConsumptionRank {
     /// Consumption in last 24 hours.
     pub consumption: f32,
