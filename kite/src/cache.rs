@@ -71,15 +71,15 @@ pub fn u64_to_u8_array(mut n: u64) -> [u8; 8] {
 #[macro_export]
 macro_rules! cache_query {
     ($timeout: expr, $($arg: tt)*) => {{
-        use crate::cache::CacheOperation;
+        use $crate::cache::CacheOperation;
 
-        let func: &str = crate::this_function!();
+        let func: &str = $crate::this_function!();
         let parameters: String = format!($($arg)*);
         let key = format!("{}-{}", func, parameters);
-        let hash_key = crate::cache::bkdr_hash(key.as_bytes());
-        let cache_key = crate::cache::u64_to_u8_array(hash_key);
+        let hash_key = $crate::cache::bkdr_hash(key.as_bytes());
+        let cache_key = $crate::cache::u64_to_u8_array(hash_key);
 
-        let cache = crate::cache::get();
+        let cache = $crate::cache::get();
         cache.get(&cache_key, $timeout)
     }};
 }
@@ -87,15 +87,15 @@ macro_rules! cache_query {
 #[macro_export]
 macro_rules! cache_save {
     ($value: expr, $($arg: tt)*) => {{
-        use crate::cache::CacheOperation;
+        use $crate::cache::CacheOperation;
 
-        let func: &str = crate::this_function!();
+        let func: &str = $crate::this_function!();
         let parameters: String = format!($($arg)*);
         let key = format!("{}-{}", func, parameters);
-        let hash_key = crate::cache::bkdr_hash(key.as_bytes());
-        let cache_key = crate::cache::u64_to_u8_array(hash_key);
+        let hash_key = $crate::cache::bkdr_hash(key.as_bytes());
+        let cache_key = $crate::cache::u64_to_u8_array(hash_key);
 
-        let cache = crate::cache::get();
+        let cache = $crate::cache::get();
         cache.set(&cache_key, $value);
     }};
 }

@@ -1,8 +1,6 @@
-mod cache;
-mod config;
-mod error;
-mod model;
-mod service;
+use kite::cache;
+use kite::config;
+use kite::service::KiteModule;
 
 #[tokio::main]
 async fn main() {
@@ -12,8 +10,7 @@ async fn main() {
     config::initialize();
     cache::initialize();
 
-    tokio::join!(
-        // Run grpc server
-        service::grpc_server(),
-    );
+    tokio::join! {
+        service_v3::ServerV3::run()
+    };
 }

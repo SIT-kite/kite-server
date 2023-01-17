@@ -1,7 +1,6 @@
 use http::request;
 use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
 use tonic::transport::{Body, Server};
-use tonic::Request;
 use tonic_reflection::server::{ServerReflection, ServerReflectionServer};
 
 use crate::config;
@@ -42,7 +41,7 @@ async fn get_db() -> PgPool {
 
 /// Used for gRPC reflection.
 fn load_reflection() -> ServerReflectionServer<impl ServerReflection> {
-    let file_descriptor = include_bytes!("../target/compiled-descriptor.bin");
+    let file_descriptor = include_bytes!("../../target/compiled-descriptor.bin");
 
     tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(file_descriptor)
@@ -61,8 +60,7 @@ pub async fn grpc_server() {
     let classroom_browser =
         classroom_browser::gen::classroom_browser_service_server::ClassroomBrowserServiceServer::new(server.clone());
 
-    use tower_http::trace::{DefaultOnRequest, TraceLayer};
-    use tracing::Level;
+    use tower_http::trace::TraceLayer;
     let layer = tower::ServiceBuilder::new()
         .layer(
             TraceLayer::new_for_grpc().on_request(|req: &request::Request<Body>, _span: &tracing::Span| {
