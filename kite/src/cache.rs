@@ -68,8 +68,8 @@ macro_rules! this_function {
 /// BKDR String hash algorithm
 ///
 /// https://blog.csdn.net/djinglan/article/details/8812934
-pub fn bkdr_hash(s: &[u8]) -> u64 {
-    let mut r = 0u64;
+pub fn bkdr_hash(initial_value: u64, s: &[u8]) -> u64 {
+    let mut r = initial_value;
     for ch in s {
         let t = r.overflowing_mul(131).0;
         r = t.overflowing_add(*ch as u64).0;
@@ -92,9 +92,11 @@ macro_rules! cache_query {
         use $crate::cache::CacheOperation;
 
         let func: &str = $crate::this_function!();
-        let parameters: String = format!($($arg)*);
-        let key = format!("{}-{}", func, parameters);
-        let hash_key = $crate::cache::bkdr_hash(key.as_bytes());
+        let mut hash_key: u64 = $crate::cache::bkdr_hash(0, func.as_bytes());
+        $(
+            let parameter: String = format!("{}", $arg);
+            hash_key = $crate::cache::bkdr_hash(hash_key, parameter.as_bytes());
+        )*
         let cache_key = $crate::cache::u64_to_u8_array(hash_key);
 
         let cache = $crate::cache::get();
@@ -108,9 +110,11 @@ macro_rules! cache_save {
         use $crate::cache::CacheOperation;
 
         let func: &str = $crate::this_function!();
-        let parameters: String = format!($($arg)*);
-        let key = format!("{}-{}", func, parameters);
-        let hash_key = $crate::cache::bkdr_hash(key.as_bytes());
+        let mut hash_key: u64 = $crate::cache::bkdr_hash(0, func.as_bytes());
+        $(
+            let parameter: String = format!("{}", $arg);
+            hash_key = $crate::cache::bkdr_hash(hash_key, parameter.as_bytes());
+        )*
         let cache_key = $crate::cache::u64_to_u8_array(hash_key);
 
         let cache = $crate::cache::get();
