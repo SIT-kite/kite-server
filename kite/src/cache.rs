@@ -88,7 +88,7 @@ pub fn u64_to_u8_array(mut n: u64) -> [u8; 8] {
 
 #[macro_export]
 macro_rules! cache_query {
-    ($timeout: expr, $($arg: tt)*) => {{
+    (key = $($arg: expr),*; timeout = $timeout: expr) => {{
         use $crate::cache::CacheOperation;
 
         let func: &str = $crate::this_function!();
@@ -106,7 +106,7 @@ macro_rules! cache_query {
 
 #[macro_export]
 macro_rules! cache_save {
-    ($value: expr, $($arg: tt)*) => {{
+    (key = $($arg: expr),*; value = $value: expr) => {{
         use $crate::cache::CacheOperation;
 
         let func: &str = $crate::this_function!();

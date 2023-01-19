@@ -128,7 +128,7 @@ async fn get_bill_in_hour(
 
 async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<model::RecentConsumptionRank, tonic::Status> {
     // TODO: Use proc_macro to reduce boilerplate code
-    if let Ok(Some(cache)) = kite::cache_query!(Duration::hours(1), room) {
+    if let Ok(Some(cache)) = kite::cache_query!(key = room, 1; timeout = Duration::hours(1)) {
         return Ok(cache);
     }
     let result: model::RecentConsumptionRank =
@@ -139,7 +139,7 @@ async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<model::RecentC
             .map_err(ToStatus::to_status)?
             .ok_or_else(|| tonic::Status::not_found("No such room"))?;
 
-    kite::cache_save!(result.clone(), room);
+    kite::cache_save!(key = room , 1; value = result.clone());
     Ok(result)
 }
 
