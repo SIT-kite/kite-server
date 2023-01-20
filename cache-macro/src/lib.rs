@@ -100,12 +100,16 @@ pub fn cache(args: TokenStream, item: TokenStream) -> TokenStream {
         #(#attrs)* #vis #sig {
             use chrono::Duration;
 
+            // Query cache
             if let Ok(Some(cache)) = kite::cache::cache_query!(key = #punctuated_args; timeout = Duration::seconds(#timeout)) {
                 return Ok(cache);
             };
 
+            // If cache miss, do query operation
             let db_result: #ret_type = {#block};
             let data = db_result?;
+
+            // Save result to cache
             kite::cache::cache_save!(key = #punctuated_args; value = data.clone());
             Ok(data)
         }

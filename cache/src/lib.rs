@@ -116,7 +116,9 @@ macro_rules! cache_save {
         let cache_key = $crate::u64_to_u8_array(hash_key);
 
         let cache = $crate::get();
-        cache.set(&cache_key, $value);
+        if let Err(e) = cache.set(&cache_key, $value) {
+            tracing::warn!("Failed to write data back to cache.");
+        }
     }};
 }
 
