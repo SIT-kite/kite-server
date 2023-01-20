@@ -2,6 +2,8 @@
 
 [workspace]
 members = [
+    "cache",
+    "cache-macro",
     "kite",
     "loader",
     "kite-rustls",

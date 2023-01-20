@@ -36,9 +36,6 @@ pub struct ServerConfig {
     /// Max db conn
     pub db_conn: u32,
 
-    /// Cache db
-    pub cache: Option<String>,
-
     /* External API */
     /// QWeather.com API key.
     pub qweather_key: String,

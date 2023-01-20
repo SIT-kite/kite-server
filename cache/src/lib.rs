@@ -20,10 +20,8 @@ use anyhow::Context;
 use chrono::{Duration, Local};
 use once_cell::sync::OnceCell;
 
-use crate::config;
-
 // TODO: Consider OS compatability
-const SLED_CACHE_PATH: &'static str = "./cache/";
+const SLED_CACHE_PATH: &'static str = "./.runtime-cache/";
 
 static CACHE: OnceCell<SledCache> = OnceCell::new();
 
@@ -89,17 +87,17 @@ pub fn u64_to_u8_array(mut n: u64) -> [u8; 8] {
 #[macro_export]
 macro_rules! cache_query {
     (key = $($arg: expr),*; timeout = $timeout: expr) => {{
-        use $crate::cache::CacheOperation;
+        use $crate::CacheOperation;
 
         let func: &str = $crate::this_function!();
-        let mut hash_key: u64 = $crate::cache::bkdr_hash(0, func.as_bytes());
+        let mut hash_key: u64 = $crate::bkdr_hash(0, func.as_bytes());
         $(
             let parameter: String = format!("{}", $arg);
-            hash_key = $crate::cache::bkdr_hash(hash_key, parameter.as_bytes());
+            hash_key = $crate::bkdr_hash(hash_key, parameter.as_bytes());
         )*
-        let cache_key = $crate::cache::u64_to_u8_array(hash_key);
+        let cache_key = $crate::u64_to_u8_array(hash_key);
 
-        let cache = $crate::cache::get();
+        let cache = $crate::get();
         cache.get(&cache_key, $timeout)
     }};
 }
@@ -107,17 +105,17 @@ macro_rules! cache_query {
 #[macro_export]
 macro_rules! cache_save {
     (key = $($arg: expr),*; value = $value: expr) => {{
-        use $crate::cache::CacheOperation;
+        use $crate::CacheOperation;
 
         let func: &str = $crate::this_function!();
-        let mut hash_key: u64 = $crate::cache::bkdr_hash(0, func.as_bytes());
+        let mut hash_key: u64 = $crate::bkdr_hash(0, func.as_bytes());
         $(
             let parameter: String = format!("{}", $arg);
-            hash_key = $crate::cache::bkdr_hash(hash_key, parameter.as_bytes());
+            hash_key = $crate::bkdr_hash(hash_key, parameter.as_bytes());
         )*
-        let cache_key = $crate::cache::u64_to_u8_array(hash_key);
+        let cache_key = $crate::u64_to_u8_array(hash_key);
 
-        let cache = $crate::cache::get();
+        let cache = $crate::get();
         cache.set(&cache_key, $value);
     }};
 }
@@ -209,12 +207,9 @@ where
 
 pub fn initialize() {
     tracing::debug!("Opening cache database...");
-    let sled_path = config::get()
-        .cache
-        .clone()
-        .unwrap_or_else(|| SLED_CACHE_PATH.to_string());
-    let cache_handler = SledCache::open(&sled_path)
-        .with_context(|| format!("Cloud not open cache database: {}", sled_path))
+
+    let cache_handler = SledCache::open(SLED_CACHE_PATH)
+        .with_context(|| format!("Cloud not open cache database: {}", SLED_CACHE_PATH))
         .expect("Failed to initialize cache module.");
 
     CACHE.set(cache_handler).unwrap();

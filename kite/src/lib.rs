@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-pub mod cache;
+pub use cache;
+pub use cache::{cache_query, cache_save};
+
 pub mod config;
 pub mod service;
