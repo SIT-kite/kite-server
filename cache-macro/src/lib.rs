@@ -19,18 +19,19 @@
 use proc_macro::TokenStream;
 
 use darling::FromMeta;
+use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
+use syn::parse_macro_input;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{parse_macro_input, parse_quote, Expr, ExprPath, FnArg, Path, PathSegment};
 
-const DEFAULT_CACHE_TIMEOUT: u32 = 3600;
+const DEFAULT_CACHE_TIMEOUT: i64 = 3600;
 
 #[derive(Debug, darling::FromMeta)]
 struct CacheParameter {
     #[darling(default)]
     /// Cache timeout option (in second)
-    timeout: Option<u32>,
+    timeout: Option<i64>,
 }
 
 fn parse_attribute(args: syn::AttributeArgs) -> CacheParameter {
@@ -50,22 +51,29 @@ fn parse_fn(item: syn::Item) -> syn::ItemFn {
     }
 }
 
-///
+/// Adapted from:
 /// https://stackoverflow.com/questions/71480280/how-do-i-pass-arguments-from-a-generated-function-to-another-function-in-a-proce
-fn transform_args(args: &Punctuated<syn::FnArg, Comma>) -> Punctuated<syn::Expr, Comma> {
-    let idents = args.iter().filter_map(|arg| {
-        if let syn::FnArg::Typed(pat_type) = arg {
-            if let syn::Pat::Ident(pat_ident) = *pat_type.pat.clone() {
-                return Some(pat_ident.ident);
+fn transform_args(args: &Punctuated<syn::FnArg, Comma>) -> TokenStream2 {
+    let idents_iter = args
+        .iter()
+        .filter_map(|arg| {
+            if let syn::FnArg::Typed(pat_type) = arg {
+                if let syn::Pat::Ident(pat_ident) = *pat_type.pat.clone() {
+                    return Some(pat_ident.ident);
+                }
             }
-        }
-        None
-    });
+            None
+        })
+        .filter(|ident| {
+            // Ignore db parameter
+            let ident = ident.to_string();
+            ident != "db" && ident != "pool"
+        });
 
     let mut punctuated: Punctuated<syn::Ident, Comma> = Punctuated::new();
-    idents.for_each(|ident| punctuated.push(ident));
+    idents_iter.for_each(|ident| punctuated.push(ident));
 
-    parse_quote!((#punctuated))
+    TokenStream2::from(quote!(#punctuated))
 }
 
 #[proc_macro_attribute]
@@ -73,33 +81,34 @@ pub fn cache(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as syn::AttributeArgs);
     let item = parse_macro_input!(item as syn::Item);
 
-    // println!("item = {:#?}", item);
-
     // Parse cache parameter
     let param = parse_attribute(args);
     let timeout = param.timeout.unwrap_or(DEFAULT_CACHE_TIMEOUT);
 
     // Parse function signature
     let syn::ItemFn { attrs, vis, sig, block } = parse_fn(item);
-
     // Parse function parameter
-    let func_all_args = transform_args(&sig.inputs);
+    let punctuated_args = transform_args(&sig.inputs);
+    // Function return type
+    let ret_type = if let syn::ReturnType::Type(_arrow, ty) = sig.output.clone() {
+        *ty
+    } else {
+        panic!("Unexpected return type");
+    };
 
-    // New name
-
-    let result = proc_macro::TokenStream::from(quote! {
+    let result = TokenStream2::from(quote! {
         #(#attrs)* #vis #sig {
+            use chrono::Duration;
 
-            println!("before");
+            if let Ok(Some(cache)) = kite::cache::cache_query!(key = #punctuated_args; timeout = Duration::seconds(#timeout)) {
+                return Ok(cache);
+            };
 
-            let result = #block;
-
-            println!("after");
-
-            result
+            let db_result: #ret_type = {#block};
+            let data = db_result?;
+            kite::cache::cache_save!(key = #punctuated_args; value = data.clone());
+            Ok(data)
         }
     });
-
-    println!("{:?}", result.to_string());
-    result
+    result.into()
 }

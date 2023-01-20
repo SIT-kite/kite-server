@@ -17,7 +17,7 @@
  */
 
 pub use cache;
-pub use cache::{cache_query, cache_save};
+pub use cache_macro::cache as cache_result;
 
 pub mod config;
 pub mod service;
