@@ -85,10 +85,8 @@ pub fn u64_to_u8_array(mut n: u64) -> [u8; 8] {
 }
 
 #[macro_export]
-macro_rules! cache_query {
-    (key = $($arg: expr),*; timeout = $timeout: expr) => {{
-        use $crate::CacheOperation;
-
+macro_rules! cache_calc_key {
+    ($($arg: expr),*) => {{
         let func: &str = $crate::this_function!();
         let mut hash_key: u64 = $crate::bkdr_hash(0, func.as_bytes());
         // TODO: Improve performance
@@ -96,9 +94,19 @@ macro_rules! cache_query {
             let parameter: String = format!("{:?}", $arg);
             hash_key = $crate::bkdr_hash(hash_key, parameter.as_bytes());
         )*
-        let cache_key = $crate::u64_to_u8_array(hash_key);
+        // Return cache key
+        $crate::u64_to_u8_array(hash_key)
+    }};
+}
+
+#[macro_export]
+macro_rules! cache_query {
+    (key = $($arg: expr),*; timeout = $timeout: expr) => {{
+        use $crate::CacheOperation;
 
         let cache = $crate::get();
+        let cache_key = $crate::cache_calc_key!($($arg),*);
+
         cache.get(&cache_key, $timeout)
     }};
 }
@@ -108,19 +116,25 @@ macro_rules! cache_save {
     (key = $($arg: expr),*; value = $value: expr) => {{
         use $crate::CacheOperation;
 
-        let func: &str = $crate::this_function!();
-        let mut hash_key: u64 = $crate::bkdr_hash(0, func.as_bytes());
-        $(
-            let parameter: String = format!("{:?}", $arg);
-            hash_key = $crate::bkdr_hash(hash_key, parameter.as_bytes());
-        )*
-        let cache_key = $crate::u64_to_u8_array(hash_key);
-
         let cache = $crate::get();
+        let cache_key = $crate::cache_calc_key!($($arg),*);
         if let Err(e) = cache.set(&cache_key, $value) {
-            tracing::warn!("Failed to write data back to cache.");
+            tracing::warn!("failed to write data back to cache.");
         }
     }};
+}
+
+#[macro_export]
+macro_rules! cache_erase {
+    (key = $($arg: expr),*) => {
+        use $crate::CacheOperation;
+
+        let cache = $crate::get();
+        let cache_key = $crate::cache_calc_key!($($arg),*);
+        if let Err(e) = cache.erase(&cache_key) {
+            tracing::warn!("failed to erase item in cache (key: {:?}): {}", cache_key, e);
+        }
+    };
 }
 
 impl SledCache {
@@ -151,6 +165,11 @@ impl SledCache {
             result |= (ts_binary[byte] as i64) << ((byte << 3) as i64);
         }
         result
+    }
+
+    pub fn erase(&self, key: &[u8]) -> anyhow::Result<()> {
+        self.0.remove(key)?;
+        Ok(())
     }
 }
 
