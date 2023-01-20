@@ -70,7 +70,8 @@ impl Into<gen::ConsumptionRank> for model::RecentConsumptionRank {
     }
 }
 
-async fn get_latest_balance(pool: &PgPool, room: i32) -> Result<model::ElectricityBalance, tonic::Status> {
+#[kite::cache_result(timeout = 900)]
+async fn get_latest_balance(pool: &PgPool, room: i32) -> Result<model::ElectricityBalance, Status> {
     sqlx::query_as(
         "SELECT room, total_balance AS balance, ts
              FROM dormitory.balance
@@ -82,34 +83,36 @@ async fn get_latest_balance(pool: &PgPool, room: i32) -> Result<model::Electrici
     .fetch_optional(pool)
     .await
     .map_err(ToStatus::to_status)?
-    .ok_or_else(|| tonic::Status::not_found("No such room"))
+    .ok_or_else(|| Status::not_found("No such room"))
 }
 
+#[kite::cache_result(timeout = 43200)]
 async fn get_bill_in_day(
     pool: &PgPool,
     room: i32,
     from: String,
     to: String,
-) -> Result<Vec<model::DailyElectricityBill>, tonic::Status> {
+) -> Result<Vec<model::DailyElectricityBill>, Status> {
     sqlx::query_as(
         "SELECT d.day AS date, COALESCE(records.charged_amount, 0.00) AS charge, ABS(COALESCE(records.used_amount, 0.00)) AS consumption
                 FROM (SELECT to_char(day_range, 'yyyy-MM-dd') AS day FROM generate_series($1::date,  $2::date, '1 day') AS day_range) d
                 LEFT JOIN (SELECT * FROM dormitory.get_consumption_report_by_day($1::date, CAST($2::date + '1 day'::interval AS date), $3)) AS records
                 ON d.day = records.day;")
-        .bind(from)
-        .bind(to)
+        .bind(&from)
+        .bind(&to)
         .bind(room)
         .fetch_all(pool)
         .await
         .map_err(ToStatus::to_status)
 }
 
+#[kite::cache_result(timeout = 3600)]
 async fn get_bill_in_hour(
     pool: &PgPool,
     room: i32,
     from: DateTime<Local>,
     to: DateTime<Local>,
-) -> Result<Vec<model::HourlyElectricityBill>, tonic::Status> {
+) -> Result<Vec<model::HourlyElectricityBill>, Status> {
     sqlx::query_as(
         "SELECT h.hour AS time, COALESCE(records.charged_amount, 0.00) AS charge, ABS(COALESCE(records.used_amount, 0.00)) AS consumption
                 FROM (
@@ -126,21 +129,14 @@ async fn get_bill_in_hour(
         .map_err(ToStatus::to_status)
 }
 
-async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<model::RecentConsumptionRank, tonic::Status> {
-    // TODO: Use proc_macro to reduce boilerplate code
-    if let Ok(Some(cache)) = kite::cache_query!(key = room, 1; timeout = Duration::hours(1)) {
-        return Ok(cache);
-    }
-    let result: model::RecentConsumptionRank =
-        sqlx::query_as("SELECT room, consumption, rank, room_count FROM dormitory.get_room_24hour_rank($1);")
-            .bind(room)
-            .fetch_optional(pool)
-            .await
-            .map_err(ToStatus::to_status)?
-            .ok_or_else(|| tonic::Status::not_found("No such room"))?;
-
-    kite::cache_save!(key = room , 1; value = result.clone());
-    Ok(result)
+#[kite::cache_result(timeout = 3600)]
+async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<model::RecentConsumptionRank, Status> {
+    sqlx::query_as("SELECT room, consumption, rank, room_count FROM dormitory.get_room_24hour_rank($1);")
+        .bind(room)
+        .fetch_optional(pool)
+        .await
+        .map_err(ToStatus::to_status)?
+        .ok_or_else(|| Status::not_found("No such room"))
 }
 
 #[tonic::async_trait]
@@ -199,7 +195,7 @@ impl gen::balance_service_server::BalanceService for super::KiteGrpcServer {
                     .collect()
             }
             _ => {
-                return Err(tonic::Status::invalid_argument("Bill type is unexpected"));
+                return Err(Status::invalid_argument("Bill type is unexpected"));
             }
         };
         Ok(Response::new(gen::BillResponse { bill_list }))

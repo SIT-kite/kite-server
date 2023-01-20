@@ -20,7 +20,7 @@ use bincode::{Decode, Encode};
 use chrono::{DateTime, Local};
 use sqlx::FromRow;
 
-#[derive(Encode, Decode, FromRow)]
+#[derive(Clone, Encode, Decode, FromRow)]
 /// Electricity Balance for FengXian dormitory.
 pub struct ElectricityBalance {
     /// Room id in the format described in the doc.
@@ -33,7 +33,7 @@ pub struct ElectricityBalance {
 }
 
 /// Electricity usage statistics by day
-#[derive(FromRow)]
+#[derive(Clone, Encode, Decode, FromRow)]
 pub struct DailyElectricityBill {
     /// Date string in 'yyyy-mm-dd'
     pub date: String,
@@ -44,7 +44,7 @@ pub struct DailyElectricityBill {
 }
 
 /// Electricity usage statistics by hour
-#[derive(FromRow)]
+#[derive(Clone, Encode, Decode, FromRow)]
 pub struct HourlyElectricityBill {
     /// Hour string in 'yyyy-mm-dd HH24:00'
     pub time: String,
