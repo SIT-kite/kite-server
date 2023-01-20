@@ -91,8 +91,9 @@ macro_rules! cache_query {
 
         let func: &str = $crate::this_function!();
         let mut hash_key: u64 = $crate::bkdr_hash(0, func.as_bytes());
+        // TODO: Improve performance
         $(
-            let parameter: String = format!("{}", $arg);
+            let parameter: String = format!("{:?}", $arg);
             hash_key = $crate::bkdr_hash(hash_key, parameter.as_bytes());
         )*
         let cache_key = $crate::u64_to_u8_array(hash_key);
@@ -110,7 +111,7 @@ macro_rules! cache_save {
         let func: &str = $crate::this_function!();
         let mut hash_key: u64 = $crate::bkdr_hash(0, func.as_bytes());
         $(
-            let parameter: String = format!("{}", $arg);
+            let parameter: String = format!("{:?}", $arg);
             hash_key = $crate::bkdr_hash(hash_key, parameter.as_bytes());
         )*
         let cache_key = $crate::u64_to_u8_array(hash_key);

@@ -16,10 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+use bincode::{Decode, Encode};
 use chrono::NaiveDate;
 
-#[derive(serde::Serialize, sqlx::FromRow)]
-#[serde(rename_all = "camelCase")]
+#[derive(Encode, Decode, Clone, sqlx::FromRow)]
 pub struct Classroom {
     /// Room number
     pub title: String,
@@ -29,7 +29,7 @@ pub struct Classroom {
     pub capacity: Option<i32>,
 }
 
-#[derive(sqlx::FromRow, Debug)]
+#[derive(Debug, Encode, Decode, Clone, sqlx::FromRow)]
 pub struct ClassroomQuery {
     /// The building to the classroom, for example, "一教"
     pub building: Option<String>,
