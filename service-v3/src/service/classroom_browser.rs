@@ -47,6 +47,7 @@ impl Into<gen::Classroom> for model::Classroom {
     }
 }
 
+#[kite::cache_result(timeout = 43200)]
 pub async fn query_avail_classroom(
     db: &PgPool,
     query: &model::ClassroomQuery,
