@@ -1,0 +1,82 @@
+name: Rust
+
+on:
+  push: { branches: [ master ] }
+  pull_request: { branches: [ master ] }
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+
+        # Restore cache
+      - name: Restore cargo packages
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-cargo-registry
+        with:
+          path: "~/.cargo/"
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
+          restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}
+      - name: Restore build product
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-build-product
+        with:
+          path: "./target/"
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('./Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-
+
+        # Build
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
+
+        # Restore cache
+      - name: Restore cargo packages
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-cargo-registry
+        with:
+          path: "~/.cargo/"
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
+      - name: Restore build product
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-build-product
+        with:
+          path: "./target/"
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('./Cargo.lock') }}
+
+
+  push:
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      github.ref == 'refs/heads/master' &&
+      github.repository == 'SIT-kite/kite-server'
+
+    steps:
+      - name: Strip binary file
+        run: strip -s target/release/loader
+
+      - name: Copy file via SSH
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_SECRET }}
+          source: target/release/loader
+          target: ${{ secrets.DEPLOY_PATH }}/kite-server-v3
