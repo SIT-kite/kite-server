@@ -1,4 +1,4 @@
-name: Check error
+name: Rust check
 
 on:
   push: { branches: [ master ] }
@@ -13,6 +13,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
