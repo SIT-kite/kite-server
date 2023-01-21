@@ -13,5 +13,30 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Cargo check
-        run: cargo +nightly check
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          toolchain: nightly
+
+      - name: Restore cargo packages
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-cargo-registry
+        with:
+          path: "~/.cargo/"
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
+          restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}
+
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+      - name: Cache cargo packages
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-cargo-registry
+        with:
+          path: "~/.cargo/"
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
