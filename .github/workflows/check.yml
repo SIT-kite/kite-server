@@ -22,6 +22,8 @@ jobs:
         with:
           override: true
           toolchain: nightly
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
 
       - name: Restore cargo packages
         uses: actions/cache@v3
