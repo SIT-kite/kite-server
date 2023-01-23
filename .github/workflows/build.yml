@@ -52,23 +52,6 @@ jobs:
           command: build
           args: --release --all-features
 
-        # Store cache
-      - name: Cache cargo packages
-        uses: actions/cache@v3
-        env:
-          cache-name: cache-cargo-registry
-        with:
-          path: "~/.cargo/"
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
-      - name: Cache build product
-        uses: actions/cache@v3
-        env:
-          cache-name: cache-build-product
-        with:
-          path: "./target/"
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('./Cargo.lock') }}
-
-
   push:
     needs: build
     runs-on: ubuntu-latest
@@ -77,8 +60,20 @@ jobs:
       github.repository == 'SIT-kite/kite-server'
 
     steps:
+      - name: Restore build product
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-build-product
+        with:
+          path: "./target/"
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('./Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-
       - name: Strip binary file
-        run: strip -s target/release/loader
+        run: |
+          strip -s target/release/loader
+          ls target/release/ -lh | grep 'loader$' | awk '{print "Binary size is", $5, "after strip" }'
 
       - name: Copy file via SSH
         uses: appleboy/scp-action@master

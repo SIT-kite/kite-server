@@ -38,11 +38,3 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-
-      - name: Cache cargo packages
-        uses: actions/cache@v3
-        env:
-          cache-name: cache-cargo-registry
-        with:
-          path: "~/.cargo/"
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
