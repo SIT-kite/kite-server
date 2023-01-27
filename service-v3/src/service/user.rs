@@ -19,7 +19,6 @@ use std::pin::Pin;
 
 use sqlx::PgPool;
 use tokio::sync::mpsc;
-use tokio::sync::mpsc::Sender;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::StreamExt;
 use tonic::codegen::futures_core::Stream;
@@ -27,6 +26,7 @@ use tonic::{Request, Response, Status, Streaming};
 
 pub use crate::service::gen::user as gen;
 
+mod authserver;
 mod tls;
 
 type RpcClientPayload = gen::client_stream::Payload;
@@ -39,7 +39,7 @@ pub struct Frame(Vec<u8>);
 async fn stream_translation_task(
     db: PgPool,
     mut in_stream: Streaming<gen::ClientStream>,
-    out_sender: Sender<Result<gen::ServerStream, Status>>,
+    out_sender: mpsc::Sender<Result<gen::ServerStream, Status>>,
 ) {
     // Send message from here to login_task through this channel.
     let (tx_sender, tx_receiver) = mpsc::channel::<RpcClientPayload>(16);
@@ -52,7 +52,13 @@ async fn stream_translation_task(
             let payload_to_outer = gen::ServerStream {
                 payload: Some(payload_from_login_task),
             };
-            out_sender.send(Ok(payload_to_outer)).await;
+            if let Err(e) = out_sender.send(Ok(payload_to_outer)).await {
+                tracing::error!(
+                    "Could not send RpcServerPayload outside: {}, maybe out stream is closed?",
+                    e
+                );
+                break;
+            }
         }
     });
     // Launch login_task, go!!!
@@ -62,9 +68,12 @@ async fn stream_translation_task(
         match result {
             Ok(gen::ClientStream { payload }) => {
                 if let Some(payload) = payload {
-                    tx_sender.send(payload).await;
+                    if let Err(e) = tx_sender.send(payload).await {
+                        tracing::error!("Could not send RpcClientPayload: {}, maybe login_task is closed?", e);
+                        break;
+                    }
                 } else {
-                    tracing::error!("Unexpected: there is a None value in oneof field in proto, exit.");
+                    tracing::error!("Unexpected: there is a None value in `oneof` field in proto, exit.");
                     break;
                 }
             }

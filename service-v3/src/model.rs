@@ -24,6 +24,7 @@ pub mod balance;
 pub mod board;
 pub mod classroom_browser;
 pub mod template;
+pub mod user;
 
 pub mod convert {
     use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Timelike};
