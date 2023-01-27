@@ -6,6 +6,5 @@ members = [
     "cache-macro",
     "kite",
     "loader",
-    "kite-rustls",
     "service-v3",
 ]
