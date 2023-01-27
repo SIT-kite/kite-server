@@ -16,27 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use std::fmt;
 use std::io;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-// Copied from hyper-rustls
-use hyper::body::Bytes;
+use anyhow::Result;
 use hyper::client::connect::{Connected, Connection};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use tokio::sync::mpsc;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, DuplexStream, ReadBuf};
 use tokio_rustls::client::TlsStream;
 
-/// A stream that might be protected with TLS.
-#[allow(clippy::large_enum_variant)]
-pub struct HttpsStream<T> {
-    pub tls_stream: TlsStream<T>,
+/// The KiteTls, perform TLS stream over a custom channel, instead of socket
+pub struct EncryptedStream<T>(TlsStream<T>)
+where
+    T: AsyncRead + AsyncWrite + Unpin;
+
+impl<T> EncryptedStream<T>
+where
+    T: AsyncRead + AsyncWrite + Unpin,
+{
+    pub fn new(stream: TlsStream<T>) -> Self {
+        Self(stream)
+    }
 }
 
-impl<T: AsyncRead + AsyncWrite + Connection + Unpin> Connection for HttpsStream<T> {
+impl<T: AsyncRead + AsyncWrite + Connection + Unpin> Connection for EncryptedStream<T> {
     fn connected(&self) -> Connected {
-        let (tcp, tls) = self.tls_stream.get_ref();
+        let (tcp, tls) = self.0.get_ref();
         if tls.alpn_protocol() == Some(b"h2") {
             tcp.connected().negotiated_h2()
         } else {
@@ -45,38 +50,26 @@ impl<T: AsyncRead + AsyncWrite + Connection + Unpin> Connection for HttpsStream<
     }
 }
 
-impl<T: fmt::Debug> fmt::Debug for HttpsStream<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.pad("Https(..)")
-    }
-}
-
-impl<T> From<TlsStream<T>> for HttpsStream<T> {
-    fn from(inner: TlsStream<T>) -> Self {
-        HttpsStream { tls_stream: inner }
-    }
-}
-
-impl<T: AsyncRead + AsyncWrite + Unpin> AsyncRead for HttpsStream<T> {
+impl<T: AsyncRead + AsyncWrite + Unpin> AsyncRead for EncryptedStream<T> {
     #[inline]
     fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context, buf: &mut ReadBuf<'_>) -> Poll<Result<(), io::Error>> {
-        Pin::new(&mut self.tls_stream).poll_read(cx, buf)
+        Pin::new(&mut self.0).poll_read(cx, buf)
     }
 }
 
-impl<T: AsyncWrite + AsyncRead + Unpin> AsyncWrite for HttpsStream<T> {
+impl<T: AsyncWrite + AsyncRead + Unpin> AsyncWrite for EncryptedStream<T> {
     #[inline]
     fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<Result<usize, io::Error>> {
-        Pin::new(&mut self.tls_stream).poll_write(cx, buf)
+        Pin::new(&mut self.0).poll_write(cx, buf)
     }
 
     #[inline]
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
-        Pin::new(&mut self.tls_stream).poll_flush(cx)
+        Pin::new(&mut self.0).poll_flush(cx)
     }
 
     #[inline]
     fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
-        Pin::new(&mut self.tls_stream).poll_shutdown(cx)
+        Pin::new(&mut self.0).poll_shutdown(cx)
     }
 }

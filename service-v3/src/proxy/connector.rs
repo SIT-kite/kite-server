@@ -22,27 +22,23 @@ use std::convert::TryFrom;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::task::{Context, Poll};
-use std::{fmt, io};
+use std::task::Poll;
 
-use hyper::client::HttpConnector;
-use hyper::{client::connect::Connection, service::Service, Uri};
+use anyhow::Context;
+use hyper::{service::Service, Uri};
+use once_cell::sync::OnceCell;
 use rustls::{ClientConfig, OwnedTrustAnchor};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::io::DuplexStream;
 use tokio_rustls::TlsConnector;
 
-use crate::stream::HttpsStream;
-
-use super::HttpsConnector;
+use crate::proxy::stream::EncryptedStream;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
-pub struct ConnectorBuilder {
-    tls_config: ClientConfig,
-}
+static TLS_CONFIG: OnceCell<Arc<ClientConfig>> = OnceCell::new();
 
-impl ConnectorBuilder {
-    pub fn default_cert_store() -> rustls::RootCertStore {
+fn generate_tls_config() -> ClientConfig {
+    fn default_cert_store() -> rustls::RootCertStore {
         let mut store = rustls::RootCertStore::empty();
 
         store.add_server_trust_anchors(
@@ -53,96 +49,57 @@ impl ConnectorBuilder {
         store
     }
 
-    pub fn default_client_config() -> ClientConfig {
+    fn default_client_config() -> ClientConfig {
         ClientConfig::builder()
             .with_safe_defaults()
-            .with_root_certificates(Self::default_cert_store())
+            .with_root_certificates(default_cert_store())
             .with_no_client_auth()
     }
 
-    pub fn new() -> Self {
-        let tls_config = Self::default_client_config();
+    default_client_config()
+}
 
-        Self { tls_config }
-    }
-    pub fn build(self) -> HttpsConnector<HttpConnector> {
-        let mut http = HttpConnector::new();
-        // HttpConnector won't enforce scheme, but HttpsConnector will
-        http.enforce_http(false);
+fn get_tls_config() -> &'static Arc<ClientConfig> {
+    TLS_CONFIG.get_or_init(|| Arc::new(generate_tls_config()))
+}
 
-        HttpsConnector {
-            http,
-            tls_config: std::sync::Arc::new(self.tls_config),
-        }
+pub struct HttpsConnector {
+    bottom: Option<DuplexStream>,
+}
+
+impl HttpsConnector {
+    pub fn new(bottom: DuplexStream) -> Self {
+        Self { bottom: Some(bottom) }
     }
 }
 
-#[derive(Clone)]
-pub struct HttpsConnector<T> {
-    http: T,
-    tls_config: Arc<ClientConfig>,
-}
-
-impl<T> Service<Uri> for HttpsConnector<T>
-where
-    T: Service<Uri>,
-    T::Response: Connection + AsyncRead + AsyncWrite + Send + Unpin + 'static,
-    T::Future: Send + 'static,
-    T::Error: Into<BoxError>,
-{
-    type Response = HttpsStream<T::Response>;
+impl Service<Uri> for HttpsConnector {
+    type Response = EncryptedStream<DuplexStream>;
     type Error = BoxError;
 
-    #[allow(clippy::type_complexity)]
-    type Future = Pin<Box<dyn Future<Output = Result<HttpsStream<T::Response>, BoxError>> + Send>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, BoxError>> + Send>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        match self.http.poll_ready(cx) {
-            Poll::Ready(Ok(())) => Poll::Ready(Ok(())),
-            Poll::Ready(Err(e)) => Poll::Ready(Err(e.into())),
-            Poll::Pending => Poll::Pending,
-        }
+    fn poll_ready(&mut self, _cx: &mut std::task::Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
     }
 
     fn call(&mut self, dst: Uri) -> Self::Future {
-        // dst.scheme() would need to derive Eq to be matchable;
-        // use an if cascade instead
-        if let Some(sch) = dst.scheme() {
-            if sch == &http::uri::Scheme::HTTPS {
-                let cfg = self.tls_config.clone();
-                let mut hostname = dst.host().unwrap_or_default();
+        let scheme = dst.scheme().expect("Scheme is expected on the heading of url.");
+        assert_eq!(scheme, &http::uri::Scheme::HTTPS);
 
-                // Remove square brackets around IPv6 address.
-                if let Some(trimmed) = hostname.strip_prefix('[').and_then(|h| h.strip_suffix(']')) {
-                    hostname = trimmed;
-                }
+        let host = dst.host().unwrap();
+        let tls_server_name = rustls::ServerName::try_from(host)
+            .with_context(|| format!("Failed to parse TLS ServerName from: {}", host))
+            .unwrap();
 
-                let hostname = match rustls::ServerName::try_from(hostname) {
-                    Ok(dnsname) => dnsname,
-                    Err(_) => {
-                        let err = io::Error::new(io::ErrorKind::Other, "invalid dnsname");
-                        return Box::pin(async move { Err(Box::new(err).into()) });
-                    }
-                };
-                let connecting_future = self.http.call(dst);
+        let socket_stream = self.bottom.take().unwrap();
+        let f = async move {
+            let config = get_tls_config().clone();
 
-                let f = async move {
-                    let tcp = connecting_future.await.map_err(Into::into)?;
-                    let connector = TlsConnector::from(cfg);
-                    let tls = connector
-                        .connect(hostname, tcp)
-                        .await
-                        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-                    Ok(HttpsStream { tls_stream: tls })
-                };
-                Box::pin(f)
-            } else {
-                let err = io::Error::new(io::ErrorKind::Other, format!("Unsupported scheme {}", sch));
-                Box::pin(async move { Err(err.into()) })
-            }
-        } else {
-            let err = io::Error::new(io::ErrorKind::Other, "Missing scheme");
-            Box::pin(async move { Err(err.into()) })
-        }
+            let connector = TlsConnector::from(config);
+            let tls = connector.connect(tls_server_name, socket_stream).await?;
+            Ok(EncryptedStream::new(tls))
+        };
+        Box::pin(f)
     }
 }
