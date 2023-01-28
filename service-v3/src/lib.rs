@@ -23,7 +23,6 @@ use kite::service::KiteModule;
 mod error;
 mod model;
 mod service;
-mod proxy;
 
 pub struct ServerV3 {}
 

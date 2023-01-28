@@ -27,7 +27,6 @@ use tonic::{Request, Response, Status, Streaming};
 pub use crate::service::gen::user as gen;
 
 mod authserver;
-mod tls;
 
 type RpcClientPayload = gen::client_stream::Payload;
 type RpcServerPayload = gen::server_stream::Payload;
