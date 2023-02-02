@@ -21,7 +21,7 @@ use base64::Engine;
 use http::StatusCode;
 use scraper::{Html, Selector};
 use tokio::io::{AsyncRead, AsyncWrite};
-use tokio_rustls::TlsStream;
+use tokio_rustls::client::TlsStream;
 
 use super::constants::*;
 use super::Session;
@@ -189,10 +189,7 @@ impl Portal {
 
     /// Login on campus official auth-server with student id and password.
     /// Return session if done successfully.
-    pub async fn login<T>(mut self) -> Result<Self>
-    where
-        T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
-    {
+    pub async fn try_login(&mut self) -> Result<()> {
         let credential = self.credential.clone();
         let IndexParameter { aes_key, lt } = self.get_initial_parameters().await?;
         let encrypted_password = Self::generate_password_string(&credential.password, &aes_key);
@@ -218,11 +215,16 @@ impl Portal {
         ];
         let response = self.session.post(LOGIN_URI, Some(&form)).await?;
         if response.status() == StatusCode::FOUND {
-            Ok(self)
+            Ok(())
         } else {
             let body = response.body().to_vec();
             let text = String::from_utf8(body)?;
-            Err(anyhow::anyhow!("Err message: {}", Self::parse_err_message(&text)))
+            println!("{}", text);
+            Err(anyhow::anyhow!("login message: {}", Self::parse_err_message(&text)))
         }
+    }
+
+    pub fn shutdown(self) {
+        self.session.
     }
 }

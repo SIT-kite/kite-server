@@ -20,11 +20,11 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use bytes::{BufMut, Bytes, BytesMut};
+use hyper::{Body, Method, Response, StatusCode};
 use hyper::body::HttpBody;
 use hyper::client::conn;
-use hyper::{Body, Method, Response, StatusCode};
 use tokio::io::{AsyncRead, AsyncWrite};
-use tokio_rustls::TlsStream;
+use tokio_rustls::client::TlsStream;
 
 use super::constants::*;
 
@@ -103,8 +103,10 @@ impl Session {
         let body = text_payload.map(Body::from).unwrap_or_else(|| Body::empty());
         let request = builder.body(body)?;
 
+        println!("{:?}", request);
         /* Send request and receive header*/
         let response = self.sender.send_request(request).await?;
+        println!("status = {}", response.status());
 
         let (header, mut body) = response.into_parts();
         // Store cookies
@@ -162,4 +164,6 @@ impl Session {
     pub fn clear_cookie(&mut self) {
         self.cookie_jar.clear();
     }
+
+    pub fn shutdown(self) ->
 }

@@ -15,86 +15,194 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+use std::cmp::min;
+use std::future::Future;
+use std::io::Error;
 use std::pin::Pin;
+use std::sync::Arc;
+use std::task::{Context, Poll};
 
+use anyhow::{anyhow, Result};
+use bytes::BufMut;
 use sqlx::PgPool;
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt, ReadBuf};
+use tokio::pin;
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::error::SendError;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::StreamExt;
 use tonic::codegen::futures_core::Stream;
 use tonic::{Request, Response, Status, Streaming};
 
+use crate::authserver::{Credential, PortalConnector};
 pub use crate::service::gen::user as gen;
-
-mod authserver;
+use crate::service::gen::user::ClientStream;
 
 type RpcClientPayload = gen::client_stream::Payload;
 type RpcServerPayload = gen::server_stream::Payload;
 type LoginResult<T> = Result<Response<T>, Status>;
 type ResponseStream = Pin<Box<dyn Stream<Item = Result<gen::ServerStream, Status>> + Send>>;
 
-pub struct Frame(Vec<u8>);
-
 async fn stream_translation_task(
     db: PgPool,
-    mut in_stream: Streaming<gen::ClientStream>,
-    out_sender: mpsc::Sender<Result<gen::ServerStream, Status>>,
-) {
+    stream_in: Streaming<gen::ClientStream>,
+    channel_out: mpsc::Sender<Result<gen::ServerStream, Status>>,
+) -> Result<()> {
     // Send message from here to login_task through this channel.
     let (tx_sender, tx_receiver) = mpsc::channel::<RpcClientPayload>(16);
     // Receive message here from login_task through this channel.
     let (rx_sender, mut rx_receiver) = mpsc::channel::<RpcServerPayload>(16);
 
-    // Launch redirection from login_task to the outer.
-    tokio::spawn(async move {
-        while let Some(payload_from_login_task) = rx_receiver.recv().await {
-            let payload_to_outer = gen::ServerStream {
-                payload: Some(payload_from_login_task),
-            };
-            if let Err(e) = out_sender.send(Ok(payload_to_outer)).await {
-                tracing::error!(
-                    "Could not send RpcServerPayload outside: {}, maybe out stream is closed?",
-                    e
-                );
-                break;
-            }
+    fn mapping_inbound_stream(element: Result<ClientStream, Status>) -> Result<RpcClientPayload> {
+        match element {
+            Ok(stream) => stream
+                .payload
+                .ok_or_else(|| anyhow!("Expect client payload from in_stream but received None.")),
+            Err(status) => Err(status.into()),
         }
-    });
+    }
+
     // Launch login_task, go!!!
     tokio::spawn(login_task(db, rx_sender, tx_receiver));
 
-    while let Some(result) = in_stream.next().await {
-        match result {
-            Ok(gen::ClientStream { payload }) => {
-                if let Some(payload) = payload {
-                    if let Err(e) = tx_sender.send(payload).await {
-                        tracing::error!("Could not send RpcClientPayload: {}, maybe login_task is closed?", e);
-                        break;
-                    }
-                } else {
-                    tracing::error!("Unexpected: there is a None value in `oneof` field in proto, exit.");
-                    break;
-                }
-            }
-            Err(err) => {
-                tracing::error!("Unexpected: failed to received ClientStream: {:?}", err);
-                break;
-            }
+    let mut in_stream = stream_in.map(mapping_inbound_stream);
+    loop {
+        tokio::select! {
+            v = in_stream.next() => {
+                let v: Result<_> = v.unwrap();
+                tx_sender
+                .send(v?)
+                .await
+                .map_err(|e| anyhow!("Could not send RpcClientPayload: {}, maybe login_task is closed?", e))?;
+            },
+            v = rx_receiver.recv() => {
+                let payload_to_outer = gen::ServerStream {payload: v};
+                channel_out.send(Ok(payload_to_outer)).await.map_err(|e|
+                    anyhow!(
+                        "Could not send RpcServerPayload outside: {}, maybe out stream is closed?",
+                        e
+                    )
+                )?;
+            },
         }
     }
+
     tracing::trace!("stream ended");
+    Ok(())
 }
 
-async fn login_task(db: PgPool, tx: mpsc::Sender<RpcServerPayload>, rx: mpsc::Receiver<RpcClientPayload>) {
-    // Prepare environment
+struct VirtualStream {
+    rx_buffer: Vec<u8>,
+    rx: mpsc::Receiver<RpcClientPayload>,
+    tx: mpsc::Sender<RpcServerPayload>,
+}
 
-    // Step 1
+impl VirtualStream {
+    pub fn new(rx: mpsc::Receiver<RpcClientPayload>, tx: mpsc::Sender<RpcServerPayload>) -> Self {
+        Self {
+            rx_buffer: Vec::with_capacity(1024),
+            rx,
+            tx,
+        }
+    }
 
-    // Step 2
+    pub fn split(self) -> (mpsc::Receiver<RpcClientPayload>, mpsc::Sender<RpcServerPayload>) {
+        (self.rx, self.tx)
+    }
+}
 
-    // ...
+impl AsyncRead for VirtualStream {
+    fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>) -> Poll<std::io::Result<()>> {
+        fn copy_buffer(rx_buffer: &mut Vec<u8>, this_frame: Vec<u8>, target: &mut ReadBuf<'_>) {
+            let copy_size = min(this_frame.len(), target.remaining());
+            println!("capacity = {}, copy size = {}", target.capacity(), copy_size);
 
-    // Query database
+            target.put_slice(&this_frame[..copy_size]);
+
+            // If some bytes not copied yet, save them
+            if copy_size < this_frame.len() {
+                rx_buffer.extend_from_slice(&this_frame[copy_size..]);
+            }
+        }
+
+        if !self.rx_buffer.is_empty() {
+            let this_frame = self.rx_buffer.clone();
+            copy_buffer(&mut self.rx_buffer, this_frame, buf);
+            return Poll::Ready(Ok(()));
+        }
+        match self.rx.poll_recv(cx) {
+            Poll::Ready(payload) => {
+                if let Some(RpcClientPayload::TlsStream(content)) = payload {
+                    if !content.is_empty() {
+                        copy_buffer(&mut self.rx_buffer, content, buf);
+                    }
+                }
+                Poll::Ready(Ok(()))
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
+impl AsyncWrite for VirtualStream {
+    fn poll_write(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<std::result::Result<usize, Error>> {
+        let len = buf.len();
+        if len == 0 {
+            return Poll::Ready(Ok(0));
+        }
+
+        let payload = RpcServerPayload::TlsStream(buf.to_vec());
+        let fut = self.tx.send(payload);
+        pin!(fut);
+
+        Future::poll(fut, cx)
+            .map(|state| Ok(len))
+            .map_err(|e: SendError<RpcServerPayload>| Error::last_os_error())
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::result::Result<(), Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::result::Result<(), Error>> {
+        Poll::Ready(Ok(()))
+    }
+}
+
+async fn login_task(
+    db: PgPool,
+    tx: mpsc::Sender<RpcServerPayload>,
+    mut rx: mpsc::Receiver<RpcClientPayload>,
+) -> Result<()> {
+    // Step 1: Get user credential from client
+    let credential = if let Some(RpcClientPayload::Credential(oa)) = rx.recv().await {
+        Credential::new(oa.account, oa.password)
+    } else {
+        // todo
+        return Ok(());
+    };
+
+    println!("user = {}, password = {}", credential.account, credential.password);
+    // Step 2: Merge tx & rx -> stream
+    let stream = VirtualStream::new(rx, tx);
+
+    // Step 3: Create virtual stream
+    let tls_config = crate::authserver::tls_get().clone();
+    let server_name = "authserver.sit.edu.cn".try_into().unwrap();
+    let connector = tokio_rustls::TlsConnector::from(tls_config);
+
+    let mut stream = connector.connect(server_name, stream).await.unwrap();
+
+    // Step 3: Do login
+    let mut portal = PortalConnector::new().user(credential).bind(stream).await?;
+    if let Err(e) = portal.try_login().await {
+        println!("failed with {e}");
+        return Ok(());
+    }
+    println!("login successfully");
+
+    // // Query database
+    Ok(())
 }
 
 #[tonic::async_trait]

@@ -23,6 +23,7 @@ use kite::service::KiteModule;
 mod error;
 mod model;
 mod service;
+mod authserver;
 
 pub struct ServerV3 {}
 

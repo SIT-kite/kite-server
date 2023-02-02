@@ -78,6 +78,7 @@ pub async fn grpc_server() {
     let board = board::gen::board_service_server::BoardServiceServer::new(server.clone());
     let classroom_browser =
         classroom_browser::gen::classroom_browser_service_server::ClassroomBrowserServiceServer::new(server.clone());
+    let user = user::gen::user_service_server::UserServiceServer::new(server.clone());
 
     use tower_http::trace::TraceLayer;
     let layer = tower::ServiceBuilder::new()
@@ -97,6 +98,7 @@ pub async fn grpc_server() {
         .add_service(balance)
         .add_service(board)
         .add_service(classroom_browser)
+        .add_service(user)
         .serve(addr)
         .await
         .unwrap()
