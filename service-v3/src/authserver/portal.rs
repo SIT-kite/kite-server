@@ -1,6 +1,6 @@
 /*
  * 上应小风筝  便利校园，一步到位
- * Copyright (C) 2021-2023 上海应用技术大学 上应小风筝团队
+ * Copyright (C) 2020-2023 上海应用技术大学 上应小风筝团队
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,7 @@ use anyhow::{Context, Result};
 use base64::Engine;
 use http::StatusCode;
 use scraper::{Html, Selector};
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::oneshot;
-use tokio_rustls::client::TlsStream;
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
 use super::constants::*;
 use super::Session;
@@ -50,18 +48,27 @@ impl PortalConnector {
         Self { credential: None }
     }
 
-    pub fn user(mut self, credential: Credential) -> Self {
+    pub fn user(self, credential: Credential) -> Self {
         Self {
             credential: Some(credential),
             ..self
         }
     }
 
-    pub async fn bind<T>(self, stream: TlsStream<T>) -> Result<Portal<T>>
+    pub async fn bind<T>(self, stream: T) -> Result<Portal<T>>
     where
         T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
     {
         let credential = self.credential.expect("Credential is required.");
+
+        // Prepare client configuration which used to handshake
+        let config = crate::authserver::tls_get().clone();
+        let connector = tokio_rustls::TlsConnector::from(config);
+        let server_name = "authserver.sit.edu.cn".try_into().unwrap();
+
+        // Bind IO with TLS config (do some TLS initializing operation)
+        // Maybe the connect function should not be a async function?
+        let stream = connector.connect(server_name, stream).await.unwrap();
         let session = Session::create(stream).await?;
 
         Ok(Portal { credential, session })
@@ -220,6 +227,10 @@ where
             ("captchaResponse", &captcha),
             ("lt", &lt),
         ];
+        // Login post is the last request.
+        // Send `Connection: close` to make the server close the connection actively,
+        // so will the without_shutdown method in the closure in Session::create return.
+        // Then original stream will be returned.
         let header = vec![("Connection", "close")];
         let response = self.session.post(LOGIN_URI, form, header).await?;
         if response.status() == StatusCode::FOUND {
@@ -232,7 +243,17 @@ where
         }
     }
 
-    pub async fn shutdown(self) -> Result<TlsStream<T>> {
-        self.session.wait_for_shutdown().await
+    pub async fn shutdown(self) -> Result<T> {
+        match self.session.wait_for_shutdown().await {
+            Ok(mut s) => {
+                // Close TLS connection (send `TLS Encrypted Alert` message)
+                s.shutdown().await?;
+
+                // Return original stream back
+                let (os, _) = s.into_inner();
+                Ok(os)
+            }
+            Err(e) => Err(e),
+        }
     }
 }

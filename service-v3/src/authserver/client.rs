@@ -1,6 +1,6 @@
 /*
  * 上应小风筝  便利校园，一步到位
- * Copyright (C) 2021-2023 上海应用技术大学 上应小风筝团队
+ * Copyright (C) 2020-2023 上海应用技术大学 上应小风筝团队
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ use anyhow::Result;
 use bytes::{BufMut, Bytes, BytesMut};
 use hyper::body::HttpBody;
 use hyper::client::conn;
-use hyper::client::conn::Connection;
 use hyper::{Body, Method, Response, StatusCode};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::oneshot;
@@ -81,16 +80,21 @@ impl<T> Session<T>
 where
     T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
 {
+    /// Initialize a TLS connection and wait for next operations
     pub async fn create(stream: TlsStream<T>) -> Result<Session<T>> {
+        // Client hello !!
         let (sender, connection) = conn::handshake(stream).await?;
 
         // A task to poll the connection and drive the HTTP state
         // If the connection closed, return tls stream.
         let (tx, rx) = oneshot::channel();
         tokio::spawn(async move {
+            // Connection: close is set on the last request, the /login post, to cause the server to
+            // close TLS layer connection actively.
+            // So will the without_shutdown method return.
             let result = connection.without_shutdown().await;
             if let Ok(part) = result {
-                tx.send(part.io);
+                let _ = tx.send(part.io);
             }
         });
         let result = Session {
@@ -101,6 +105,7 @@ where
         Ok(result)
     }
 
+    /// A simple wrapper, which can send a HTTP(S) request
     async fn request(
         &mut self,
         method: Method,
