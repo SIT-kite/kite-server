@@ -20,10 +20,12 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use bytes::{BufMut, Bytes, BytesMut};
-use hyper::{Body, Method, Response, StatusCode};
 use hyper::body::HttpBody;
 use hyper::client::conn;
+use hyper::client::conn::Connection;
+use hyper::{Body, Method, Response, StatusCode};
 use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::sync::oneshot;
 use tokio_rustls::client::TlsStream;
 
 use super::constants::*;
@@ -63,39 +65,57 @@ impl CookieJar {
 }
 
 /// 会话. 用于在 Http 连接上虚拟若干不同用户的会话.
-pub struct Session {
+pub struct Session<T>
+where
+    T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+{
     /// 会话用的连接
     sender: conn::SendRequest<Body>,
     /// Cookie 存储
     cookie_jar: CookieJar,
+    /// receiver to released TLS stream
+    released_rx: oneshot::Receiver<TlsStream<T>>,
 }
 
-impl Session {
-    pub async fn create<T>(stream: TlsStream<T>) -> Result<Session>
-    where
-        T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
-    {
+impl<T> Session<T>
+where
+    T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+{
+    pub async fn create(stream: TlsStream<T>) -> Result<Session<T>> {
         let (sender, connection) = conn::handshake(stream).await?;
 
-        // spawn a task to poll the connection and drive the HTTP state
+        // A task to poll the connection and drive the HTTP state
+        // If the connection closed, return tls stream.
+        let (tx, rx) = oneshot::channel();
         tokio::spawn(async move {
-            if let Err(e) = connection.await {
-                eprintln!("Error in connection: {}", e);
+            let result = connection.without_shutdown().await;
+            if let Ok(part) = result {
+                tx.send(part.io);
             }
         });
         let result = Session {
             sender,
             cookie_jar: CookieJar::default(),
+            released_rx: rx,
         };
         Ok(result)
     }
 
-    async fn request(&mut self, method: Method, uri: &str, text_payload: Option<String>) -> Result<Response<Bytes>> {
+    async fn request(
+        &mut self,
+        method: Method,
+        uri: &str,
+        text_payload: Option<String>,
+        header: Vec<(String, String)>,
+    ) -> Result<Response<Bytes>> {
         let mut builder = http::Request::builder()
             .method(method)
             .uri(uri)
             .header("Host", SERVER_NAME)
             .header("User-Agent", DESKTOP_USER_AGENT);
+        for (k, v) in header {
+            builder = builder.header(k, v);
+        }
 
         if let Some(cookie) = self.cookie_jar.to_string() {
             builder = builder.header("Cookie", cookie);
@@ -125,7 +145,7 @@ impl Session {
     }
 
     pub async fn get(&mut self, url: &str) -> Result<Response<Bytes>> {
-        self.request(Method::GET, url, None).await
+        self.request(Method::GET, url, None, vec![]).await
     }
 
     pub async fn get_with_redirection(&mut self, url: &str, max_direction: u8) -> Result<Response<Bytes>> {
@@ -152,18 +172,33 @@ impl Session {
         }
     }
 
-    pub async fn post(&mut self, url: &str, form: Option<&Vec<(&str, &str)>>) -> Result<Response<Bytes>> {
-        let content = form.map(|items| {
-            items
+    pub async fn post(
+        &mut self,
+        url: &str,
+        form: Vec<(&str, &str)>,
+        header: Vec<(&str, &str)>,
+    ) -> Result<Response<Bytes>> {
+        let content = if !form.is_empty() {
+            let s = form
                 .into_iter()
-                .fold(String::new(), |c, (k, v)| c + &format!("{}={}&", k, v))
-        });
-        self.request(Method::POST, url, content).await
+                .fold(String::new(), |c, (k, v)| c + &format!("{}={}&", k, v));
+            Some(s)
+        } else {
+            None
+        };
+        let header = header
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+
+        self.request(Method::POST, url, content, header).await
     }
 
     pub fn clear_cookie(&mut self) {
         self.cookie_jar.clear();
     }
 
-    pub fn shutdown(self) ->
+    pub async fn wait_for_shutdown(self) -> Result<TlsStream<T>> {
+        self.released_rx.await.map_err(Into::into)
+    }
 }

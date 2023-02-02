@@ -21,6 +21,7 @@ use base64::Engine;
 use http::StatusCode;
 use scraper::{Html, Selector};
 use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::sync::oneshot;
 use tokio_rustls::client::TlsStream;
 
 use super::constants::*;
@@ -56,7 +57,7 @@ impl PortalConnector {
         }
     }
 
-    pub async fn bind<T>(self, stream: TlsStream<T>) -> Result<Portal>
+    pub async fn bind<T>(self, stream: TlsStream<T>) -> Result<Portal<T>>
     where
         T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
     {
@@ -68,10 +69,13 @@ impl PortalConnector {
 }
 
 /// 统一认证模块
-pub struct Portal {
+pub struct Portal<T>
+where
+    T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+{
     credential: Credential,
     /// 登录会话
-    session: Session,
+    session: Session<T>,
 }
 
 /// Search in text by regex, and return the first group.
@@ -88,7 +92,10 @@ struct IndexParameter {
     lt: String,
 }
 
-impl Portal {
+impl<T> Portal<T>
+where
+    T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+{
     /// Check whether captcha is need or not.
     async fn check_need_captcha(&mut self, account: &str) -> Result<bool> {
         let url = format!("{}?username={}&pwdEncrypt2=pwdEncryptSalt", NEED_CAPTCHA_URI, account);
@@ -213,7 +220,8 @@ impl Portal {
             ("captchaResponse", &captcha),
             ("lt", &lt),
         ];
-        let response = self.session.post(LOGIN_URI, Some(&form)).await?;
+        let header = vec![("Connection", "close")];
+        let response = self.session.post(LOGIN_URI, form, header).await?;
         if response.status() == StatusCode::FOUND {
             Ok(())
         } else {
@@ -224,7 +232,7 @@ impl Portal {
         }
     }
 
-    pub fn shutdown(self) {
-        self.session.
+    pub async fn shutdown(self) -> Result<TlsStream<T>> {
+        self.session.wait_for_shutdown().await
     }
 }
