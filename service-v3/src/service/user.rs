@@ -29,6 +29,8 @@ use tonic::{Request, Response, Status, Streaming};
 pub use stream::VirtualStream;
 
 use crate::authserver::{Credential, PortalConnector};
+use crate::model::user;
+use crate::model::user::validate;
 pub use crate::service::gen::user as gen;
 use crate::service::gen::user::ClientStream;
 use crate::service::user::gen::User;
@@ -48,6 +50,7 @@ mod stream {
 
     use super::{RpcClientPayload, RpcServerPayload};
 
+    /// VirtualStream is a stream over in and out channels, which communicates with client by gRPC
     pub struct VirtualStream {
         rx_buffer: Vec<u8>,
         rx: mpsc::Receiver<RpcClientPayload>,
@@ -167,10 +170,8 @@ async fn stream_translation_task(
                 v = in_stream.next() => {
                     let v: Result<_> = v.unwrap();
                     // maybe it's unnecessary to handle error returned by channel
-                    let _ = tx_sender
-                    .send(v?)
-                    .await?;
-                    },
+                    let _ = tx_sender.send(v?).await?;
+                },
                 v = rx_receiver.recv() => {
                     let payload_to_outer = gen::ServerStream {payload: v};
                     channel_out.send(Ok(payload_to_outer)).await?;
@@ -185,45 +186,57 @@ async fn stream_translation_task(
     }
 }
 
-async fn login_task(
-    db: PgPool,
-    tx: mpsc::Sender<RpcServerPayload>,
-    mut rx: mpsc::Receiver<RpcClientPayload>,
-) -> Result<()> {
-    // Step 1: Get user credential from client
-    let credential = if let Some(RpcClientPayload::Credential(oa)) = rx.recv().await {
-        Credential::new(oa.account, oa.password)
-    } else {
-        // todo
-        return Ok(());
-    };
+async fn login_task(db: PgPool, tx: mpsc::Sender<RpcServerPayload>, rx: mpsc::Receiver<RpcClientPayload>) {
+    async fn login_task_inner(
+        db: PgPool,
+        tx: mpsc::Sender<RpcServerPayload>,
+        mut rx: mpsc::Receiver<RpcClientPayload>,
+    ) -> Result<()> {
+        // Step 1: Get user credential from client
+        let credential = if let Some(RpcClientPayload::Credential(oa)) = rx.recv().await {
+            Credential::new(oa.account, oa.password)
+        } else {
+            return Err(anyhow!(
+                "Unknown message received, RpcClientPayload::Credential expected."
+            ));
+        };
 
-    println!("user = {}, password = {}", credential.account, credential.password);
-    // Step 2: Create virtual stream, merge tx & rx -> stream
-    let stream = VirtualStream::new(rx, tx);
-    let mut portal = PortalConnector::new().user(credential).bind(stream).await?;
+        if !validate::check_username(&credential.account) {
+            return Err(anyhow!("Only student and staff ID is supported."));
+        }
 
-    // Step 3: Do login
-    if let Err(e) = portal.try_login().await {
-        println!("failed with {e}");
-    } else {
-        println!("login successfully");
+        // Step 2: Create virtual stream, merge tx & rx -> stream
+        let stream = VirtualStream::new(rx, tx);
+        let mut portal = PortalConnector::new().user(credential.clone()).bind(stream).await?;
+
+        // Step 3: Do login
+        portal.try_login().await?;
+
+        // Step 4: Query database, (maybe register new account), get user profile.
+        let user = if let Some(u) = user::query(&db, &credential.account).await? {
+            u
+        } else {
+            let person_name = portal.get_person_name().await?;
+            user::create(&db, &credential.account, &person_name).await?
+        };
+
+        // Step 5: Recycle virtual stream
+        let stream = portal.shutdown().await?;
+        let (_rx, tx) = stream.split();
+
+        use crate::model::ToTimestamp;
+        tx.send(RpcServerPayload::User(User {
+            uid: user.uid,
+            account: user.account,
+            create_time: Some(ToTimestamp::datetime(user.create_time)),
+        }))
+        .await?;
+        Ok(())
     }
 
-    // Step 4: Recycle virtual stream
-    let stream = portal.shutdown().await?;
-    let (mut rx, tx) = stream.split();
-
-    tx.send(RpcServerPayload::User(User {
-        uid: 10,
-        account: "test user".to_string(),
-        create_time: None,
-    }))
-    .await?;
-
-    rx.close();
-    // // Query database
-    Ok(())
+    if let Err(e) = login_task_inner(db, tx, rx).await {
+        tracing::error!("Login task failed with error: {}", e);
+    }
 }
 
 #[tonic::async_trait]

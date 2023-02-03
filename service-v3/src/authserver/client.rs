@@ -128,11 +128,8 @@ where
         let body = text_payload.map(Body::from).unwrap_or_else(|| Body::empty());
         let request = builder.body(body)?;
 
-        println!("{:?}", request);
         /* Send request and receive header*/
         let response = self.sender.send_request(request).await?;
-        println!("status = {}", response.status());
-
         let (header, mut body) = response.into_parts();
         // Store cookies
         if let Some(cookies) = header.headers.get("Set-Cookie") {

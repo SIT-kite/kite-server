@@ -174,6 +174,7 @@ where
     /// When submit password to `authserver.sit.edu.cn`, it's required to do AES and base64 algorithm with
     /// origin password. We use a key from HTML (generated and changed by `JSESSIONID`) to help with.
     fn generate_password_string(clear_password: &str, key: &str) -> String {
+        use base64::engine::general_purpose::STANDARD as base64_standard;
         use block_modes::block_padding::Pkcs7;
         use block_modes::{BlockMode, Cbc};
         type Aes128Cbc = Cbc<aes::Aes128, Pkcs7>;
@@ -187,7 +188,7 @@ where
 
         // Encrypt with AES and use do base64 encoding.
         let encrypted_password = cipher.encrypt_vec(&content);
-        base64::engine::general_purpose::STANDARD.encode(encrypted_password)
+        base64_standard.encode(encrypted_password)
     }
 
     fn parse_err_message(text: &str) -> String {
@@ -231,15 +232,17 @@ where
         // Send `Connection: close` to make the server close the connection actively,
         // so will the without_shutdown method in the closure in Session::create return.
         // Then original stream will be returned.
-        let header = vec![("Connection", "close")];
+        let header = vec![
+            ("Connection", "close"),
+            ("Content-Type", "application/x-www-form-urlencoded"),
+        ];
         let response = self.session.post(LOGIN_URI, form, header).await?;
         if response.status() == StatusCode::FOUND {
             Ok(())
         } else {
             let body = response.body().to_vec();
             let text = String::from_utf8(body)?;
-            println!("{}", text);
-            Err(anyhow::anyhow!("login message: {}", Self::parse_err_message(&text)))
+            Err(anyhow::anyhow!("{} (from authserver)", Self::parse_err_message(&text)))
         }
     }
 
