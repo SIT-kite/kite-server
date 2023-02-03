@@ -23,6 +23,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use hyper::body::HttpBody;
 use hyper::client::conn;
 use hyper::{Body, Method, Response, StatusCode};
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::oneshot;
 use tokio_rustls::client::TlsStream;
@@ -128,8 +129,10 @@ where
         let body = text_payload.map(Body::from).unwrap_or_else(|| Body::empty());
         let request = builder.body(body)?;
 
+        println!("req: {:?}", request);
         /* Send request and receive header*/
         let response = self.sender.send_request(request).await?;
+
         let (header, mut body) = response.into_parts();
         // Store cookies
         if let Some(cookies) = header.headers.get("Set-Cookie") {
@@ -143,6 +146,7 @@ where
         }
         let content = Bytes::from(content);
         let response = Response::from_parts(header, content);
+        println!("resp: {:?}", response);
         Ok(response)
     }
 
@@ -183,6 +187,7 @@ where
         let content = if !form.is_empty() {
             let s = form
                 .into_iter()
+                .map(|(k, v)| (k.to_string(), utf8_percent_encode(v, NON_ALPHANUMERIC).to_string()))
                 .fold(String::new(), |c, (k, v)| c + &format!("{}={}&", k, v));
             Some(s)
         } else {
