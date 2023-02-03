@@ -129,10 +129,8 @@ where
         let body = text_payload.map(Body::from).unwrap_or_else(|| Body::empty());
         let request = builder.body(body)?;
 
-        println!("req: {:?}", request);
         /* Send request and receive header*/
         let response = self.sender.send_request(request).await?;
-
         let (header, mut body) = response.into_parts();
         // Store cookies
         if let Some(cookies) = header.headers.get("Set-Cookie") {
@@ -146,7 +144,6 @@ where
         }
         let content = Bytes::from(content);
         let response = Response::from_parts(header, content);
-        println!("resp: {:?}", response);
         Ok(response)
     }
 
@@ -161,14 +158,16 @@ where
 
         assert!(max_direction > count);
         while count < max_direction {
+            count += 1;
+
             response = self.get(&target).await?;
             let status = response.status();
 
             if status == StatusCode::FOUND || status == StatusCode::MOVED_PERMANENTLY {
                 let new_target = response.headers().get("Location").unwrap();
                 target = new_target.to_str()?.to_string();
-
-                count += 1;
+            } else {
+                break;
             }
         }
         if count == max_direction {
