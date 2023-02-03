@@ -232,10 +232,7 @@ where
         // Send `Connection: close` to make the server close the connection actively,
         // so will the without_shutdown method in the closure in Session::create return.
         // Then original stream will be returned.
-        let header = vec![
-            ("Connection", "close"),
-            ("Content-Type", "application/x-www-form-urlencoded"),
-        ];
+        let header = vec![("Content-Type", "application/x-www-form-urlencoded")];
         let response = self.session.post(LOGIN_URI, form, header).await?;
         if response.status() == StatusCode::FOUND {
             Ok(())
@@ -246,7 +243,9 @@ where
         }
     }
 
-    pub async fn shutdown(self) -> Result<T> {
+    pub async fn shutdown(mut self) -> Result<T> {
+        self.session.request_close_connection().await?;
+
         match self.session.wait_for_shutdown().await {
             Ok(mut s) => {
                 // Close TLS connection (send `TLS Encrypted Alert` message)

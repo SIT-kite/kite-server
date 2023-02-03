@@ -200,6 +200,12 @@ where
         self.request(Method::POST, url, content, header).await
     }
 
+    pub async fn request_close_connection(&mut self) -> Result<()> {
+        let header = vec![("Connection".to_string(), "close".to_string())];
+        self.request(Method::GET, "/", None, header).await?;
+        Ok(())
+    }
+
     pub fn clear_cookie(&mut self) {
         self.cookie_jar.clear();
     }
