@@ -1,6 +1,6 @@
 /*
  * 上应小风筝  便利校园，一步到位
- * Copyright (C) 2021-2023 上海应用技术大学 上应小风筝团队
+ * Copyright (C) 2020-2023 上海应用技术大学 上应小风筝团队
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
