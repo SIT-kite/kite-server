@@ -84,3 +84,28 @@ jobs:
           password: ${{ secrets.SERVER_SECRET }}
           source: target/release/loader
           target: ${{ secrets.DEPLOY_PATH }}/kite-server-v3
+
+  notification:
+    runs-on: ubuntu-latest
+    needs: [ push ]
+    if: |
+      github.event_name != 'pull_request' &&
+      github.repository == 'SIT-kite/kite-server' &&
+      always()
+    steps:
+      - uses: technote-space/workflow-conclusion-action@v2
+      - uses: nelonoel/branch-name@v1.0.1
+      - uses: benjlevesque/short-sha@v2.1
+        id: short-sha
+        with: { length: 7 }
+
+      - name: 🤖 Build Result Notification
+        uses: appleboy/telegram-action@v0.1.1
+        with:
+          to: ${{ secrets.CHANNEL_CHAT_ID }}
+          token: ${{ secrets.BOT_TOKEN }}
+          format: markdown
+          message: |
+            The result to 🎉the deployment of kite-server (*${{ env.BRANCH_NAME }}*): *${{ env.WORKFLOW_CONCLUSION }}*
+            By *${{ github.actor }}*. Commit message:
+            *${{ github.event.head_commit.message }}*
