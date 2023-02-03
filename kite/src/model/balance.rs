@@ -18,6 +18,7 @@
 
 use bincode::{Decode, Encode};
 use chrono::{DateTime, Local};
+
 use sqlx::FromRow;
 
 #[derive(Clone, Encode, Decode, FromRow)]

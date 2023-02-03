@@ -16,9 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-pub use cache;
-pub use cache_macro::cache as cache_result;
+pub use template::*;
 
-pub mod config;
-pub mod model;
-pub mod service;
+pub mod badge;
+pub mod balance;
+pub mod board;
+pub mod classroom_browser;
+pub mod template;
+pub mod user;
