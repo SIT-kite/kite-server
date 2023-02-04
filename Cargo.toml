@@ -4,6 +4,7 @@
 members = [
     "cache",
     "cache-macro",
+    "captcha",
     "kite",
     "loader",
     "service-v3",
