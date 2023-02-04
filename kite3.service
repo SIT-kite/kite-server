@@ -1,0 +1,26 @@
+# SIT Tiny Kite, configuration file for systemd.
+#
+# by sunnysab (sunnysab.cn)
+# July 17, 2020
+# Last modify: Feb 4, 2023
+
+
+[Unit]
+Description=SIT Tiny Kite Server (version3)
+Wants=postgresql.service
+Before=nginx.service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/share/kite/kite-server-v3
+ExecStop=/bin/kill -2 $MAINPID
+PrivateTmp=true
+User=kite
+Group=kite
+# Ref: http://www.jinbuguo.com/systemd/systemd.exec.html#WorkingDirectory=
+WorkingDirectory=/usr/share/kite
+
+[Install]
+Alias=kite3
+WantedBy=multi-user.target
