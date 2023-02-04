@@ -18,6 +18,8 @@
 
 use http::request;
 use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
+use tokio::net::UnixListener;
+use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::{Body, Server};
 use tonic_reflection::server::{ServerReflection, ServerReflectionServer};
 
@@ -70,7 +72,7 @@ fn load_reflection() -> ServerReflectionServer<impl ServerReflection> {
 }
 
 pub async fn grpc_server() {
-    let addr = config::get().bind.parse().unwrap();
+    let addr = config::get().bind.clone();
     let server = KiteGrpcServer { db: get_db().await };
 
     let ping = ping::gen::ping_service_server::PingServiceServer::new(server.clone());
@@ -92,7 +94,7 @@ pub async fn grpc_server() {
         .into_inner();
 
     tracing::info!("Listening on {}...", addr);
-    Server::builder()
+    let builder = Server::builder()
         .layer(layer)
         .add_service(load_reflection())
         .add_service(ping)
@@ -101,8 +103,25 @@ pub async fn grpc_server() {
         .add_service(board)
         .add_service(classroom_browser)
         .add_service(user)
-        .add_service(captcha)
-        .serve(addr)
-        .await
-        .unwrap()
+        .add_service(captcha);
+
+    // Unix socket
+    let server = if addr.starts_with('/') {
+        #[cfg(not(unix))]
+        panic!("Unix socket can only be used on Unix-like operating system.");
+
+        #[cfg(unix)]
+        {
+            let path = addr;
+            let uds = UnixListener::bind(path).expect("Failed to bind unix socket.");
+            let stream = UnixListenerStream::new(uds);
+
+            builder.serve_with_incoming(stream).await
+        }
+    } else {
+        let addr = addr.parse().unwrap();
+        builder.serve(addr).await
+    };
+
+    server.unwrap()
 }
