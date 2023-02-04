@@ -18,32 +18,36 @@
 
 fn main() {
     let out_dir = std::path::PathBuf::from("src/service/gen/");
+    println!("Run build.rs !!!");
+
+    let proto_files = &[
+        // Basic
+        "../proto/template.proto",
+        "../proto/token.proto",
+        "../proto/typing.proto",
+        // Test
+        "../proto/ping.proto",
+        // Service
+        "../proto/badge.proto",
+        "../proto/balance.proto",
+        "../proto/board.proto",
+        "../proto/captcha.proto",
+        "../proto/classroom_browser.proto",
+        "../proto/exception.proto",
+        "../proto/freshman.proto",
+        "../proto/game.proto",
+        "../proto/user.proto",
+        "../proto/yellow_page.proto",
+    ];
+    for &path in proto_files {
+        println!("cargo:rerun-if-changed=\"{path}\"");
+    }
 
     tonic_build::configure()
         .build_server(true)
         .build_client(false)
         .file_descriptor_set_path("../target/compiled-descriptor.bin")
         .out_dir(out_dir)
-        .compile(
-            &[
-                // Basic
-                "../proto/template.proto",
-                "../proto/token.proto",
-                "../proto/typing.proto",
-                // Test
-                "../proto/ping.proto",
-                // Service
-                "../proto/badge.proto",
-                "../proto/balance.proto",
-                "../proto/board.proto",
-                "../proto/classroom_browser.proto",
-                "../proto/exception.proto",
-                "../proto/freshman.proto",
-                "../proto/game.proto",
-                "../proto/user.proto",
-                "../proto/yellow_page.proto",
-            ],
-            &["../proto"],
-        )
+        .compile(proto_files, &["../proto"])
         .unwrap();
 }
