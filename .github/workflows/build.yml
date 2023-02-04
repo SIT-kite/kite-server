@@ -95,9 +95,9 @@ jobs:
           # User home is the deployment path.
           script: |
             cp ./kite-server-v3 ./kite-server-v3.bak
-            systemctl stop kite3.service
+            systemctl --user stop kite3.service
             mv ./kite-server-v3.tmp/kite-server-v3 kite-server-v3
-            systemctl start kite3.service
+            systemctl --user start kite3.service
             rm -rf ./kite-server-v3.tmp
 
   notification:
