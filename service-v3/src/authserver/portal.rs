@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use base64::Engine;
 use http::StatusCode;
 use scraper::{Html, Selector};
@@ -121,21 +121,7 @@ where
 
     /// Identify captcha images
     async fn recognize_captcha(&mut self, image_content: Vec<u8>) -> Result<String> {
-        let standard_base64 = base64::engine::general_purpose::STANDARD;
-        let captcha_base64 = standard_base64.encode(image_content);
-
-        #[derive(serde::Deserialize)]
-        struct RecognizeResult {
-            data: Option<String>,
-        }
-        let response = reqwest::Client::new()
-            .post(CAPTCHA_REORGANIZATION_URL)
-            .body(captcha_base64)
-            .send()
-            .await
-            .with_context(|| format!("Send captcha to ocr server"))?;
-        let text = response.json::<RecognizeResult>().await?;
-        return Ok(text.data.unwrap());
+        captcha::async_recognize(image_content).await
     }
 
     pub async fn get_person_name(&mut self) -> Result<String> {
