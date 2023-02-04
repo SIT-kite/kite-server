@@ -584,7 +584,7 @@ dependencies = [
 [[package]]
 name = "d4ocr-rust"
 version = "0.1.0"
-source = "git+https://github.com/sunnysab/d4ocr-rust#1c7effbc5147efcb62141c24b577c51dffd3face"
+source = "git+https://github.com/sunnysab/d4ocr-rust#0d8832967de6d6115c4b0d91e1385de19192cdb2"
 dependencies = [
  "enum_dispatch",
  "image",
@@ -1569,6 +1569,7 @@ dependencies = [
 name = "loader"
 version = "0.1.0"
 dependencies = [
+ "captcha",
  "kite",
  "service-v3",
  "tokio",
@@ -2914,6 +2915,7 @@ dependencies = [
  "bincode",
  "block-modes",
  "bytes",
+ "captcha",
  "chrono",
  "http",
  "hyper",

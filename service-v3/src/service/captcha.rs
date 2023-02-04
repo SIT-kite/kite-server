@@ -16,21 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use kite::cache;
-use kite::config;
-use kite::service::KiteModule;
+use tonic::{Request, Response, Status};
 
-#[tokio::main]
-async fn main() {
-    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
-    tracing::info!("Starting...");
+use crate::error::ToStatus;
+use crate::service::captcha::gen::{CaptchaRecognizeRequest, CaptchaRecognizeResponse};
+pub use crate::service::gen::captcha as gen;
 
-    config::initialize();
-    cache::initialize();
+#[tonic::async_trait]
+impl gen::captcha_service_server::CaptchaService for super::KiteGrpcServer {
+    async fn recognize(
+        &self,
+        request: Request<CaptchaRecognizeRequest>,
+    ) -> Result<Response<CaptchaRecognizeResponse>, Status> {
+        let request = request.into_inner();
+        let image = request.image;
 
-    captcha::async_init().await.expect("Failed to init captcha service.");
-
-    tokio::join! {
-        service_v3::ServerV3::run()
-    };
+        captcha::async_recognize(image)
+            .await
+            .map(|text| Response::new(CaptchaRecognizeResponse { text }))
+            .map_err(ToStatus::to_status)
+    }
 }

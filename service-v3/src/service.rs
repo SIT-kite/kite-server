@@ -29,6 +29,7 @@ pub mod gen;
 mod badge;
 mod balance;
 mod board;
+mod captcha;
 mod classroom_browser;
 mod ping;
 mod template;
@@ -79,6 +80,7 @@ pub async fn grpc_server() {
     let classroom_browser =
         classroom_browser::gen::classroom_browser_service_server::ClassroomBrowserServiceServer::new(server.clone());
     let user = user::gen::user_service_server::UserServiceServer::new(server.clone());
+    let captcha = captcha::gen::captcha_service_server::CaptchaServiceServer::new(server.clone());
 
     use tower_http::trace::TraceLayer;
     let layer = tower::ServiceBuilder::new()
@@ -99,6 +101,7 @@ pub async fn grpc_server() {
         .add_service(board)
         .add_service(classroom_browser)
         .add_service(user)
+        .add_service(captcha)
         .serve(addr)
         .await
         .unwrap()

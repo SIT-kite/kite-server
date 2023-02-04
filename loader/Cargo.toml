@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 kite = { path = "../kite" }
 service-v3 = { path = "../service-v3" }
+captcha = { path = "../captcha" }
 
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1.37"
