@@ -73,8 +73,8 @@ jobs:
       - name: Strip binary file
         run: |
           strip -s target/release/loader
+          ls target/release -lh | grep 'loader$' | awk '{print "Binary size is", $5, "after strip" }'
           cp target/release/loader kite-server-v3
-          ls -lh | grep 'loader$' | awk '{print "Binary size is", $5, "after strip" }'
 
       - name: Copy file via SSH
         uses: appleboy/scp-action@master
@@ -84,7 +84,19 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_SECRET }}
           source: kite-server-v3
-          target: ${{ secrets.DEPLOY_PATH }}/kite-server-v3
+          target: ${{ secrets.DEPLOY_PATH }}/kite-server-v3.tmp
+      - name: Deploy & Restart via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_SECRET }}
+          script: |
+            cp ${{ secrets.DEPLOY_PATH }}/kite-server-v3 ${{ secrets.DEPLOY_PATH }}/kite-server-v3.bak
+            systemctl stop kite3.service
+            mv ${{ secrets.DEPLOY_PATH }}/kite-server-v3.tmp ${{ secrets.DEPLOY_PATH }}/kite-server-v3
+            systemctl start kite3.service
 
   notification:
     runs-on: ubuntu-latest
