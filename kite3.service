@@ -1,8 +1,8 @@
 # SIT Tiny Kite, configuration file for systemd.
 #
 # by sunnysab (sunnysab.cn)
-# July 17, 2020
-# Last modify: Feb 4, 2023
+# Created at: July 17, 2020
+# Last modified: Feb 4, 2023
 
 
 [Unit]
