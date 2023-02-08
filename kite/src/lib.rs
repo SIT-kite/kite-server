@@ -18,7 +18,9 @@
 
 pub use cache;
 pub use cache_macro::cache as cache_result;
+pub use db::get_db;
 
 pub mod config;
+pub mod db;
 pub mod model;
 pub mod service;

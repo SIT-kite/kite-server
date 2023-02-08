@@ -43,24 +43,6 @@ pub struct KiteGrpcServer {
     db: PgPool,
 }
 
-async fn get_db() -> PgPool {
-    tracing::info!("Connecting to the main database...");
-    let pool = PgPoolOptions::new()
-        .max_connections(config::get().db_conn)
-        .after_connect(|conn, _| {
-            Box::pin(async move {
-                conn.execute("SET TIME ZONE 'Asia/Shanghai';").await?;
-                Ok(())
-            })
-        })
-        .connect(config::get().db.as_str())
-        .await
-        .expect("Could not create database pool");
-
-    tracing::info!("DB connected.");
-    pool
-}
-
 /// Used for gRPC reflection.
 fn load_reflection() -> ServerReflectionServer<impl ServerReflection> {
     let file_descriptor = include_bytes!("../../target/compiled-descriptor.bin");
@@ -73,7 +55,9 @@ fn load_reflection() -> ServerReflectionServer<impl ServerReflection> {
 
 pub async fn grpc_server() {
     let addr = config::get().bind.clone();
-    let server = KiteGrpcServer { db: get_db().await };
+    let server = KiteGrpcServer {
+        db: kite::get_db().clone(),
+    };
 
     let ping = ping::gen::ping_service_server::PingServiceServer::new(server.clone());
     let badge = badge::gen::badge_service_server::BadgeServiceServer::new(server.clone());

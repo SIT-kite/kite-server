@@ -18,6 +18,7 @@
 
 use kite::cache;
 use kite::config;
+use kite::db;
 use kite::service::KiteModule;
 
 #[tokio::main]
@@ -28,6 +29,7 @@ async fn main() {
     config::initialize();
     cache::initialize();
 
+    db::initialize_db().await.expect("Could not create database pool.");
     captcha::async_init().await.expect("Failed to init captcha service.");
 
     tokio::join! {
