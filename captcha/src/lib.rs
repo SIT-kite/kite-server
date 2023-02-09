@@ -36,8 +36,8 @@ pub fn recognize(image: Vec<u8>) -> Result<String> {
     get().recognize(gray_image).map_err(|e| anyhow!("{e}"))
 }
 
-pub async fn async_init() -> Result<()> {
-    tokio::task::spawn_blocking(init).await?;
+pub async fn async_init() {
+    let _ = tokio::task::spawn_blocking(init).await;
 
     let (tx, mut rx) = mpsc::channel::<AsyncChannelType>(QUEUE_SIZE);
     std::thread::spawn(move || {
@@ -48,7 +48,6 @@ pub async fn async_init() -> Result<()> {
     });
 
     let _ = CHANNEL_SENDER.set(tx);
-    Ok(())
 }
 
 pub async fn async_recognize(image: Vec<u8>) -> Result<String> {

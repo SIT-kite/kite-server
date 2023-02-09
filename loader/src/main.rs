@@ -29,8 +29,8 @@ async fn main() {
     config::initialize();
     cache::initialize();
 
-    db::initialize_db().await.expect("Could not create database pool.");
-    captcha::async_init().await.expect("Failed to init captcha service.");
+    db::initialize_db().await;
+    captcha::async_init().await;
 
     tokio::join! {
         service_v3::ServerV3::run(),

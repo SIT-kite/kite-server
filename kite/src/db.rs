@@ -25,7 +25,7 @@ use crate::config;
 
 static DB: OnceCell<PgPool> = OnceCell::new();
 
-pub async fn initialize_db() -> Result<()> {
+pub async fn initialize_db() {
     tracing::info!("Connecting to the main database...");
     let pool = PgPoolOptions::new()
         .max_connections(config::get().db_conn)
@@ -36,11 +36,11 @@ pub async fn initialize_db() -> Result<()> {
             })
         })
         .connect(config::get().db.as_str())
-        .await?;
+        .await
+        .expect("Could not initialize database pool.");
 
     tracing::info!("DB connected.");
     DB.set(pool).expect("Don't initialize db more than once.");
-    Ok(())
 }
 
 pub fn get_db() -> &'static PgPool {
