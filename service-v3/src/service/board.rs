@@ -44,7 +44,7 @@ impl Into<gen::Picture> for model::Picture {
 
 async fn get_picture_list(pool: &PgPool, page: &crate::model::PageView) -> anyhow::Result<Vec<gen::Picture>> {
     sqlx::query_as::<Postgres, model::Picture>(
-        "SELECT id, uid, path as url, thumbnail, ts, ext FROM board.picture_view
+        "SELECT id, uid, path as url, thumbnail, ts, ext FROM picture
         WHERE deleted = FALSE
         ORDER BY ts DESC
         LIMIT $1 OFFSET $2;",

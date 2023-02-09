@@ -74,7 +74,7 @@ impl Into<gen::ConsumptionRank> for model::RecentConsumptionRank {
 async fn get_latest_balance(pool: &PgPool, room: i32) -> Result<model::ElectricityBalance, Status> {
     sqlx::query_as(
         "SELECT room, total_balance AS balance, ts
-             FROM dormitory.balance
+             FROM dormitory_balance
              WHERE room = $1
              ORDER BY ts DESC
              LIMIT 1",
@@ -96,7 +96,7 @@ async fn get_bill_in_day(
     sqlx::query_as(
         "SELECT d.day AS date, COALESCE(records.charged_amount, 0.00) AS charge, ABS(COALESCE(records.used_amount, 0.00)) AS consumption
                 FROM (SELECT to_char(day_range, 'yyyy-MM-dd') AS day FROM generate_series($1::date,  $2::date, '1 day') AS day_range) d
-                LEFT JOIN (SELECT * FROM dormitory.get_consumption_report_by_day($1::date, CAST($2::date + '1 day'::interval AS date), $3)) AS records
+                LEFT JOIN (SELECT * FROM get_consumption_report_by_day($1::date, CAST($2::date + '1 day'::interval AS date), $3)) AS records
                 ON d.day = records.day;")
         .bind(&from)
         .bind(&to)
@@ -119,7 +119,7 @@ async fn get_bill_in_hour(
                     SELECT to_char(hour_range, 'yyyy-MM-dd HH24:00') AS hour
                     FROM generate_series($1::timestamptz, $2::timestamptz, '1 hour') AS hour_range) h
                 LEFT JOIN (
-                    SELECT * FROM dormitory.get_consumption_report_by_hour($1::timestamptz, $2::timestamptz, $3)) AS records
+                    SELECT * FROM dormitory_get_consumption_report_by_hour($1::timestamptz, $2::timestamptz, $3)) AS records
                 ON h.hour = records.hour;")
         .bind(from)
         .bind(to)

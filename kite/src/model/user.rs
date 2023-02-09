@@ -18,7 +18,6 @@
 
 use anyhow::Result;
 use chrono::{DateTime, Local};
-
 use sqlx::PgPool;
 
 #[derive(Debug, sqlx::FromRow)]
@@ -50,7 +49,7 @@ pub mod validate {
 }
 
 pub async fn get(pool: &PgPool, uid: i32) -> Result<Option<User>> {
-    sqlx::query_as("SELECT uid, account, create_time, role, is_block FROM \"user\".account WHERE uid = $1 LIMIT 1;")
+    sqlx::query_as("SELECT uid, account, create_time, role, is_block FROM user_account WHERE uid = $1 LIMIT 1;")
         .bind(uid)
         .fetch_optional(pool)
         .await
@@ -58,7 +57,7 @@ pub async fn get(pool: &PgPool, uid: i32) -> Result<Option<User>> {
 }
 
 pub async fn query(pool: &PgPool, account: &str) -> Result<Option<User>> {
-    sqlx::query_as("SELECT uid, account, create_time, role, is_block FROM \"user\".account WHERE account = $1 LIMIT 1;")
+    sqlx::query_as("SELECT uid, account, create_time, role, is_block FROM user_account WHERE account = $1 LIMIT 1;")
         .bind(account)
         .fetch_optional(pool)
         .await
@@ -67,7 +66,7 @@ pub async fn query(pool: &PgPool, account: &str) -> Result<Option<User>> {
 
 pub async fn create(pool: &PgPool, account: &str, name: &str) -> Result<User> {
     sqlx::query_as(
-        "INSERT INTO \"user\".account (account, name) VALUES($1, $2) \
+        "INSERT INTO user_account (account, name) VALUES($1, $2) \
         ON CONFLICT (account) DO UPDATE SET account = $1, name = $2 \
         RETURNING uid, account, create_time, role, is_block;",
     )

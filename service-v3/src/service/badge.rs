@@ -37,7 +37,7 @@ impl Into<gen::Card> for model::Card {
 }
 
 async fn get_cards_list(pool: &PgPool, uid: i32) -> anyhow::Result<Vec<gen::Card>> {
-    let cards = sqlx::query_as("SELECT card, ts FROM fu.scan WHERE uid = $1 AND result = 3 AND card != 0;")
+    let cards = sqlx::query_as("SELECT card, ts FROM new_year_scanning WHERE uid = $1 AND result = 3 AND card != 0;")
         .bind(uid)
         .fetch_all(pool)
         .await?
@@ -48,7 +48,7 @@ async fn get_cards_list(pool: &PgPool, uid: i32) -> anyhow::Result<Vec<gen::Card
 }
 
 async fn append_share_log(pool: &PgPool, uid: i32) -> anyhow::Result<()> {
-    sqlx::query("INSERT INTO fu.share_log (uid) VALUES ($1);")
+    sqlx::query("INSERT INTO new_year_scanning (uid) VALUES ($1);")
         .bind(uid)
         .execute(pool)
         .await?;
