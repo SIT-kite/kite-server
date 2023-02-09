@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use anyhow::Result;
 use once_cell::sync::OnceCell;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Executor, PgPool};

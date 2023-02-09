@@ -21,7 +21,7 @@ use std::collections::{HashMap, HashSet};
 use anyhow::Result;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
-use sqlx::{Acquire, PgPool};
+use sqlx::PgPool;
 use tokio::time::Instant;
 
 use kite::model::balance as model;
