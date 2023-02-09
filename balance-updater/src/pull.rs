@@ -31,12 +31,8 @@ use kite::model::balance::ElectricityBalance;
 struct RawBalance {
     #[serde(rename = "RoomName")]
     room: String,
-    #[serde(rename = "BaseBalance")]
-    value1: f32,
-    #[serde(rename = "ElecBalance")]
-    value2: f32,
     #[serde(rename = "Balance")]
-    total: f32,
+    total: String,
 }
 
 type RoomNumber = i32;
@@ -91,7 +87,7 @@ async fn get_balance_list(room_set: &HashSet<RoomNumber>) -> Result<Vec<model::E
         .filter_map(|raw| {
             filter_valid_room(room_set, &raw.room).map(|id| model::ElectricityBalance {
                 room: id,
-                balance: raw.total,
+                balance: raw.total.parse().unwrap_or_default(),
                 ts: current.clone(),
             })
         })
@@ -131,6 +127,7 @@ pub async fn pull_balance_list(db: &PgPool) -> Result<()> {
 
     let start = Instant::now();
     let result = get_balance_list(&room_set).await?;
+    println!("hello world");
     tracing::info!("get {} records, cost {}s", result.len(), start.elapsed().as_secs_f32());
 
     let start = Instant::now();
