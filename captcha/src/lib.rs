@@ -24,8 +24,8 @@ use tokio::sync::{mpsc, oneshot};
 
 type AsyncChannelType = (Vec<u8>, oneshot::Sender<Result<String>>);
 
-const IMAGE_DEFAULT_WIDTH: usize = 92;
-const IMAGE_DEFAULT_HEIGHT: usize = 34;
+const IMAGE_DEFAULT_WIDTH: usize = 173;
+const IMAGE_DEFAULT_HEIGHT: usize = 64;
 
 const QUEUE_SIZE: usize = 20;
 
