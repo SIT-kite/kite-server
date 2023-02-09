@@ -21,7 +21,7 @@ use std::collections::{HashMap, HashSet};
 use anyhow::Result;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{Acquire, PgPool};
 use tokio::time::Instant;
 
 use kite::model::balance as model;
@@ -97,27 +97,27 @@ async fn get_balance_list(room_set: &HashSet<RoomNumber>) -> Result<Vec<model::E
 }
 
 async fn update_db(db: &PgPool, records: Vec<ElectricityBalance>) -> Result<()> {
-    sqlx::query(
-        "PREPARE update_balance AS
-        INSERT INTO dormitory_balance
-        (room, total_balance)
-        VALUES ($1, $2)
-    ON CONFLICT (room)
-        DO UPDATE
-        SET total_balance = $2, ts = $3;",
-    )
-    .execute(db)
-    .await?;
+    let rooms: Vec<i32> = records.iter().map(|x| x.room).collect();
+    let balance: Vec<f32> = records.iter().map(|x| x.balance).collect();
+    let ts = records.first().map(|x| x.ts);
 
-    for item in records {
-        sqlx::query("EXECUTE update_balance ($1, $2);")
-            .bind(item.room)
-            .bind(item.balance)
-            .execute(db)
-            .await?;
+    if let Some(ts) = ts {
+        let mut tx = db.begin().await?;
+
+        sqlx::query("DELETE FROM dormitory_balance;").execute(&mut tx).await?;
+        sqlx::query(
+            "INSERT INTO dormitory_balance
+                (room, total_balance, ts)
+            SELECT *, $3::timestamptz AS ts FROM UNNEST($1::int[], $2::float[]);",
+        )
+        .bind(rooms)
+        .bind(balance)
+        .bind(ts)
+        .execute(&mut tx)
+        .await?;
+
+        tx.commit().await?;
     }
-
-    sqlx::query("DEALLOCATE update_balance;").execute(db).await?;
     Ok(())
 }
 
@@ -127,7 +127,6 @@ pub async fn pull_balance_list(db: &PgPool) -> Result<()> {
 
     let start = Instant::now();
     let result = get_balance_list(&room_set).await?;
-    println!("hello world");
     tracing::info!("get {} records, cost {}s", result.len(), start.elapsed().as_secs_f32());
 
     let start = Instant::now();
