@@ -90,14 +90,15 @@ pub async fn grpc_server() {
         .add_service(captcha);
 
     // Unix socket
-    let server = if addr.starts_with('/') {
+    let server = if addr.starts_with('/') || addr.starts_with('.') {
         #[cfg(not(unix))]
         panic!("Unix socket can only be used on Unix-like operating system.");
 
         #[cfg(unix)]
         {
             let path = addr;
-            let uds = UnixListener::bind(path).expect("Failed to bind unix socket.");
+            let _ = tokio::fs::remove_file(&path).await;
+            let uds = UnixListener::bind(&path).expect("Failed to bind unix socket.");
             let stream = UnixListenerStream::new(uds);
 
             builder.serve_with_incoming(stream).await
