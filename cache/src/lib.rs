@@ -20,6 +20,9 @@ use anyhow::Context;
 use chrono::{Duration, Local};
 use once_cell::sync::OnceCell;
 
+pub const SCOPE_PUBLIC: u8 = 0;
+pub const SCOPE_BALANCE: u8 = 1;
+
 // TODO: Consider OS compatability
 const SLED_CACHE_PATH: &'static str = "./.runtime-cache/";
 
@@ -49,6 +52,17 @@ struct CacheItem<T: bincode::Encode + bincode::Decode> {
     pub last_update: i64,
     /// Value
     pub value: T,
+}
+
+#[macro_export]
+macro_rules! this_type {
+    ($v: expr) => {{
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let v = $v;
+        type_name_of(v)
+    }};
 }
 
 #[macro_export]
@@ -87,6 +101,12 @@ pub fn u64_to_u8_array(mut n: u64) -> [u8; 8] {
 #[macro_export]
 macro_rules! cache_calc_key {
     ($($arg: expr),*) => {{
+        $crate::cache_calc_key!(scope = $crare::SCOPE_PUBLIC, $($arg),*)
+    }};
+    (scope = $scope: expr; $($arg: expr),*) => {{
+        let scope = $scope;
+        assert!($crate::this_type!(scope) == "u8");
+
         let func: &str = $crate::this_function!();
         let mut hash_key: u64 = $crate::bkdr_hash(0, func.as_bytes());
         // TODO: Improve performance
@@ -95,17 +115,23 @@ macro_rules! cache_calc_key {
             hash_key = $crate::bkdr_hash(hash_key, parameter.as_bytes());
         )*
         // Return cache key
-        $crate::u64_to_u8_array(hash_key)
-    }};
+        let mut result = [0u8; 9];
+        result[0] = scope;
+        result[1..].copy_from_slice(&$crate::u64_to_u8_array(hash_key));
+        result
+    }}
 }
 
 #[macro_export]
 macro_rules! cache_query {
     (key = $($arg: expr),*; timeout = $timeout: expr) => {{
+        $crate::cache_query!(key = $($arg),*; scope = $crate::SCOPE_PUBLIC; timeout = $timeout)
+    }};
+    (key = $($arg: expr),*; scope = $scope: expr; timeout = $timeout: expr) => {{
         use $crate::CacheOperation;
 
         let cache = $crate::get();
-        let cache_key = $crate::cache_calc_key!($($arg),*);
+        let cache_key = $crate::cache_calc_key!(scope = $scope; $($arg),*);
 
         cache.get(&cache_key, $timeout)
     }};
@@ -114,10 +140,13 @@ macro_rules! cache_query {
 #[macro_export]
 macro_rules! cache_save {
     (key = $($arg: expr),*; value = $value: expr) => {{
+        $crate::cache_save!(scope = $crate::SCOPE_PUBLIC; key = $($arg),*; value = $value)
+    }};
+    (scope = $scope: expr; key = $($arg: expr),*; value = $value: expr) => {{
         use $crate::CacheOperation;
 
         let cache = $crate::get();
-        let cache_key = $crate::cache_calc_key!($($arg),*);
+        let cache_key = $crate::cache_calc_key!(scope = $scope; $($arg),*);
         if let Err(e) = cache.set(&cache_key, $value) {
             tracing::warn!("failed to write data back to cache.");
         }
@@ -127,6 +156,9 @@ macro_rules! cache_save {
 #[macro_export]
 macro_rules! cache_erase {
     (key = $($arg: expr),*) => {
+        $crate::cache_erase!(scope = $crate::SCOPE_PUBLIC; key = $($arg),*)
+    };
+    (scope = $scope: expr; key = $($arg: expr),*) => {{
         use $crate::CacheOperation;
 
         let cache = $crate::get();
@@ -134,7 +166,7 @@ macro_rules! cache_erase {
         if let Err(e) = cache.erase(&cache_key) {
             tracing::warn!("failed to erase item in cache (key: {:?}): {}", cache_key, e);
         }
-    };
+    }};
 }
 
 impl SledCache {
