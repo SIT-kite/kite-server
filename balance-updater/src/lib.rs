@@ -3,6 +3,7 @@ use tokio::time;
 
 use kite::service::KiteModule;
 
+mod cache;
 mod pull;
 
 pub struct BalanceUpdater {}

@@ -27,6 +27,8 @@ use tokio::time::Instant;
 use kite::model::balance as model;
 use kite::model::balance::ElectricityBalance;
 
+use super::cache::clear_cache;
+
 #[derive(Serialize, Deserialize)]
 struct RawBalance {
     #[serde(rename = "RoomName")]
@@ -134,5 +136,6 @@ pub async fn pull_balance_list(db: &PgPool) -> Result<()> {
     update_db(db, result).await?;
     tracing::info!("save {} records, cost {}s", count, start.elapsed().as_secs_f32());
 
+    clear_cache();
     Ok(())
 }

@@ -203,6 +203,15 @@ impl SledCache {
         self.0.remove(key)?;
         Ok(())
     }
+
+    pub fn erase_keys(&self, scope: u8) {
+        let v = self.0.scan_prefix(&[scope]);
+        v.keys().for_each(|key| {
+            if let Ok(key) = key {
+                let _ = self.0.remove(key);
+            }
+        });
+    }
 }
 
 impl<T> CacheOperation<T> for SledCache
