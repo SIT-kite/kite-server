@@ -33,6 +33,7 @@ async fn main() {
     captcha::async_init().await.expect("Failed to init captcha service.");
 
     tokio::join! {
-        service_v3::ServerV3::run()
+        service_v3::ServerV3::run(),
+        balance_updater::BalanceUpdater::run(),
     };
 }
