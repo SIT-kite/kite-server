@@ -17,9 +17,7 @@
  */
 
 use http::request;
-use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
-use tokio::net::UnixListener;
-use tokio_stream::wrappers::UnixListenerStream;
+use sqlx::{Executor, PgPool, postgres::PgPoolOptions};
 use tonic::transport::{Body, Server};
 use tonic_reflection::server::{ServerReflection, ServerReflectionServer};
 
@@ -96,6 +94,9 @@ pub async fn grpc_server() {
 
         #[cfg(unix)]
         {
+            use tokio::net::UnixListener;
+            use tokio_stream::wrappers::UnixListenerStream;
+
             let path = addr;
             let _ = tokio::fs::remove_file(&path).await;
             let uds = UnixListener::bind(&path).expect("Failed to bind unix socket.");
