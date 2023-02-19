@@ -36,6 +36,4 @@ pub mod constants {
     pub const DESKTOP_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36 Edg/97.0.1072.69";
     /// 验证码
     pub const CAPTCHA_URI: &str = "/authserver/captcha.html";
-    /// 验证码识别服务
-    pub const CAPTCHA_REORGANIZATION_URL: &str = "https://kite.sunnysab.cn/api/ocr/captcha";
 }

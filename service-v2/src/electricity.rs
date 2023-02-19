@@ -16,19 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use poem_openapi::param::Query;
-use poem_openapi::payload::PlainText;
-use poem_openapi::OpenApi;
+use poem::handler;
+use poem::web::{Data, Json, Path};
+use sqlx::PgPool;
 
-struct Electricity;
+use kite::model::balance as model;
 
-#[OpenApi]
-impl Electricity {
-    #[oai(path = "/hello", method = "get")]
-    async fn index(&self, name: Query<Option<String>>) -> PlainText<String> {
-        match name.0 {
-            Some(name) => PlainText(format!("hello, {}!", name)),
-            None => PlainText("hello!".to_string()),
-        }
-    }
+use crate::error::Result;
+use crate::response::ApiResponse;
+
+#[handler]
+pub async fn query_room_balance(pool: Data<&PgPool>, Path(room): Path<i32>) -> Result<Json<serde_json::Value>> {
+    let data = model::get_latest_balance(&pool, room).await?;
+
+    let content: serde_json::Value = if let Some(data) = data {
+        ApiResponse::normal(data).into()
+    } else {
+        ApiResponse::<()>::fail(404, "No such room.".to_string()).into()
+    };
+    Ok(Json(content))
 }

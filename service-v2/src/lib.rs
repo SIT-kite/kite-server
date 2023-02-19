@@ -16,11 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use poem::{listener::TcpListener, Route};
-use poem_openapi::payload::PlainText;
-use poem_openapi::{OpenApi, OpenApiService};
+use poem::middleware::AddData;
+use poem::{get, listener::TcpListener, EndpointExt, Route};
 
+use kite::get_db;
 use kite::service::KiteModule;
+
+mod response;
+
+mod electricity;
+mod error;
 
 pub struct ServerHttp;
 
@@ -31,19 +36,12 @@ impl KiteModule for ServerHttp {
     }
 }
 
-struct V2Interface;
-
-#[OpenApi]
-impl V2Interface {
-    #[oai(path = "/v2", method = "get")]
-    async fn index(&self) -> PlainText<String> {
-        PlainText("hello world!".to_string())
-    }
-}
-
 async fn http_service() -> Result<(), std::io::Error> {
-    let api_service = OpenApiService::new(V2Interface, "Kite service", "1.0");
-    let app = Route::new().nest("/api", api_service);
+    let route = Route::new().nest(
+        "/electricity",
+        Route::new().at("/room/:room", get(electricity::query_room_balance)),
+    );
 
+    let app = route.with(AddData::new(get_db().clone()));
     poem::Server::new(TcpListener::bind("127.0.0.1:3000")).run(app).await
 }

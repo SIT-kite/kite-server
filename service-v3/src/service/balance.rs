@@ -19,11 +19,12 @@
 use std::ops::Sub;
 
 use chrono::{DateTime, Duration, Local};
-use sqlx::PgPool;
 use tonic::{Request, Response, Status};
 
+use kite::model::balance as model;
+
 use crate::error::ToStatus;
-use crate::model::{balance as model, ToTimestamp};
+use crate::model::ToTimestamp;
 pub use crate::service::gen::balance as gen;
 
 impl Into<gen::RoomBalance> for model::ElectricityBalance {
@@ -70,75 +71,6 @@ impl Into<gen::ConsumptionRank> for model::RecentConsumptionRank {
     }
 }
 
-#[kite::cache_result(timeout = 900)]
-async fn get_latest_balance(pool: &PgPool, room: i32) -> Result<model::ElectricityBalance, Status> {
-    sqlx::query_as(
-        "SELECT room, total_balance AS balance, ts
-             FROM dormitory_balance
-             WHERE room = $1
-             ORDER BY ts DESC
-             LIMIT 1",
-    )
-    .bind(room)
-    .fetch_optional(pool)
-    .await
-    .map_err(ToStatus::to_status)?
-    .ok_or_else(|| Status::not_found("No such room"))
-}
-
-#[kite::cache_result(timeout = 43200)]
-async fn get_bill_in_day(
-    pool: &PgPool,
-    room: i32,
-    from: String,
-    to: String,
-) -> Result<Vec<model::DailyElectricityBill>, Status> {
-    sqlx::query_as(
-        "SELECT d.day AS date, COALESCE(records.charged_amount, 0.00) AS charge, ABS(COALESCE(records.used_amount, 0.00)) AS consumption
-                FROM (SELECT to_char(day_range, 'yyyy-MM-dd') AS day FROM generate_series($1::date,  $2::date, '1 day') AS day_range) d
-                LEFT JOIN (SELECT * FROM get_consumption_report_by_day($1::date, CAST($2::date + '1 day'::interval AS date), $3)) AS records
-                ON d.day = records.day;")
-        .bind(&from)
-        .bind(&to)
-        .bind(room)
-        .fetch_all(pool)
-        .await
-        .map_err(ToStatus::to_status)
-}
-
-#[kite::cache_result(timeout = 3600)]
-async fn get_bill_in_hour(
-    pool: &PgPool,
-    room: i32,
-    from: DateTime<Local>,
-    to: DateTime<Local>,
-) -> Result<Vec<model::HourlyElectricityBill>, Status> {
-    sqlx::query_as(
-        "SELECT h.hour AS time, COALESCE(records.charged_amount, 0.00) AS charge, ABS(COALESCE(records.used_amount, 0.00)) AS consumption
-                FROM (
-                    SELECT to_char(hour_range, 'yyyy-MM-dd HH24:00') AS hour
-                    FROM generate_series($1::timestamptz, $2::timestamptz, '1 hour') AS hour_range) h
-                LEFT JOIN (
-                    SELECT * FROM dormitory_get_consumption_report_by_hour($1::timestamptz, $2::timestamptz, $3)) AS records
-                ON h.hour = records.hour;")
-        .bind(from)
-        .bind(to)
-        .bind(room)
-        .fetch_all(pool)
-        .await
-        .map_err(ToStatus::to_status)
-}
-
-#[kite::cache_result(timeout = 3600)]
-async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<model::RecentConsumptionRank, Status> {
-    sqlx::query_as("SELECT room, consumption, rank, room_count FROM dormitory.get_room_24hour_rank($1);")
-        .bind(room)
-        .fetch_optional(pool)
-        .await
-        .map_err(ToStatus::to_status)?
-        .ok_or_else(|| Status::not_found("No such room"))
-}
-
 #[tonic::async_trait]
 impl gen::balance_service_server::BalanceService for super::KiteGrpcServer {
     async fn get_room_balance(
@@ -146,7 +78,11 @@ impl gen::balance_service_server::BalanceService for super::KiteGrpcServer {
         request: Request<gen::BalanceRequest>,
     ) -> Result<Response<gen::RoomBalance>, Status> {
         let room = request.into_inner().room_number;
-        let response = get_latest_balance(&self.db, room).await.map(Into::into)?;
+        let response = model::get_latest_balance(&self.db, room)
+            .await
+            .map_err(ToStatus::to_status)?
+            .ok_or_else(|| Status::not_found("No such room."))?
+            .into();
 
         Ok(Response::new(response))
     }
@@ -156,8 +92,11 @@ impl gen::balance_service_server::BalanceService for super::KiteGrpcServer {
         request: Request<gen::BalanceRequest>,
     ) -> Result<Response<gen::ConsumptionRank>, Status> {
         let room = request.into_inner().room_number;
-        let response = get_consumption_rank(&self.db, room).await.map(Into::into)?;
-
+        let response = model::get_consumption_rank(&self.db, room)
+            .await
+            .map_err(ToStatus::to_status)?
+            .ok_or_else(|| Status::not_found("No such room."))?
+            .into();
         Ok(Response::new(response))
     }
 
@@ -178,8 +117,9 @@ impl gen::balance_service_server::BalanceService for super::KiteGrpcServer {
                 let today = Local::now();
                 let last_week = today.sub(Duration::days(7));
 
-                get_bill_in_day(&self.db, request.room_number, to_str(last_week), to_str(today))
-                    .await?
+                model::get_bill_in_day(&self.db, request.room_number, to_str(last_week), to_str(today))
+                    .await
+                    .map_err(ToStatus::to_status)?
                     .into_iter()
                     .map(Into::into)
                     .collect()
@@ -188,8 +128,9 @@ impl gen::balance_service_server::BalanceService for super::KiteGrpcServer {
                 let now = Local::now();
                 let yesterday = now.sub(Duration::hours(24));
 
-                get_bill_in_hour(&self.db, request.room_number, yesterday, now)
-                    .await?
+                model::get_bill_in_hour(&self.db, request.room_number, yesterday, now)
+                    .await
+                    .map_err(ToStatus::to_status)?
                     .into_iter()
                     .map(Into::into)
                     .collect()

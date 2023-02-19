@@ -17,7 +17,7 @@
  */
 
 use http::request;
-use sqlx::{Executor, PgPool, postgres::PgPoolOptions};
+use sqlx::PgPool;
 use tonic::transport::{Body, Server};
 use tonic_reflection::server::{ServerReflection, ServerReflectionServer};
 

@@ -21,7 +21,6 @@ use tonic::{Request, Response, Status};
 
 use crate::error::ToStatus;
 use crate::model::classroom_browser as model;
-use crate::service::classroom_browser::gen::Classroom;
 pub use crate::service::gen::classroom_browser as gen;
 
 impl Into<model::ClassroomQuery> for gen::ClassroomQuery {
