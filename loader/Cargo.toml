@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 kite = { path = "../kite" }
 captcha = { path = "../captcha" }
+service-v2 = { path = "../service-v2" }
 service-v3 = { path = "../service-v3" }
 balance-updater = { path = "../balance-updater" }
 

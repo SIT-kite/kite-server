@@ -16,25 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use kite::cache;
-use kite::config;
-use kite::db;
-use kite::service::KiteModule;
+use poem_openapi::param::Query;
+use poem_openapi::payload::PlainText;
+use poem_openapi::OpenApi;
 
-#[tokio::main]
-async fn main() {
-    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
-    tracing::info!("Starting...");
+struct Electricity;
 
-    config::initialize();
-    cache::initialize();
-
-    db::initialize_db().await;
-    captcha::async_init().await;
-
-    tokio::join! {
-        service_v2::ServerHttp::run(),
-        service_v3::ServerV3::run(),
-        balance_updater::BalanceUpdater::run(),
-    };
+#[OpenApi]
+impl Electricity {
+    #[oai(path = "/hello", method = "get")]
+    async fn index(&self, name: Query<Option<String>>) -> PlainText<String> {
+        match name.0 {
+            Some(name) => PlainText(format!("hello, {}!", name)),
+            None => PlainText("hello!".to_string()),
+        }
+    }
 }

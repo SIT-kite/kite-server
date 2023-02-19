@@ -1605,6 +1605,7 @@ dependencies = [
  "balance-updater",
  "captcha",
  "kite",
+ "service-v2",
  "service-v3",
  "tokio",
  "tracing",
@@ -2974,9 +2975,10 @@ dependencies = [
 name = "service-v2"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "kite",
  "poem",
  "poem-openapi",
- "tokio",
 ]
 
 [[package]]
