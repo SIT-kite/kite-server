@@ -19,7 +19,7 @@
 use anyhow::Result;
 use sqlx::PgPool;
 
-pub async fn remove_unused(db: &PgPool) -> Result<()> {
+pub async fn remove_outdated(db: &PgPool) -> Result<()> {
     sqlx::query("DELETE FROM dormitory_balance WHERE ts < current_timestamp - '8days'::interval;")
         .execute(db)
         .await?;

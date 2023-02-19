@@ -49,11 +49,15 @@ async fn daemon() -> Result<()> {
         interval.tick().await;
         if i % 72 == 0 {
             // 72 * 20min = one day
-            let _ = vaccum::remove_unused(&db).await;
+            if let Err(e) = vaccum::remove_outdated(&db).await {
+                tracing::error!("Failed to remove outdated consumption record: {e}");
+            }
             i = 0;
         }
         // pull each 20min
-        let _ = pull::pull_balance_list(&db).await;
+        if let Err(e) = pull::pull_balance_list(&db).await {
+            tracing::error!("Failed to pull balance list: {e}");
+        }
         i += 1;
     }
 }
