@@ -1,17 +1,33 @@
+/*
+ * 上应小风筝  便利校园，一步到位
+ * Copyright (C) 2020-2023 上海应用技术大学 上应小风筝团队
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CaptchaRecognizeRequest {
     #[prost(bytes = "vec", tag = "1")]
     pub image: ::prost::alloc::vec::Vec<u8>,
 }
-
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CaptchaRecognizeResponse {
     #[prost(string, tag = "1")]
     pub text: ::prost::alloc::string::String,
 }
-
 /// Generated server implementations.
 pub mod captcha_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
@@ -26,16 +42,13 @@ pub mod captcha_service_server {
             request: tonic::Request<super::CaptchaRecognizeRequest>,
         ) -> Result<tonic::Response<super::CaptchaRecognizeResponse>, tonic::Status>;
     }
-
     #[derive(Debug)]
     pub struct CaptchaServiceServer<T: CaptchaService> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
     }
-
     struct _Inner<T>(Arc<T>);
-
     impl<T: CaptchaService> CaptchaServiceServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
@@ -67,7 +80,6 @@ pub mod captcha_service_server {
             self
         }
     }
-
     impl<T, B> tonic::codegen::Service<http::Request<B>> for CaptchaServiceServer<T>
     where
         T: CaptchaService,
@@ -120,7 +132,6 @@ pub mod captcha_service_server {
             }
         }
     }
-
     impl<T: CaptchaService> Clone for CaptchaServiceServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
@@ -131,19 +142,16 @@ pub mod captcha_service_server {
             }
         }
     }
-
     impl<T: CaptchaService> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(self.0.clone())
         }
     }
-
     impl<T: std::fmt::Debug> std::fmt::Debug for _Inner<T> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "{:?}", self.0)
         }
     }
-
     impl<T: CaptchaService> tonic::server::NamedService for CaptchaServiceServer<T> {
         const NAME: &'static str = "captcha.CaptchaService";
     }

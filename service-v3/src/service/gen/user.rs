@@ -1,3 +1,21 @@
+/*
+ * 上应小风筝  便利校园，一步到位
+ * Copyright (C) 2020-2023 上海应用技术大学 上应小风筝团队
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 /// 小风筝用户信息
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -48,7 +66,7 @@ pub mod client_stream {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ServerStream {
-    #[prost(oneof = "server_stream::Payload", tags = "1, 2")]
+    #[prost(oneof = "server_stream::Payload", tags = "1, 2, 3")]
     pub payload: ::core::option::Option<server_stream::Payload>,
 }
 /// Nested message and enum types in `ServerStream`.
@@ -62,6 +80,9 @@ pub mod server_stream {
         /// 来自 kite-server 的数据，经由 client 发往 authserver 的流数据
         #[prost(bytes, tag = "2")]
         TlsStream(::prost::alloc::vec::Vec<u8>),
+        /// 用户登录失败的错误提示
+        #[prost(string, tag = "3")]
+        Message(::prost::alloc::string::String),
     }
 }
 /// Generated server implementations.
