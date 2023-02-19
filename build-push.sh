@@ -20,5 +20,9 @@ cargo build --release
 cp target/release/loader kite-server-v3
 strip -s kite-server-v3
 
-scp kite-server-v3 kite@origin.kite.sunnysab.cn:~/kite-server-v3
-ssh kite@origin.kite.sunnysab.cn "systemctl --user restart kite3.service"
+scp kite-server-v3 kite@origin.kite.sunnysab.cn:~/kite-server-v3.new
+ssh kite@origin.kite.sunnysab.cn \
+  "systemctl --user stop kite3.service; \
+  mv kite-server-v3 kite-server-v3.old; \
+  mv kite-server-v3.new kite-server-v3; \
+  systemctl --user start kite3.service;"
