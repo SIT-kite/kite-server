@@ -8,5 +8,6 @@ members = [
     "kite",
     "loader",
     "service-v3",
+    "service-v2",
     "balance-updater",
 ]
