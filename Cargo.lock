@@ -566,7 +566,6 @@ dependencies = [
 [[package]]
 name = "d4ocr-rust"
 version = "0.1.0"
-source = "git+https://github.com/sunnysab/d4ocr-rust#86d40d7c97836d803516982b5a327a3bbe7aad50"
 dependencies = [
  "enum_dispatch",
  "image",

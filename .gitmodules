@@ -1,3 +1,6 @@
 [submodule "proto"]
 	path = proto
 	url = https://github.com/SIT-kite/kite-proto.git
+[submodule "d4ocr-rust"]
+	path = d4ocr-rust
+	url = https://github.com/sunnysab/d4ocr-rust

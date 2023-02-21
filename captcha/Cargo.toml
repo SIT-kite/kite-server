@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-d4ocr-rust = { git = "https://github.com/sunnysab/d4ocr-rust" }
+d4ocr-rust = { path = "../d4ocr-rust" }
 
 image = "0.24.1"
 anyhow = "1"
