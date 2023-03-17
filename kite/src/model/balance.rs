@@ -37,7 +37,7 @@ pub struct ElectricityBalance {
 }
 
 /// Electricity usage statistics by day
-#[derive(Clone, Encode, Decode, FromRow)]
+#[derive(Clone, Encode, Decode, Serialize, FromRow)]
 pub struct DailyElectricityBill {
     /// Date string in 'yyyy-mm-dd'
     pub date: String,
@@ -48,7 +48,7 @@ pub struct DailyElectricityBill {
 }
 
 /// Electricity usage statistics by hour
-#[derive(Clone, Encode, Decode, FromRow)]
+#[derive(Clone, Encode, Decode, Serialize, FromRow)]
 pub struct HourlyElectricityBill {
     /// Hour string in 'yyyy-mm-dd HH24:00'
     pub time: String,
@@ -59,7 +59,7 @@ pub struct HourlyElectricityBill {
 }
 
 /// Rank of recent-24hour consumption
-#[derive(Clone, Encode, Decode, FromRow)]
+#[derive(Clone, Encode, Decode, Serialize, FromRow)]
 pub struct RecentConsumptionRank {
     /// Consumption in last 24 hours.
     pub consumption: f32,
@@ -89,7 +89,7 @@ pub async fn get_bill_in_day(pool: &PgPool, room: i32, from: String, to: String)
     sqlx::query_as(
         "SELECT d.day AS date, COALESCE(records.charged_amount, 0.00) AS charge, ABS(COALESCE(records.used_amount, 0.00)) AS consumption
                 FROM (SELECT to_char(day_range, 'yyyy-MM-dd') AS day FROM generate_series($1::date,  $2::date, '1 day') AS day_range) d
-                LEFT JOIN (SELECT * FROM get_consumption_report_by_day($1::date, CAST($2::date + '1 day'::interval AS date), $3)) AS records
+                LEFT JOIN (SELECT * FROM dormitory_consumption_get_report_by_day($1::date, CAST($2::date + '1 day'::interval AS date), $3)) AS records
                 ON d.day = records.day;")
         .bind(&from)
         .bind(&to)
@@ -112,7 +112,7 @@ pub async fn get_bill_in_hour(
                     SELECT to_char(hour_range, 'yyyy-MM-dd HH24:00') AS hour
                     FROM generate_series($1::timestamptz, $2::timestamptz, '1 hour') AS hour_range) h
                 LEFT JOIN (
-                    SELECT * FROM dormitory_get_consumption_report_by_hour($1::timestamptz, $2::timestamptz, $3)) AS records
+                    SELECT * FROM dormitory_consumption_get_report_by_hour($1::timestamptz, $2::timestamptz, $3)) AS records
                 ON h.hour = records.hour;")
         .bind(from)
         .bind(to)
@@ -124,7 +124,7 @@ pub async fn get_bill_in_hour(
 
 #[crate::cache_result(timeout = 3600)]
 pub async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<Option<RecentConsumptionRank>> {
-    sqlx::query_as("SELECT room, consumption, rank, room_count FROM dormitory.get_room_24hour_rank($1);")
+    sqlx::query_as("SELECT room, consumption, rank, room_count FROM dormitory_consumption_get_room_24hour_rank($1);")
         .bind(room)
         .fetch_optional(pool)
         .await
