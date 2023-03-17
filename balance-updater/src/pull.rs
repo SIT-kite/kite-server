@@ -20,46 +20,73 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use chrono::Local;
-use serde::{Deserialize, Serialize};
+use once_cell::sync::OnceCell;
+use serde::de::Error;
+use serde::Deserialize;
 use sqlx::PgPool;
 use tokio::time::Instant;
 
-use kite::model::balance as model;
-use kite::model::balance::ElectricityBalance;
-
 use super::cache::clear_cache;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct RawBalance {
-    #[serde(rename = "RoomName")]
-    room: String,
-    #[serde(rename = "Balance")]
-    total: String,
+    #[serde(rename(deserialize = "RoomName"), deserialize_with = "str2i32")]
+    room: i32,
+    #[serde(rename(deserialize = "Balance"), deserialize_with = "str2float")]
+    total: f32,
 }
 
 type RoomNumber = i32;
 
-#[derive(Eq, Hash, PartialEq, sqlx::FromRow)]
-struct ValidRoom {
-    room: RoomNumber,
-}
+const INVALID_ROOM_NUMBER: RoomNumber = 0;
 
-async fn get_valid_room(db: &PgPool) -> Result<Vec<ValidRoom>> {
-    sqlx::query_as("SELECT id AS room FROM dormitory_room;")
-        .fetch_all(db)
-        .await
-        .map_err(Into::into)
-}
-
-fn filter_valid_room(set: &HashSet<RoomNumber>, room: &str) -> Option<i32> {
-    let room_number = room.parse::<i32>();
-
-    if let Ok(room_number) = room_number {
-        if set.contains(&room_number) {
-            return Some(room_number);
+fn str2i32<'de, D>(deserializer: D) -> Result<i32, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    // Some room numbers are start with "-" and used for testing, we will ignore them.
+    if let Ok(n) = s.parse::<RoomNumber>() {
+        if get_valid_room_set().contains(&n) {
+            return Ok(n);
         }
     }
-    None
+    Ok(INVALID_ROOM_NUMBER)
+}
+
+fn str2float<'de, D>(deserializer: D) -> Result<f32, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    s.parse::<f32>().map_err(Error::custom)
+}
+
+static VALID_ROOM_SET: OnceCell<HashSet<RoomNumber>> = OnceCell::new();
+
+async fn init_valid_room_set(db: &PgPool) -> Result<()> {
+    #[derive(Eq, Hash, PartialEq, sqlx::FromRow)]
+    struct ValidRoom {
+        room: RoomNumber,
+    }
+
+    // Ignore pulling if VALID_ROOM_SET is set.
+    if VALID_ROOM_SET.get().is_some() {
+        return Ok(());
+    }
+    let room_list: Vec<ValidRoom> = sqlx::query_as("SELECT id AS room FROM dormitory_room;")
+        .fetch_all(db)
+        .await?;
+
+    let set = HashSet::from_iter(room_list.into_iter().map(|s| s.room));
+    VALID_ROOM_SET.set(set).expect("Failed to set VALID_ROOM_SET");
+    Ok(())
+}
+
+fn get_valid_room_set() -> &'static HashSet<RoomNumber> {
+    VALID_ROOM_SET
+        .get()
+        .expect("init_valid_room_set() should be called first.")
 }
 
 async fn request_room_balance() -> Result<Vec<RawBalance>> {
@@ -80,55 +107,42 @@ async fn request_room_balance() -> Result<Vec<RawBalance>> {
     response.json::<Vec<RawBalance>>().await.map_err(Into::into)
 }
 
-async fn get_balance_list(room_set: &HashSet<RoomNumber>) -> Result<Vec<model::ElectricityBalance>> {
-    let current = Local::now();
-
+async fn get_balance_list() -> Result<Vec<RawBalance>> {
     let raw_response = request_room_balance().await?;
-    let result = raw_response
-        .into_iter()
-        .filter_map(|raw| {
-            filter_valid_room(room_set, &raw.room).map(|id| model::ElectricityBalance {
-                room: id,
-                balance: raw.total.parse().unwrap_or_default(),
-                ts: current.clone(),
-            })
-        })
-        .collect();
+    let filter = |r: &RawBalance| r.room != INVALID_ROOM_NUMBER;
+    let result = raw_response.into_iter().filter(filter).collect();
 
     Ok(result)
 }
 
-async fn update_db(db: &PgPool, records: Vec<ElectricityBalance>) -> Result<()> {
+async fn update_db(db: &PgPool, records: Vec<RawBalance>) -> Result<()> {
+    let current = Local::now();
     let rooms: Vec<i32> = records.iter().map(|x| x.room).collect();
-    let balance: Vec<f32> = records.iter().map(|x| x.balance).collect();
-    let ts = records.first().map(|x| x.ts);
+    let balance: Vec<f32> = records.iter().map(|x| x.total).collect();
 
-    if let Some(ts) = ts {
-        let mut tx = db.begin().await?;
-
-        sqlx::query("DELETE FROM dormitory_balance;").execute(&mut tx).await?;
-        sqlx::query(
-            "INSERT INTO dormitory_balance
+    // Consumption is calculated by dormitory_balance_trigger on PostgreSQL.
+    // Do not delete all data before any INSERT statement.
+    // Here, we use a single SQL statement instead of a for loop to speed up updating process.
+    sqlx::query(
+        "INSERT INTO dormitory_balance
                 (room, total_balance, ts)
-            SELECT *, $3::timestamptz AS ts FROM UNNEST($1::int[], $2::float[]);",
-        )
-        .bind(rooms)
-        .bind(balance)
-        .bind(ts)
-        .execute(&mut tx)
-        .await?;
+            SELECT *, $3::timestamptz AS ts FROM UNNEST($1::int[], $2::float[])
+            ON CONFLICT (room) DO UPDATE SET total_balance = excluded.total_balance, ts = excluded.ts;",
+    )
+    .bind(rooms)
+    .bind(balance)
+    .bind(current)
+    .execute(db)
+    .await?;
 
-        tx.commit().await?;
-    }
     Ok(())
 }
 
 pub async fn pull_balance_list(db: &PgPool) -> Result<()> {
-    let valid_rooms = get_valid_room(&db).await?;
-    let room_set = HashSet::from_iter(valid_rooms.into_iter().map(|s| s.room));
+    init_valid_room_set(db).await?;
 
     let start = Instant::now();
-    let result = get_balance_list(&room_set).await?;
+    let result = get_balance_list().await?;
     tracing::info!("get {} records, cost {}s", result.len(), start.elapsed().as_secs_f32());
 
     let start = Instant::now();

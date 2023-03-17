@@ -19,3 +19,4 @@ sqlx = { version = "0.6", default-features = false, features = ["runtime-tokio-r
 reqwest = { version = "*", features = ["json"] }
 
 tracing = "0.1"
+once_cell = "1.17"
