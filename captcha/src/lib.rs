@@ -17,10 +17,11 @@
  */
 
 use anyhow::{anyhow, Result};
-use d4ocr_rust::{ImageSize, TransformationPipeline};
 use image::EncodableLayout;
 use once_cell::sync::OnceCell;
 use tokio::sync::{mpsc, oneshot};
+
+use d4ocr_rust::{ImageSize, TransformationPipeline};
 
 type AsyncChannelType = (Vec<u8>, oneshot::Sender<Result<String>>);
 
@@ -59,7 +60,7 @@ pub async fn async_init() {
 
     let (tx, mut rx) = mpsc::channel::<AsyncChannelType>(QUEUE_SIZE);
     std::thread::spawn(move || {
-        if let Some((image, sender)) = rx.blocking_recv() {
+        while let Some((image, sender)) = rx.blocking_recv() {
             let result = recognize(image);
             let _ = sender.send(result);
         }
