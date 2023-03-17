@@ -17,13 +17,14 @@
  */
 
 use poem::middleware::AddData;
-use poem::{get, listener::TcpListener, EndpointExt, Route};
+use poem::{get, listener::TcpListener, post, EndpointExt, Route};
 
 use kite::get_db;
 use kite::service::KiteModule;
 
 mod response;
 
+mod captcha;
 mod electricity;
 mod error;
 
@@ -37,14 +38,16 @@ impl KiteModule for ServerHttp {
 }
 
 async fn http_service() -> Result<(), std::io::Error> {
-    let route = Route::new().nest(
-        "/electricity",
-        Route::new()
-            .at("/room/:room", get(electricity::query_room_balance))
-            .at("/room/:room/rank", get(electricity::query_room_consumption_rank))
-            .at("/room/:room/bill/days", get(electricity::query_room_bills_by_day))
-            .at("/room/:room/bill/hours", get(electricity::query_room_bills_by_hour)),
-    );
+    let route = Route::new()
+        .nest(
+            "/electricity",
+            Route::new()
+                .at("/room/:room", get(electricity::query_room_balance))
+                .at("/room/:room/rank", get(electricity::query_room_consumption_rank))
+                .at("/room/:room/bill/days", get(electricity::query_room_bills_by_day))
+                .at("/room/:room/bill/hours", get(electricity::query_room_bills_by_hour)),
+        )
+        .nest("/ocr", Route::new().at("/captcha", post(captcha::recognize_captcha)));
 
     let app = route.with(AddData::new(get_db().clone()));
     poem::Server::new(TcpListener::bind("127.0.0.1:3000")).run(app).await
