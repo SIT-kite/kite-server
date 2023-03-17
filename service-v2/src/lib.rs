@@ -39,7 +39,11 @@ impl KiteModule for ServerHttp {
 async fn http_service() -> Result<(), std::io::Error> {
     let route = Route::new().nest(
         "/electricity",
-        Route::new().at("/room/:room", get(electricity::query_room_balance)),
+        Route::new()
+            .at("/room/:room", get(electricity::query_room_balance))
+            .at("/room/:room/rank", get(electricity::query_room_consumption_rank))
+            .at("/room/:room/bill/days", get(electricity::query_room_bills_by_day))
+            .at("/room/:room/bill/hours", get(electricity::query_room_bills_by_hour)),
     );
 
     let app = route.with(AddData::new(get_db().clone()));
