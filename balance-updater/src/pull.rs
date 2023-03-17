@@ -16,14 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use std::collections::{HashMap, HashSet};
-
 use anyhow::Result;
 use chrono::Local;
 use once_cell::sync::OnceCell;
 use serde::de::Error;
 use serde::Deserialize;
 use sqlx::PgPool;
+use std::collections::{HashMap, HashSet};
 use tokio::time::Instant;
 
 use super::cache::clear_cache;
@@ -145,7 +144,7 @@ async fn update_ranking(db: &PgPool) -> Result<()> {
         ON CONFLICT (room)
         DO UPDATE
             SET consumption = excluded.consumption,
-                ranking = excluded.ranking;",
+                rank = excluded.rank;",
     )
     .execute(db)
     .await
