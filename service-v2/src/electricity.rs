@@ -18,10 +18,11 @@
 
 use std::ops::Sub;
 
-use chrono::Duration;
 use chrono::{Date, Local};
+use chrono::{DateTime, Duration};
 use poem::handler;
 use poem::web::{Data, Json, Path, Query};
+use serde::Serialize;
 use sqlx::PgPool;
 
 use kite::model::balance as model;
@@ -29,9 +30,34 @@ use kite::model::balance as model;
 use crate::error::Result;
 use crate::response::ApiResponse;
 
+#[derive(Serialize)]
+/// Electricity Balance for FengXian dormitory.
+pub struct ElectricityBalance {
+    /// Room id in the format described in the doc.
+    pub room: i32,
+    /// Total available amount
+    pub balance: f32,
+    /// Remaining power level
+    pub power: f32,
+    /// Last update time
+    pub ts: DateTime<Local>,
+}
+
+impl Into<ElectricityBalance> for model::ElectricityBalance {
+    fn into(self) -> ElectricityBalance {
+        let model::ElectricityBalance { room, balance, ts } = self;
+        ElectricityBalance {
+            room,
+            balance,
+            power: self.balance / 0.6,
+            ts,
+        }
+    }
+}
+
 #[handler]
 pub async fn query_room_balance(pool: Data<&PgPool>, Path(room): Path<i32>) -> Result<Json<serde_json::Value>> {
-    let data = model::get_latest_balance(&pool, room).await?;
+    let data: Option<ElectricityBalance> = model::get_latest_balance(&pool, room).await?.map(Into::into);
 
     let content: serde_json::Value = if let Some(data) = data {
         ApiResponse::normal(data).into()

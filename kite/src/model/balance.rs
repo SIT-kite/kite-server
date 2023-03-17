@@ -24,7 +24,7 @@ use sqlx::{FromRow, PgPool};
 
 use crate as kite;
 
-#[derive(Clone, Encode, Decode, Serialize, FromRow)]
+#[derive(Clone, Encode, Decode, FromRow)]
 /// Electricity Balance for FengXian dormitory.
 pub struct ElectricityBalance {
     /// Room id in the format described in the doc.
@@ -60,6 +60,7 @@ pub struct HourlyElectricityBill {
 
 /// Rank of recent-24hour consumption
 #[derive(Clone, Encode, Decode, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct RecentConsumptionRank {
     /// Consumption in last 24 hours.
     pub consumption: f32,
