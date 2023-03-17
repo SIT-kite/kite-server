@@ -26,7 +26,10 @@ use crate::response::ApiResponse;
 pub async fn recognize_captcha(body: String) -> Result<Json<serde_json::Value>> {
     async fn inner_recognize(image_in_base64: String) -> anyhow::Result<String> {
         let image = base64::decode(image_in_base64)?;
-        captcha::async_recognize(image).await
+        let text = captcha::async_recognize(image).await?;
+
+        tracing::info!("Captcha result: {text}");
+        Ok(text)
     }
 
     let result = if !body.is_empty() {
