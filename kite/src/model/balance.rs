@@ -125,7 +125,9 @@ pub async fn get_bill_in_hour(
 
 #[crate::cache_result(timeout = 3600)]
 pub async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<Option<RecentConsumptionRank>> {
-    sqlx::query_as("SELECT room, consumption, rank, (SELECT COUNT(*) FROM dormitory_consumption_ranking) AS room_count FROM dormitory_consumption_ranking;")
+    // The value of 'SELECT COUNT(*) FROM dormitory_room;' is 4565, which will not change in a long future.
+    // And be careful, room_count is of i32, while COUNT(*) returns a long long (int8) type.
+    sqlx::query_as("SELECT room, consumption, rank, 4565 AS room_count FROM dormitory_consumption_ranking;")
         .bind(room)
         .fetch_optional(pool)
         .await
