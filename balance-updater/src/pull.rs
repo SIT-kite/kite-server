@@ -133,9 +133,24 @@ async fn update_db(db: &PgPool, records: Vec<RawBalance>) -> Result<()> {
     .bind(balance)
     .bind(current)
     .execute(db)
-    .await?;
+    .await
+    .map(|_| ())
+    .map_err(Into::into)
+}
 
-    Ok(())
+async fn update_ranking(db: &PgPool) -> Result<()> {
+    sqlx::query(
+        "INSERT INTO dormitory_consumption_ranking
+        SELECT * FROM dormitory_do_rank()
+        ON CONFLICT (room)
+        DO UPDATE
+            SET consumption = excluded.consumption,
+                ranking = excluded.ranking;",
+    )
+    .execute(db)
+    .await
+    .map(|_| ())
+    .map_err(Into::into)
 }
 
 pub async fn pull_balance_list(db: &PgPool) -> Result<()> {
@@ -150,6 +165,7 @@ pub async fn pull_balance_list(db: &PgPool) -> Result<()> {
     update_db(db, result).await?;
     tracing::info!("save {} records, cost {}s", count, start.elapsed().as_secs_f32());
 
+    update_ranking(db).await?;
     clear_cache();
     Ok(())
 }

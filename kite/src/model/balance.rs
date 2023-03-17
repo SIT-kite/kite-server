@@ -125,7 +125,7 @@ pub async fn get_bill_in_hour(
 
 #[crate::cache_result(timeout = 3600)]
 pub async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<Option<RecentConsumptionRank>> {
-    sqlx::query_as("SELECT room, consumption, rank, room_count FROM dormitory_consumption_get_room_24hour_rank($1);")
+    sqlx::query_as("SELECT room, consumption, rank, (SELECT COUNT(*) FROM dormitory_consumption_ranking) AS room_count FROM dormitory_consumption_ranking;")
         .bind(room)
         .fetch_optional(pool)
         .await
