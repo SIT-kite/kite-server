@@ -138,15 +138,15 @@ async fn update_db(db: &PgPool, records: Vec<RawBalance>) -> Result<()> {
 }
 
 async fn update_ranking(db: &PgPool) -> Result<()> {
-    let transaction = db.begin().await?;
+    let mut transaction = db.begin().await?;
 
     sqlx::query("DELETE FROM dormitory_consumption_ranking;")
-        .execute(db)
+        .execute(&mut *transaction)
         .await?;
     sqlx::query(
         "INSERT INTO dormitory_consumption_ranking
         SELECT * FROM dormitory_do_rank();")
-        .execute(db)
+        .execute(&mut *transaction)
         .await?;
 
     transaction.commit().await.map_err(Into::into)
