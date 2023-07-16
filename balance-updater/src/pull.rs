@@ -21,7 +21,7 @@ use chrono::Local;
 use once_cell::sync::OnceCell;
 use serde::de::Error;
 use serde::Deserialize;
-use sqlx::PgPool;
+use sqlx::{Acquire, Connection, PgPool};
 use std::collections::{HashMap, HashSet};
 use tokio::time::Instant;
 
@@ -138,18 +138,18 @@ async fn update_db(db: &PgPool, records: Vec<RawBalance>) -> Result<()> {
 }
 
 async fn update_ranking(db: &PgPool) -> Result<()> {
+    let transaction = db.begin().await?;
+
+    sqlx::query("DELETE FROM dormitory_consumption_ranking;")
+        .execute(db)
+        .await?;
     sqlx::query(
         "INSERT INTO dormitory_consumption_ranking
-        SELECT * FROM dormitory_do_rank()
-        ON CONFLICT (room)
-        DO UPDATE
-            SET consumption = excluded.consumption,
-                rank = excluded.rank;",
-    )
-    .execute(db)
-    .await
-    .map(|_| ())
-    .map_err(Into::into)
+        SELECT * FROM dormitory_do_rank();")
+        .execute(db)
+        .await?;
+
+    transaction.commit().await.map_err(Into::into)
 }
 
 pub async fn pull_balance_list(db: &PgPool) -> Result<()> {

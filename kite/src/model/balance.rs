@@ -127,7 +127,8 @@ pub async fn get_bill_in_hour(
 pub async fn get_consumption_rank(pool: &PgPool, room: i32) -> Result<Option<RecentConsumptionRank>> {
     // The value of 'SELECT COUNT(*) FROM dormitory_room;' is 4565, which will not change in a long future.
     // And be careful, room_count is of i32, while COUNT(*) returns a long long (int8) type.
-    sqlx::query_as("SELECT room, consumption, rank, 4565 AS room_count FROM dormitory_consumption_ranking;")
+    sqlx::query_as("SELECT room, consumption, rank, 4565 AS room_count FROM dormitory_consumption_ranking
+                    WHERE room = $1;")
         .bind(room)
         .fetch_optional(pool)
         .await

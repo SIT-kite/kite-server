@@ -26,6 +26,7 @@ use serde::Serialize;
 use sqlx::PgPool;
 
 use kite::model::balance as model;
+use kite::model::balance::RecentConsumptionRank;
 
 use crate::error::Result;
 use crate::response::ApiResponse;
@@ -72,7 +73,12 @@ pub async fn query_room_consumption_rank(
     pool: Data<&PgPool>,
     Path(room): Path<i32>,
 ) -> Result<Json<serde_json::Value>> {
-    let data = model::get_consumption_rank(&pool, room).await?;
+    let data = model::get_consumption_rank(&pool, room).await?
+        .unwrap_or_else(|| RecentConsumptionRank {
+            consumption: 0.0,
+            rank: 4565,
+            room_count: 4565,
+        });
     let response: serde_json::Value = ApiResponse::normal(data).into();
 
     Ok(Json(response))
